@@ -20,7 +20,7 @@ public class AuthController : ControllerBase
     {
         var response = await _authService.RegisterAsync(request);
         return response is null
-            ? Conflict(new { message = "El correo ya estÃ¡ registrado." })
+            ? Conflict(new { message = "El correo ya está registrado." })
             : Ok(response);
     }
 
@@ -29,7 +29,7 @@ public class AuthController : ControllerBase
     {
         var response = await _authService.LoginAsync(request);
         return response is null
-            ? Unauthorized(new { message = "Credenciales invÃ¡lidas." })
+            ? Unauthorized(new { message = "Credenciales inválidas o cuenta inactiva." })
             : Ok(response);
     }
 }

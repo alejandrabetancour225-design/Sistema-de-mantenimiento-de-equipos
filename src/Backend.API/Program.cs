@@ -1,4 +1,6 @@
-﻿using System.Text;
+﻿using System.Security.Claims;
+using System.Text;
+using System.Text.Json.Serialization;
 using Backend.API.Data;
 using Backend.API.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -7,7 +9,9 @@ using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
@@ -23,6 +27,12 @@ if (string.IsNullOrEmpty(jwtKey))
         "Jwt:Key no está configurado. En desarrollo: dotnet user-secrets set \"Jwt:Key\" <clave>; en producción: variable de entorno Jwt__Key.");
 }
 
+if (string.IsNullOrEmpty(builder.Configuration["Encryption:Key"]))
+{
+    throw new InvalidOperationException(
+        "Encryption:Key no está configurado. En desarrollo: dotnet user-secrets set \"Encryption:Key\" <clave-base64-32-bytes>; en producción: variable de entorno Encryption__Key.");
+}
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -34,6 +44,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
             ValidIssuer = builder.Configuration["Jwt:Issuer"],
             ValidAudience = builder.Configuration["Jwt:Audience"],
+            RoleClaimType = ClaimTypes.Role,
             IssuerSigningKey = new SymmetricSecurityKey(
                 Encoding.UTF8.GetBytes(jwtKey))
         };
@@ -58,9 +69,13 @@ builder.Services.AddCors(options =>
     });
 });
 
+builder.Services.AddSingleton<IEncryptionService, EncryptionService>();
 builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IRoleService, RoleService>();
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IEquipmentService, EquipmentService>();
 
 var app = builder.Build();
 

@@ -1,12 +1,16 @@
 @Backend.API_HostAddress = http://localhost:5255
+@token = PEGA-AQUI-EL-TOKEN-DEL-ADMIN
+@userId = PEGA-AQUI-EL-ID-DEL-USUARIO
+@equipmentId = PEGA-AQUI-EL-ID-DEL-EQUIPO
 
 POST {{Backend.API_HostAddress}}/api/auth/register
 Content-Type: application/json
 
 {
-  "name": "Juan",
+  "fullName": "Juan Pérez",
   "email": "juan@test.com",
-  "password": "secreto123"
+  "password": "secreto123",
+  "phone": "3001234567"
 }
 
 ###
@@ -18,5 +22,93 @@ Content-Type: application/json
   "email": "juan@test.com",
   "password": "secreto123"
 }
+
+###
+
+GET {{Backend.API_HostAddress}}/api/roles
+Authorization: Bearer {{token}}
+
+###
+
+GET {{Backend.API_HostAddress}}/api/users
+Authorization: Bearer {{token}}
+
+###
+
+PUT {{Backend.API_HostAddress}}/api/users/{{userId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "active": false,
+  "role": "Empleado",
+  "phone": "3009876543",
+  "email": "nuevo@test.com"
+}
+
+###
+
+PUT {{Backend.API_HostAddress}}/api/users/{{userId}}/role
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "role": "Técnico"
+}
+
+###
+
+GET {{Backend.API_HostAddress}}/api/equipment/GetEquipmentList
+Authorization: Bearer {{token}}
+
+###
+
+GET {{Backend.API_HostAddress}}/api/equipment/GetEquipmentById/{{equipmentId}}
+Authorization: Bearer {{token}}
+
+###
+
+POST {{Backend.API_HostAddress}}/api/equipment/PostNewEquipment
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "internalCode": "EQ-001",
+  "serialNumber": "SN-ABC-123",
+  "type": "Laptop",
+  "brand": "Dell",
+  "model": "Latitude 5420",
+  "characteristics": { "ram": "16GB", "cpu": "i7", "storage": "512GB SSD" },
+  "acquisitionDate": "2024-03-15",
+  "acquisitionPrice": 1200.50,
+  "warrantyUntil": "2027-03-15",
+  "location": "Oficina 201"
+}
+
+###
+
+PUT {{Backend.API_HostAddress}}/api/equipment/PutEquipment/{{equipmentId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "brand": "Dell Inc.",
+  "location": "Oficina 202"
+}
+
+###
+
+PATCH {{Backend.API_HostAddress}}/api/equipment/PatchEquipmentStatus/{{equipmentId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "status": "IN_USE"
+}
+
+###
+
+DELETE {{Backend.API_HostAddress}}/api/equipment/DeleteEquipment/{{equipmentId}}
+Authorization: Bearer {{token}}
 
 ###
