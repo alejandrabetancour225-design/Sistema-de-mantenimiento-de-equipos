@@ -4,8 +4,15 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEquipmentList } from "../hooks/useEquipmentList";
 import { deleteEquipment } from "../services/equipmentServices";
 import { EQUIPMENT_STATUS_LABEL, type EquipmentStatus } from "../types/equipment";
+import { useAuth } from "../context/authContext";
+
+// Solo Administrador y Técnico pueden crear/editar/dar de baja equipos
+// (mismo criterio que el backend en los endpoints Post/Put/Delete).
+const CAN_MANAGE_EQUIPMENT = ["Administrador", "Técnico"];
 
 export function EquipoListPage() {
+  const { role } = useAuth();
+  const canManage = !!role && CAN_MANAGE_EQUIPMENT.includes(role);
   const { data, isLoading, error } = useEquipmentList();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
@@ -44,12 +51,14 @@ export function EquipoListPage() {
      <div className="flex items-center justify-between gap-4">
         <h1 className="text-xl font-semibold">Equipos</h1>
 
-        <Link
-            to="/equipos/nuevo"
-            className="rounded-lg bg-blue-600 px-5 py-2.5 font-medium text-white shadow-sm transition hover:bg-blue-700"
-        >
-            + Nuevo equipo
-        </Link>
+        {canManage && (
+          <Link
+              to="/equipos/nuevo"
+              className="rounded-lg bg-blue-600 px-5 py-2.5 font-medium text-white shadow-sm transition hover:bg-blue-700"
+          >
+              + Nuevo equipo
+          </Link>
+        )}
        </div>
       <div className="flex gap-2">
         <input
@@ -80,7 +89,7 @@ export function EquipoListPage() {
             <th>Marca / Modelo</th>
             <th>Ubicación</th>
             <th>Estado</th>
-            <th></th>
+            {canManage && <th></th>}
           </tr>
         </thead>
         <tbody>
@@ -95,19 +104,21 @@ export function EquipoListPage() {
               <td>{eq.brand} {eq.model}</td>
               <td>{eq.location}</td>
               <td>{EQUIPMENT_STATUS_LABEL[eq.status]}</td>
-              <td className="space-x-2 text-right">
-                <Link to={`/equipos/${eq.id}/editar`} className="text-blue-600">
-                  Editar
-                </Link>
-                <button onClick={() => handleDelete(eq.id)} className="text-red-600">
-                  Dar de baja
-                </button>
-              </td>
+              {canManage && (
+                <td className="space-x-2 text-right">
+                  <Link to={`/equipos/${eq.id}/editar`} className="text-blue-600">
+                    Editar
+                  </Link>
+                  <button onClick={() => handleDelete(eq.id)} className="text-red-600">
+                    Dar de baja
+                  </button>
+                </td>
+              )}
             </tr>
           ))}
           {filtered.length === 0 && (
             <tr>
-              <td colSpan={6} className="py-4 text-center text-gray-500">
+              <td colSpan={canManage ? 6 : 5} className="py-4 text-center text-gray-500">
                 No hay equipos que coincidan.
               </td>
             </tr>

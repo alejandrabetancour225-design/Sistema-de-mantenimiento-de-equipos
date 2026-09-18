@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/authContext";
+import RoleBadge from "./RoleBadge";
  
 export default function Navbar() {
   const { isAuthenticated, role, fullName, logout } = useAuth();
@@ -21,6 +22,7 @@ export default function Navbar() {
           <Link to="/equipos">Equipos</Link>
           {role === "Administrador" && <Link to="/usuarios">Usuarios</Link>}
           <span className="opacity-75">{fullName}</span>
+          {role && <RoleBadge role={role} />}
           <button onClick={handleLogout} className="underline">
             Salir
           </button>
