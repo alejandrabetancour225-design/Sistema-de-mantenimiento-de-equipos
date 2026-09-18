@@ -1,73 +1,119 @@
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { registerSchema, type RegisterFormData } from "../schemas/authSchemas";
-import { useRegister, getAuthErrorMessage } from "../hooks/useAuthMutations";
+import { z } from "zod";
+import { register as registerUser } from "../services/authServices";
+import { useAuth } from "../context/authContext";
+
+const schema = z.object({
+  fullName: z.string().min(1, "Requerido"),
+  email: z.string().email("Correo inválido"),
+  password: z.string().min(6, "Mínimo 6 caracteres"),
+  phone: z.string().optional(),
+});
+
+type FormValues = z.infer<typeof schema>;
 
 export default function RegisterPage() {
+  const [values, setValues] = useState<FormValues>({
+    fullName: "",
+    email: "",
+    password: "",
+    phone: "",
+  });
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const { setSession } = useAuth();
   const navigate = useNavigate();
-  const registerMutation = useRegister();
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<RegisterFormData>({ resolver: zodResolver(registerSchema) });
 
-  const onSubmit = (data: RegisterFormData) => {
-    registerMutation.mutate(data, { onSuccess: () => navigate("/dashboard") });
-  };
+  function handleChange(field: keyof FormValues, value: string) {
+    setValues((prev) => ({ ...prev, [field]: value }));
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+
+    const parsed = schema.safeParse(values);
+    if (!parsed.success) {
+      setError(parsed.error.issues[0].message);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // El backend ignora cualquier rol que se mande aquí: al primer usuario
+      // del sistema lo hace Administrador automáticamente, y a todos los
+      // siguientes les asigna el rol "Cliente" por defecto. Un Administrador
+      // debe reasignar el rol después desde la gestión de usuarios.
+      const data = await registerUser(parsed.data);
+      setSession(data);
+      navigate("/");
+    } catch (err: any) {
+      // El backend responde 409 con { message } si el correo ya está registrado.
+      setError(err.response?.data?.message ?? "No se pudo completar el registro.");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <form
-        onSubmit={handleSubmit(onSubmit)}
-        className="w-full max-w-sm bg-white p-8 rounded-lg shadow"
-      >
-        <h1 className="text-2xl font-semibold mb-6">Crear cuenta</h1>
+    <form onSubmit={handleSubmit} className="mx-auto max-w-sm space-y-4 p-8">
+      <h1 className="text-xl font-semibold">Crear cuenta</h1>
 
-        <label className="block mb-1 text-sm font-medium">Nombre</label>
-        <input {...register("name")} className="w-full mb-1 border rounded px-3 py-2" />
-        {errors.name && <p className="text-red-500 text-sm mb-2">{errors.name.message}</p>}
+      <div>
+        <label className="block text-sm font-medium">Nombre completo</label>
+        <input
+          value={values.fullName}
+          onChange={(e) => handleChange("fullName", e.target.value)}
+          className="input"
+        />
+      </div>
 
-        <label className="block mb-1 text-sm font-medium mt-3">Correo</label>
+      <div>
+        <label className="block text-sm font-medium">Correo</label>
         <input
           type="email"
-          {...register("email")}
-          className="w-full mb-1 border rounded px-3 py-2"
+          value={values.email}
+          onChange={(e) => handleChange("email", e.target.value)}
+          className="input"
         />
-        {errors.email && <p className="text-red-500 text-sm mb-2">{errors.email.message}</p>}
+      </div>
 
-        <label className="block mb-1 text-sm font-medium mt-3">Contraseña</label>
+      <div>
+        <label className="block text-sm font-medium">Contraseña</label>
         <input
           type="password"
-          {...register("password")}
-          className="w-full mb-1 border rounded px-3 py-2"
+          value={values.password}
+          onChange={(e) => handleChange("password", e.target.value)}
+          className="input"
         />
-        {errors.password && (
-          <p className="text-red-500 text-sm mb-2">{errors.password.message}</p>
-        )}
+      </div>
 
-        {registerMutation.isError && (
-          <p className="text-red-600 text-sm mt-2">
-            {getAuthErrorMessage(registerMutation.error)}
-          </p>
-        )}
+      <div>
+        <label className="block text-sm font-medium">Teléfono (opcional)</label>
+        <input
+          value={values.phone}
+          onChange={(e) => handleChange("phone", e.target.value)}
+          className="input"
+        />
+      </div>
 
-        <button
-          type="submit"
-          disabled={registerMutation.isPending}
-          className="w-full mt-4 bg-blue-600 text-white py-2 rounded hover:bg-blue-700 disabled:opacity-50"
-        >
-          {registerMutation.isPending ? "Creando..." : "Crear cuenta"}
-        </button>
+      {error && <p className="text-sm text-red-600">{error}</p>}
 
-        <p className="text-sm text-center mt-4">
-          ¿Ya tienes cuenta?{" "}
-          <Link to="/login" className="text-blue-600">
-            Inicia sesión
-          </Link>
-        </p>
-      </form>
-    </div>
+      <button
+        type="submit"
+        disabled={loading}
+        className="w-full rounded bg-blue-600 py-2 text-white disabled:opacity-50"
+      >
+        {loading ? "Creando cuenta..." : "Registrarme"}
+      </button>
+
+      <p className="text-center text-sm">
+        ¿Ya tienes cuenta?{" "}
+        <Link to="/login" className="text-blue-600">
+          Inicia sesión
+        </Link>
+      </p>
+    </form>
   );
 }

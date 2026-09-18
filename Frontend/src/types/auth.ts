@@ -1,7 +1,9 @@
+export type Role ="Administrator" | "Técnico" | "Empleado" | "Cliente";
 export interface RegisterRequest {
-  name: string;
+  fullName: string;
   email: string;
   password: string;
+  phone?: string;
 }
 
 export interface LoginRequest {
@@ -11,6 +13,8 @@ export interface LoginRequest {
 
 export interface AuthResponse {
   token: string;
-  name: string;
+  fullName: string;
   email: string;
+  role?: Role;
+  active: boolean;
 }

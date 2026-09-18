@@ -2,6 +2,8 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
+import { EquipoListPage } from "./pages/EquipoListPage";
+import { EquipoFormPage } from "./pages/EquipoFormPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Navbar from "./components/Navbar";
 
@@ -22,6 +24,9 @@ export default function App() {
 
       <Route element={<ProtectedRoute />}>
         <Route path="/dashboard" element={<h1 className="p-8">Dashboard (pendiente)</h1>} />
+        <Route path="/equipos" element={<EquipoListPage />} />
+        <Route path="/equipos/nuevo" element={<EquipoFormPage />} />
+        <Route path="/equipos/:id/editar" element={<EquipoFormPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" />} />

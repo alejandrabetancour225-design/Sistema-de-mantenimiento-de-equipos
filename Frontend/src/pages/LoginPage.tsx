@@ -1,71 +1,86 @@
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { loginSchema, type LoginFormData } from "../schemas/authSchemas";
-import { useLogin, getAuthErrorMessage } from "../hooks/useAuthMutations";
+import { z } from "zod";
+import { login } from "../services/authServices";
+import { useAuth } from "../context/authContext";
+
+const schema = z.object({
+  email: z.string().email("Correo inválido"),
+  password: z.string().min(1, "La contraseña es requerida"),
+});
 
 export default function LoginPage() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const { setSession } = useAuth();
   const navigate = useNavigate();
-  const loginMutation = useLogin();
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<LoginFormData>({ resolver: zodResolver(loginSchema) });
 
-  const onSubmit = (data: LoginFormData) => {
-    loginMutation.mutate(data, { onSuccess: () => navigate("/dashboard") });
-  };
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+
+    const parsed = schema.safeParse({ email, password });
+    if (!parsed.success) {
+      setError(parsed.error.issues[0].message);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const data = await login(parsed.data);
+      setSession(data);
+      navigate("/");
+    } catch (err: any) {
+      // El backend responde 401 con { message } si las credenciales son
+      // inválidas o la cuenta quedó bloqueada tras varios intentos fallidos.
+      setError(err.response?.data?.message ?? "No se pudo iniciar sesión.");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <form
-        onSubmit={handleSubmit(onSubmit)}
-        className="w-full max-w-sm bg-white p-8 rounded-lg shadow"
-      >
-        <h1 className="text-2xl font-semibold mb-6">Iniciar sesión</h1>
+    <form onSubmit={handleSubmit} className="mx-auto max-w-sm space-y-4 p-8">
+      <h1 className="text-xl font-semibold">Iniciar sesión</h1>
 
-        <label className="block mb-1 text-sm font-medium">Correo</label>
+      <div>
+        <label className="block text-sm font-medium">Correo</label>
         <input
           type="email"
-          {...register("email")}
-          className="w-full mb-1 border rounded px-3 py-2"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="input"
         />
-        {errors.email && (
-          <p className="text-red-500 text-sm mb-2">{errors.email.message}</p>
-        )}
+      </div>
 
-        <label className="block mb-1 text-sm font-medium mt-3">Contraseña</label>
+      <div>
+        <label className="block text-sm font-medium">Contraseña</label>
         <input
           type="password"
-          {...register("password")}
-          className="w-full mb-1 border rounded px-3 py-2"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          className="input"
         />
-        {errors.password && (
-          <p className="text-red-500 text-sm mb-2">{errors.password.message}</p>
-        )}
+      </div>
 
-        {loginMutation.isError && (
-          <p className="text-red-600 text-sm mt-2">
-            {getAuthErrorMessage(loginMutation.error)}
-          </p>
-        )}
+      {error && <p className="text-sm text-red-600">{error}</p>}
 
-        <button
-          type="submit"
-          disabled={loginMutation.isPending}
-          className="w-full mt-4 bg-blue-600 text-white py-2 rounded hover:bg-blue-700 disabled:opacity-50"
-        >
-          {loginMutation.isPending ? "Ingresando..." : "Ingresar"}
-        </button>
+      <button
+        type="submit"
+        disabled={loading}
+        className="w-full rounded bg-blue-600 py-2 text-white disabled:opacity-50"
+      >
+        {loading ? "Ingresando..." : "Ingresar"}
+      </button>
 
-        <p className="text-sm text-center mt-4">
-          ¿No tienes cuenta?{" "}
-          <Link to="/register" className="text-blue-600">
-            Regístrate
-          </Link>
-        </p>
-      </form>
-    </div>
+      <p className="text-center text-sm">
+        ¿No tienes cuenta?{" "}
+        <Link to="/register" className="text-blue-600">
+          Regístrate
+        </Link>
+      </p>
+    </form>
   );
 }

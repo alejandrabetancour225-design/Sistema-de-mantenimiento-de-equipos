@@ -1,48 +1,55 @@
 import { createContext, useContext, useState, type ReactNode } from "react";
-import type { AuthResponse } from "../types/auth";
+import type { AuthResponse, Role } from "../types/auth";
 
-interface AuthUser {
-  name: string;
-  email: string;
-}
-
-interface AuthContextType {
-  user: AuthUser | null;
+interface AuthState {
+  token: string | null;
+  fullName: string | null;
+  role: Role | null;
   isAuthenticated: boolean;
   setSession: (data: AuthResponse) => void;
   logout: () => void;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthState | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(() => {
-    const name = localStorage.getItem("userName");
-    const email = localStorage.getItem("userEmail");
-    return name && email ? { name, email } : null;
-  });
+  const [token, setToken] = useState<string | null>(() => localStorage.getItem("token"));
+  const [role, setRole] = useState<Role | null>(
+    () => (localStorage.getItem("role") as Role | null) ?? null
+  );
+  const [fullName, setFullName] = useState<string | null>(
+    () => localStorage.getItem("fullName")
+  );
 
-  const setSession = (data: AuthResponse) => {
+  function setSession(data: AuthResponse) {
     localStorage.setItem("token", data.token);
-    localStorage.setItem("userName", data.name);
-    localStorage.setItem("userEmail", data.email);
-    setUser({ name: data.name, email: data.email });
-  };
+    if (data.role) localStorage.setItem("role", data.role);
+    localStorage.setItem("fullName", data.fullName);
+    setToken(data.token);
+    setRole(data.role ?? null);
+    setFullName(data.fullName);
+  }
 
-  const logout = () => {
-    localStorage.clear();
-    setUser(null);
-  };
+  function logout() {
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    localStorage.removeItem("fullName");
+    setToken(null);
+    setRole(null);
+    setFullName(null);
+  }
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, setSession, logout }}>
+    <AuthContext.Provider
+      value={{ token, role, fullName, isAuthenticated: !!token, setSession, logout }}
+    >
       {children}
     </AuthContext.Provider>
   );
 }
 
-export function useAuthContext() {
+export function useAuth() {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuthContext debe usarse dentro de AuthProvider");
+  if (!ctx) throw new Error("useAuth debe usarse dentro de <AuthProvider>");
   return ctx;
 }
