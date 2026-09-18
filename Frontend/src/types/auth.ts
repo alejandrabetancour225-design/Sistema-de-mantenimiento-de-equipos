@@ -1,4 +1,5 @@
-export type Role ="Administrator" | "Técnico" | "Empleado" | "Cliente";
+
+export type Role = "Administrador" | "Técnico" | "Empleado" | "Cliente";
 export interface RegisterRequest {
   fullName: string;
   email: string;

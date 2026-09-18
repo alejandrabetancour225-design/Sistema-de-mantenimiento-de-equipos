@@ -43,6 +43,7 @@ export function EquipoListPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">Equipos</h1>
+        <p></p>
         <Link to="/equipos/nuevo" className="rounded bg-blue-600 px-4 py-2 text-white">
           + Nuevo equipo
         </Link>
