@@ -40,15 +40,17 @@ export function EquipoListPage() {
   if (error) return <p className="text-red-600">Error al cargar los equipos.</p>;
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 px-6 py-6">
+     <div className="flex items-center justify-between gap-4">
         <h1 className="text-xl font-semibold">Equipos</h1>
-        <p></p>
-        <Link to="/equipos/nuevo" className="rounded bg-blue-600 px-4 py-2 text-white">
-          + Nuevo equipo
-        </Link>
-      </div>
 
+        <Link
+            to="/equipos/nuevo"
+            className="rounded-lg bg-blue-600 px-5 py-2.5 font-medium text-white shadow-sm transition hover:bg-blue-700"
+        >
+            + Nuevo equipo
+        </Link>
+       </div>
       <div className="flex gap-2">
         <input
           placeholder="Buscar por código, serie o marca..."
