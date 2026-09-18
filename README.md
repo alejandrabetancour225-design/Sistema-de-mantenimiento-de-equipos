@@ -94,14 +94,3 @@ Y que el backend permita ese origen en `appsettings.json`:
 "Cors": { "AllowedOrigins": ["http://localhost:5173"] }
 ```
 
-## Equipo del proyecto
-
-| Rol | Responsabilidad |
-|---|---|
-| Cliente | Necesidad del negocio, prioridades y validación |
-| Product Owner | Gestionar y priorizar el Product Backlog |
-| Scrum Master | Facilitar Scrum y eliminar impedimentos |
-| Frontend | Interfaz y experiencia de usuario |
-| Backend | Lógica, servicios, datos e integración |
-| QA | Pruebas y validación de calidad |
-| Seguridad | Requisitos, riesgos y controles de seguridad |
