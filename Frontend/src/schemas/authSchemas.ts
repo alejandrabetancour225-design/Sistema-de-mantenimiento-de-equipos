@@ -9,7 +9,9 @@ export const registerSchema = z.object({
   fullName: z.string().min(1, "El nombre es obligatorio"),
   email: z.string().email("Correo inválido"),
   password: z.string().min(6, "Mínimo 6 caracteres"),
-  phone: z.string().optional(),
+    phone: z.string()
+    .optional()
+    .transform((v) => (v?.trim() ? v.trim() : undefined)),
 });
 
 export type LoginFormData = z.infer<typeof loginSchema>;
