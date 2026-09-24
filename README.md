@@ -333,4 +333,4 @@ Tabla `Roles`: `Id`, `Name` (4 roles fijos).
 Tabla `Equipments`: `Id`, `InternalCode` (único), `SerialNumber` (único), `Type`, `Brand`, `Model`, `Characteristics` (jsonb), `AcquisitionDate`, `AcquisitionPrice`, `WarrantyUntil`, `Location`, `Status`, `CreatedAt`, `UpdatedAt`.
 Tabla `Assignments`: `Id`, `EquipmentId` (FK), `UserId` (FK), `AssignedAt`, `ReleasedAt`, `Status`, `Observations`.
 
-Para conectarse desde un cliente (DBeaver, pgAdmin): host `localhost`, puerto `5432`, base `database`, usuario `postgres`, contraseña `postgres`.
+Para conectarse desde un cliente (DBeaver, pgAdmin): host `localhost`, puerto `5432`, base `database`, usuario `postgres`, contraseña `postgres`.git status
