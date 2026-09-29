@@ -17,4 +17,5 @@ public class User
     public Role? Role { get; set; }
 
     public ICollection<Assignment>? Assignments { get; set; }
+    public ICollection<Incident>? Incidents { get; set; }
 }

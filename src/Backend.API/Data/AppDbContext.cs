@@ -11,6 +11,8 @@ public class AppDbContext : DbContext
     public DbSet<Role> Roles => Set<Role>();
     public DbSet<Equipment> Equipments => Set<Equipment>();
     public DbSet<Assignment> Assignments => Set<Assignment>();
+    public DbSet<EquipmentComponent> EquipmentComponents => Set<EquipmentComponent>();
+    public DbSet<Incident> Incidents => Set<Incident>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -42,6 +44,30 @@ public class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict);
             entity.HasIndex(a => a.EquipmentId);
             entity.HasIndex(a => a.UserId);
+        });
+
+        modelBuilder.Entity<EquipmentComponent>(entity =>
+        {
+            entity.HasOne(c => c.Equipment)
+                .WithMany(e => e.Components!)
+                .HasForeignKey(c => c.EquipmentId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(c => c.EquipmentId);
+            entity.Property(c => c.Specifications).HasColumnType("jsonb");
+        });
+
+        modelBuilder.Entity<Incident>(entity =>
+        {
+            entity.HasOne(i => i.Equipment)
+                .WithMany(e => e.Incidents!)
+                .HasForeignKey(i => i.EquipmentId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(i => i.Reporter)
+                .WithMany(u => u.Incidents!)
+                .HasForeignKey(i => i.ReportedBy)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(i => i.EquipmentId);
+            entity.HasIndex(i => i.ReportedBy);
         });
 
         modelBuilder.Entity<Role>().HasData(

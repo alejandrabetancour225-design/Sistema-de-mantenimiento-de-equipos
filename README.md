@@ -153,6 +153,18 @@ Si quieres volver a usar el PostgreSQL local de Docker, revierte la sección `Da
 | POST   | `/api/assignment/AssignEquipment`          | Administrador/Técnico | Asigna un equipo a un usuario |
 | PATCH  | `/api/assignment/ReleaseEquipment/{id}`     | Administrador/Técnico | Libera un equipo (marca la asignación como RELEASED) |
 | GET    | `/api/assignment/GetAssignments`            | Todos                 | Lista asignaciones (Empleado/Cliente solo las propias) |
+| GET    | `/api/equipmentcomponent/GetComponentList`                    | Autenticado           | Lista todos los componentes de equipos |
+| GET    | `/api/equipmentcomponent/GetComponentById/{id}`               | Autenticado           | Consulta un componente                 |
+| GET    | `/api/equipmentcomponent/GetComponentsByEquipment/{equipmentId}` | Autenticado         | Lista los componentes de un equipo     |
+| POST   | `/api/equipmentcomponent/PostNewComponent`                    | Administrador/Técnico | Crea un componente y lo asocia a un equipo |
+| PUT    | `/api/equipmentcomponent/PutComponent/{id}`                   | Administrador/Técnico | Edita un componente                    |
+| DELETE | `/api/equipmentcomponent/DeleteComponent/{id}`                | Administrador/Técnico | Elimina un componente                  |
+| GET    | `/api/incident/GetIncidentList`                                  | Autenticado           | Lista todos los incidentes             |
+| GET    | `/api/incident/GetIncidentById/{id}`                             | Autenticado           | Consulta un incidente                  |
+| GET    | `/api/incident/GetIncidentsByEquipment/{equipmentId}`            | Autenticado           | Lista los incidentes de un equipo      |
+| POST   | `/api/incident/PostNewIncident`                                  | Administrador/Empleado | Crea un incidente                    |
+| PUT    | `/api/incident/PutIncident/{id}`                                 | Administrador/Empleado | Edita descripción/estado/maintenanceId |
+| DELETE | `/api/incident/DeleteIncident/{id}`                              | Administrador/Empleado | Elimina un incidente                  |
 
 **Registro**
 
@@ -313,6 +325,62 @@ Authorization: Bearer <token-admin-o-tecnico>
 
 **Liberar** (`PATCH /api/assignment/ReleaseEquipment/{id}`) acepta opcionalmente `observations` en el body.
 
+## Componentes de equipos
+
+La entidad `EquipmentComponent` registra el listado de componentes de cada equipo. Un **equipo puede tener muchos componentes**; cada componente pertenece a **un solo equipo** (`EquipmentId` → `Equipments`). No se puede eliminar un equipo que tenga componentes.
+
+Campos: `id`, `equipmentId`, `componentType`, `brand`, `model`, `serialNumber`, `specifications` (JSON libre, se guarda como `jsonb`), `installedAt` (UTC; si no se envía, se usa el momento de creación).
+
+- **Crear, editar y eliminar**: solo `Administrador` y `Técnico`. Si el `equipmentId` no existe, responde `404`.
+- **Consultar** (lista, por id o por equipo): cualquier usuario autenticado.
+
+**Crear componente**
+
+```json
+POST /api/equipmentcomponent/PostNewComponent
+Authorization: Bearer <token-admin-o-tecnico>
+
+{
+  "equipmentId": "32aa98f7-...-uuid-del-equipo",
+  "componentType": "RAM",
+  "brand": "Kingston",
+  "model": "KVR32S22S8/16",
+  "serialNumber": "RAM-001",
+  "specifications": { "capacity": "16GB", "speed": "3200MHz" },
+  "installedAt": "2026-01-10T00:00:00Z"
+}
+```
+
+**Editar** (`PUT /api/equipmentcomponent/PutComponent/{id}`): se actualizan solo los campos enviados. **Eliminar**: `DELETE /api/equipmentcomponent/DeleteComponent/{id}` responde `204` (o `404`).
+
+## Incidentes
+
+La entidad `Incident` registra los incidentes reportados sobre los equipos. Un **equipo puede tener muchos incidentes**; cada incidente pertenece a **un solo equipo** (`EquipmentId` → `Equipments`). No se puede eliminar un equipo que tenga incidentes.
+
+Campos: `id`, `equipmentId`, `reportedBy` (usuario autenticado que reporta), `description`, `reportedAt` (UTC; si no se envía, se usa el momento de creación), `status`, `maintenanceId` (opcional, solo un identificador de referencia; no hay entidad de mantenimiento por el momento).
+
+**Estados** (`IncidentStatus`): `OPEN`, `IN_PROGRESS`, `CLOSED`, `RESOLVED`.
+
+- **Crear, editar y eliminar**: solo `Administrador` y `Empleado`.
+- **Regla**: no se puede crear un incidente para un equipo que ya tenga uno en estado `OPEN` o `IN_PROGRESS` (responde `409`).
+- **Consultar** (lista, por id o por equipo): cualquier usuario autenticado.
+
+**Crear incidente**
+
+```json
+POST /api/incident/PostNewIncident
+Authorization: Bearer <token-de-administrador-o-empleado>
+
+{
+  "equipmentId": "32aa98f7-...-uuid-del-equipo",
+  "description": "El equipo no enciende",
+  "reportedAt": "2026-09-29T00:00:00Z",
+  "maintenanceId": null
+}
+```
+
+**Editar** (`PUT /api/incident/PutIncident/{id}`): se actualizan solo los campos enviados (descripción, `status`, `maintenanceId`). **Eliminar**: `DELETE /api/incident/DeleteIncident/{id}` responde `204` (o `404`).
+
 ## CORS (conexión desde el front)
 
 En desarrollo se aceptan peticiones de cualquier origen en `localhost` (React, Angular, etc.), no hay que configurar nada.
@@ -336,5 +404,7 @@ Tabla `Users`: `Id`, `Email` (cifrado), `EmailHash` (índice ciego), `PasswordHa
 Tabla `Roles`: `Id`, `Name` (4 roles fijos).
 Tabla `Equipments`: `Id`, `InternalCode` (único), `SerialNumber` (único), `Type`, `Brand`, `Model`, `Characteristics` (jsonb), `AcquisitionDate`, `AcquisitionPrice`, `WarrantyUntil`, `Location`, `Status`, `CreatedAt`, `UpdatedAt`.
 Tabla `Assignments`: `Id`, `EquipmentId` (FK), `UserId` (FK), `AssignedAt`, `ReleasedAt`, `Status`, `Observations`.
+Tabla `EquipmentComponents`: `Id`, `EquipmentId` (FK), `ComponentType`, `Brand`, `Model`, `SerialNumber`, `Specifications` (jsonb), `InstalledAt`.
+Tabla `Incidents`: `Id`, `EquipmentId` (FK), `ReportedBy` (FK a Users), `Description`, `ReportedAt`, `Status`, `MaintenanceId`.
 
 Para conectarse desde un cliente (DBeaver, pgAdmin): host `localhost`, puerto `5432`, base `database`, usuario `postgres`, contraseña `postgres`.

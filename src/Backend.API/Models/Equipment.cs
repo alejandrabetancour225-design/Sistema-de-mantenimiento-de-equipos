@@ -18,4 +18,6 @@ public class Equipment
     public DateTime UpdatedAt { get; set; }
 
     public ICollection<Assignment>? Assignments { get; set; }
+    public ICollection<EquipmentComponent>? Components { get; set; }
+    public ICollection<Incident>? Incidents { get; set; }
 }

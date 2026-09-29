@@ -79,6 +79,8 @@ builder.Services.AddScoped<IRoleService, RoleService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IEquipmentService, EquipmentService>();
 builder.Services.AddScoped<IAssignmentService, AssignmentService>();
+builder.Services.AddScoped<IEquipmentComponentService, EquipmentComponentService>();
+builder.Services.AddScoped<IIncidentService, IncidentService>();
 
 var app = builder.Build();
 
