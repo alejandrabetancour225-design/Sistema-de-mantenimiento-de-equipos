@@ -1,9 +1,9 @@
 import { Routes, Route, Navigate, Outlet } from "react-router-dom";
-
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import { EquipoListPage } from "./pages/EquipoListPage";
 import { EquipoFormPage } from "./pages/EquipoFormPage";
+import EquipoDetailPage from "./pages/EquipoDetailPage";
 import UsersPage from "./pages/UsersPage";
 import AssignmentsPage from "./pages/AssignmentsPage";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -31,6 +31,7 @@ export default function App() {
           <Route path="/dashboard" element={<h1 className="p-8">Dashboard (pendiente)</h1>} />
           <Route path="/equipos" element={<EquipoListPage />} />
           <Route path="/equipos/nuevo" element={<EquipoFormPage />} />
+          <Route path="/equipos/:id" element={<EquipoDetailPage />} />
           <Route path="/equipos/:id/editar" element={<EquipoFormPage />} />
           <Route path="/asignaciones" element={<AssignmentsPage />} />
         </Route>
