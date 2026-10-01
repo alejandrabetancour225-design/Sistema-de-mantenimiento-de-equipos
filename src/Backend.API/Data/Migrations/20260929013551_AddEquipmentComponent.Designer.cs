@@ -3,6 +3,7 @@ using System;
 using Backend.API.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Backend.API.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260929013551_AddEquipmentComponent")]
+    partial class AddEquipmentComponent
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -156,40 +159,6 @@ namespace Backend.API.Data.Migrations
                     b.ToTable("EquipmentComponents");
                 });
 
-            modelBuilder.Entity("Backend.API.Models.Incident", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<Guid>("EquipmentId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("MaintenanceId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("ReportedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("ReportedBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("EquipmentId");
-
-                    b.HasIndex("ReportedBy");
-
-                    b.ToTable("Incidents");
-                });
-
             modelBuilder.Entity("Backend.API.Models.Role", b =>
                 {
                     b.Property<Guid>("Id")
@@ -308,25 +277,6 @@ namespace Backend.API.Data.Migrations
                     b.Navigation("Equipment");
                 });
 
-            modelBuilder.Entity("Backend.API.Models.Incident", b =>
-                {
-                    b.HasOne("Backend.API.Models.Equipment", "Equipment")
-                        .WithMany("Incidents")
-                        .HasForeignKey("EquipmentId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Backend.API.Models.User", "Reporter")
-                        .WithMany("Incidents")
-                        .HasForeignKey("ReportedBy")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Equipment");
-
-                    b.Navigation("Reporter");
-                });
-
             modelBuilder.Entity("Backend.API.Models.User", b =>
                 {
                     b.HasOne("Backend.API.Models.Role", "Role")
@@ -342,8 +292,6 @@ namespace Backend.API.Data.Migrations
                     b.Navigation("Assignments");
 
                     b.Navigation("Components");
-
-                    b.Navigation("Incidents");
                 });
 
             modelBuilder.Entity("Backend.API.Models.Role", b =>
@@ -354,8 +302,6 @@ namespace Backend.API.Data.Migrations
             modelBuilder.Entity("Backend.API.Models.User", b =>
                 {
                     b.Navigation("Assignments");
-
-                    b.Navigation("Incidents");
                 });
 #pragma warning restore 612, 618
         }

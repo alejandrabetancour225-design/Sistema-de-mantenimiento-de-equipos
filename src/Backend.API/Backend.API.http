@@ -3,6 +3,8 @@
 @userId = PEGA-AQUI-EL-ID-DEL-USUARIO
 @equipmentId = PEGA-AQUI-EL-ID-DEL-EQUIPO
 @assignmentId = PEGA-AQUI-EL-ID-DE-LA-ASIGNACION
+@componentId = PEGA-AQUI-EL-ID-DEL-COMPONENTE
+@incidentId = PEGA-AQUI-EL-ID-DEL-INCIDENTE
 
 POST {{Backend.API_HostAddress}}/api/auth/register
 Content-Type: application/json
@@ -137,6 +139,97 @@ Content-Type: application/json
 ###
 
 GET {{Backend.API_HostAddress}}/api/assignment/GetAssignments
+Authorization: Bearer {{token}}
+
+###
+
+GET {{Backend.API_HostAddress}}/api/equipmentcomponent/GetComponentList
+Authorization: Bearer {{token}}
+
+###
+
+GET {{Backend.API_HostAddress}}/api/equipmentcomponent/GetComponentById/{{componentId}}
+Authorization: Bearer {{token}}
+
+###
+
+GET {{Backend.API_HostAddress}}/api/equipmentcomponent/GetComponentsByEquipment/{{equipmentId}}
+Authorization: Bearer {{token}}
+
+###
+
+POST {{Backend.API_HostAddress}}/api/equipmentcomponent/PostNewComponent
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "equipmentId": "{{equipmentId}}",
+  "componentType": "RAM",
+  "brand": "Kingston",
+  "model": "KVR32S22S8/16",
+  "serialNumber": "RAM-001",
+  "specifications": { "capacity": "16GB", "speed": "3200MHz" },
+  "installedAt": "2026-01-10T00:00:00Z"
+}
+
+###
+
+PUT {{Backend.API_HostAddress}}/api/equipmentcomponent/PutComponent/{{componentId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "model": "KVR32S22S8/32",
+  "specifications": { "capacity": "32GB" }
+}
+
+###
+
+DELETE {{Backend.API_HostAddress}}/api/equipmentcomponent/DeleteComponent/{{componentId}}
+Authorization: Bearer {{token}}
+
+###
+
+GET {{Backend.API_HostAddress}}/api/incident/GetIncidentList
+Authorization: Bearer {{token}}
+
+###
+
+GET {{Backend.API_HostAddress}}/api/incident/GetIncidentById/{{incidentId}}
+Authorization: Bearer {{token}}
+
+###
+
+GET {{Backend.API_HostAddress}}/api/incident/GetIncidentsByEquipment/{{equipmentId}}
+Authorization: Bearer {{token}}
+
+###
+
+POST {{Backend.API_HostAddress}}/api/incident/PostNewIncident
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "equipmentId": "{{equipmentId}}",
+  "description": "El equipo no enciende",
+  "reportedAt": "2026-09-29T00:00:00Z",
+  "maintenanceId": null
+}
+
+###
+
+PUT {{Backend.API_HostAddress}}/api/incident/PutIncident/{{incidentId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "description": "El equipo no enciende - en revision",
+  "status": "IN_PROGRESS"
+}
+
+###
+
+DELETE {{Backend.API_HostAddress}}/api/incident/DeleteIncident/{{incidentId}}
 Authorization: Bearer {{token}}
 
 ###
