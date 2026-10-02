@@ -21,6 +21,8 @@ export default function Sidebar() {
         : "text-gray-300 hover:bg-white/5 hover:text-white"
     }`;
 
+  const canManageEquipment = role === "Administrador" || role === "Técnico";
+
   return (
     <aside className="w-64 min-h-screen bg-[#0f1729] border-r border-white/10 flex flex-col p-4">
       <div className="mb-6">
@@ -45,6 +47,11 @@ export default function Sidebar() {
           <Link to="/asignaciones" className={linkClass("/asignaciones")}>
             Asignaciones
           </Link>
+          {canManageEquipment && (
+            <Link to="/repuestos" className={linkClass("/repuestos")}>
+              Repuestos
+            </Link>
+          )}
           {role === "Administrador" && (
             <Link to="/usuarios" className={linkClass("/usuarios")}>
               Usuarios

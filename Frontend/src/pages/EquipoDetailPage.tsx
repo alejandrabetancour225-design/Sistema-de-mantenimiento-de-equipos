@@ -8,6 +8,7 @@ import { createIncident, updateIncident, deleteIncident } from "../services/inci
 import { EQUIPMENT_STATUS_LABEL } from "../types/equipment";
 import { INCIDENT_STATUS_LABEL, type IncidentStatus } from "../types/incident";
 import { useAuth } from "../context/authContext";
+import MaintenanceSection from "../components/MaintenanceSection";
 
 export default function EquipoDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -235,6 +236,9 @@ export default function EquipoDetailPage() {
           </ul>
         )}
       </section>
+
+      {/* Mantenimientos (nuevo) */}
+      {canManageComponents && <MaintenanceSection equipmentId={equipmentId} />}
     </div>
   );
 }

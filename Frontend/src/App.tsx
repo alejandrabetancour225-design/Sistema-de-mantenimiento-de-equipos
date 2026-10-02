@@ -6,6 +6,7 @@ import { EquipoFormPage } from "./pages/EquipoFormPage";
 import EquipoDetailPage from "./pages/EquipoDetailPage";
 import UsersPage from "./pages/UsersPage";
 import AssignmentsPage from "./pages/AssignmentsPage";
+import SparePartsPage from "./pages/SparePartsPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Sidebar from "./components/Sidebar";
 
@@ -34,6 +35,12 @@ export default function App() {
           <Route path="/equipos/:id" element={<EquipoDetailPage />} />
           <Route path="/equipos/:id/editar" element={<EquipoFormPage />} />
           <Route path="/asignaciones" element={<AssignmentsPage />} />
+        </Route>
+
+        <Route
+          element={<ProtectedRoute allowedRoles={["Administrador", "Técnico"]} />}
+        >
+          <Route path="/repuestos" element={<SparePartsPage />} />
         </Route>
 
         <Route element={<ProtectedRoute allowedRoles={["Administrador"]} />}>
