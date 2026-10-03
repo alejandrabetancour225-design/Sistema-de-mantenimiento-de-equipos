@@ -20,6 +20,7 @@ public class IncidentService : IIncidentService
             .AsNoTracking()
             .Include(i => i.Equipment)
             .Include(i => i.Reporter)
+            .Include(i => i.Maintenance)
             .OrderByDescending(i => i.ReportedAt)
             .ToListAsync();
 
@@ -32,6 +33,7 @@ public class IncidentService : IIncidentService
             .AsNoTracking()
             .Include(i => i.Equipment)
             .Include(i => i.Reporter)
+            .Include(i => i.Maintenance)
             .FirstOrDefaultAsync(i => i.Id == id);
 
         return incident is null ? null : Map(incident);
@@ -43,6 +45,7 @@ public class IncidentService : IIncidentService
             .AsNoTracking()
             .Include(i => i.Equipment)
             .Include(i => i.Reporter)
+            .Include(i => i.Maintenance)
             .Where(i => i.EquipmentId == equipmentId)
             .OrderByDescending(i => i.ReportedAt)
             .ToListAsync();
@@ -72,8 +75,7 @@ public class IncidentService : IIncidentService
             ReportedBy = reportedBy,
             Description = request.Description.Trim(),
             ReportedAt = request.ReportedAt ?? DateTime.UtcNow,
-            Status = IncidentStatus.OPEN,
-            MaintenanceId = request.MaintenanceId
+            Status = IncidentStatus.OPEN
         };
 
         _context.Incidents.Add(incident);
@@ -90,6 +92,7 @@ public class IncidentService : IIncidentService
         var incident = await _context.Incidents
             .Include(i => i.Equipment)
             .Include(i => i.Reporter)
+            .Include(i => i.Maintenance)
             .FirstOrDefaultAsync(i => i.Id == id);
 
         if (incident is null)
@@ -99,7 +102,6 @@ public class IncidentService : IIncidentService
 
         if (request.Description is not null) incident.Description = request.Description.Trim();
         if (request.Status is not null) incident.Status = request.Status.Value;
-        if (request.MaintenanceId is not null) incident.MaintenanceId = request.MaintenanceId;
 
         await _context.SaveChangesAsync();
 
@@ -132,7 +134,7 @@ public class IncidentService : IIncidentService
             Description = incident.Description,
             ReportedAt = incident.ReportedAt,
             Status = incident.Status,
-            MaintenanceId = incident.MaintenanceId
+            MaintenanceId = incident.Maintenance?.Id
         };
     }
 }

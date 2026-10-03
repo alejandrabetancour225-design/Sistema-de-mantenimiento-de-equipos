@@ -20,4 +20,5 @@ public class Equipment
     public ICollection<Assignment>? Assignments { get; set; }
     public ICollection<EquipmentComponent>? Components { get; set; }
     public ICollection<Incident>? Incidents { get; set; }
+    public ICollection<Maintenance>? Maintenances { get; set; }
 }

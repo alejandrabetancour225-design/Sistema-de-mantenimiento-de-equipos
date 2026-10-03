@@ -13,6 +13,9 @@ public class AppDbContext : DbContext
     public DbSet<Assignment> Assignments => Set<Assignment>();
     public DbSet<EquipmentComponent> EquipmentComponents => Set<EquipmentComponent>();
     public DbSet<Incident> Incidents => Set<Incident>();
+    public DbSet<Maintenance> Maintenances => Set<Maintenance>();
+    public DbSet<SparePart> SpareParts => Set<SparePart>();
+    public DbSet<MaintenanceSparePart> MaintenanceSpareParts => Set<MaintenanceSparePart>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -68,6 +71,50 @@ public class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict);
             entity.HasIndex(i => i.EquipmentId);
             entity.HasIndex(i => i.ReportedBy);
+        });
+
+        modelBuilder.Entity<Maintenance>(entity =>
+        {
+            entity.HasOne(m => m.Equipment)
+                .WithMany(e => e.Maintenances!)
+                .HasForeignKey(m => m.EquipmentId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(m => m.Technician)
+                .WithMany(u => u.Maintenances!)
+                .HasForeignKey(m => m.TechnicianId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(m => m.Incident)
+                .WithOne(i => i.Maintenance)
+                .HasForeignKey<Maintenance>(m => m.IncidentId)
+                .OnDelete(DeleteBehavior.SetNull);
+            entity.Property(m => m.LaborCost).HasPrecision(18, 2);
+            entity.Property(m => m.OtherCosts).HasPrecision(18, 2);
+            entity.HasIndex(m => m.EquipmentId);
+            entity.HasIndex(m => m.IncidentId).IsUnique();
+            entity.HasIndex(m => m.TechnicianId);
+            entity.HasIndex(m => m.Status);
+            entity.HasIndex(m => m.NextMaintenanceDate);
+        });
+
+        modelBuilder.Entity<SparePart>(entity =>
+        {
+            entity.Property(s => s.UnitCost).HasPrecision(18, 2);
+            entity.HasIndex(s => s.Name).IsUnique();
+        });
+
+        modelBuilder.Entity<MaintenanceSparePart>(entity =>
+        {
+            entity.HasOne(ms => ms.Maintenance)
+                .WithMany(m => m.SpareParts!)
+                .HasForeignKey(ms => ms.MaintenanceId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(ms => ms.SparePart)
+                .WithMany(s => s.Usages!)
+                .HasForeignKey(ms => ms.SparePartId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.Property(ms => ms.UnitCostAtUse).HasPrecision(18, 2);
+            entity.HasIndex(ms => new { ms.MaintenanceId, ms.SparePartId }).IsUnique();
+            entity.HasIndex(ms => ms.SparePartId);
         });
 
         modelBuilder.Entity<Role>().HasData(

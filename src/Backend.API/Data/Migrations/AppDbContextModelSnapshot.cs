@@ -169,9 +169,6 @@ namespace Backend.API.Data.Migrations
                     b.Property<Guid>("EquipmentId")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid?>("MaintenanceId")
-                        .HasColumnType("uuid");
-
                     b.Property<DateTime>("ReportedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -188,6 +185,106 @@ namespace Backend.API.Data.Migrations
                     b.HasIndex("ReportedBy");
 
                     b.ToTable("Incidents");
+                });
+
+            modelBuilder.Entity("Backend.API.Models.Maintenance", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("EquipmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("IncidentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("LaborCost")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateOnly?>("NextMaintenanceDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Observations")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("OtherCosts")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("ReportedProblem")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("StartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("TechnicianId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("WorkDone")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EquipmentId");
+
+                    b.HasIndex("IncidentId")
+                        .IsUnique();
+
+                    b.HasIndex("NextMaintenanceDate");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("TechnicianId");
+
+                    b.ToTable("Maintenances");
+                });
+
+            modelBuilder.Entity("Backend.API.Models.MaintenanceSparePart", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("MaintenanceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("SparePartId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("UnitCostAtUse")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SparePartId");
+
+                    b.HasIndex("MaintenanceId", "SparePartId")
+                        .IsUnique();
+
+                    b.ToTable("MaintenanceSpareParts");
                 });
 
             modelBuilder.Entity("Backend.API.Models.Role", b =>
@@ -225,6 +322,40 @@ namespace Backend.API.Data.Migrations
                             Id = new Guid("a0000000-0000-0000-0000-000000000004"),
                             Name = "Cliente"
                         });
+                });
+
+            modelBuilder.Entity("Backend.API.Models.SparePart", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("UnitCost")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("SpareParts");
                 });
 
             modelBuilder.Entity("Backend.API.Models.User", b =>
@@ -327,6 +458,51 @@ namespace Backend.API.Data.Migrations
                     b.Navigation("Reporter");
                 });
 
+            modelBuilder.Entity("Backend.API.Models.Maintenance", b =>
+                {
+                    b.HasOne("Backend.API.Models.Equipment", "Equipment")
+                        .WithMany("Maintenances")
+                        .HasForeignKey("EquipmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Backend.API.Models.Incident", "Incident")
+                        .WithOne("Maintenance")
+                        .HasForeignKey("Backend.API.Models.Maintenance", "IncidentId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Backend.API.Models.User", "Technician")
+                        .WithMany("Maintenances")
+                        .HasForeignKey("TechnicianId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Equipment");
+
+                    b.Navigation("Incident");
+
+                    b.Navigation("Technician");
+                });
+
+            modelBuilder.Entity("Backend.API.Models.MaintenanceSparePart", b =>
+                {
+                    b.HasOne("Backend.API.Models.Maintenance", "Maintenance")
+                        .WithMany("SpareParts")
+                        .HasForeignKey("MaintenanceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Backend.API.Models.SparePart", "SparePart")
+                        .WithMany("Usages")
+                        .HasForeignKey("SparePartId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Maintenance");
+
+                    b.Navigation("SparePart");
+                });
+
             modelBuilder.Entity("Backend.API.Models.User", b =>
                 {
                     b.HasOne("Backend.API.Models.Role", "Role")
@@ -344,6 +520,18 @@ namespace Backend.API.Data.Migrations
                     b.Navigation("Components");
 
                     b.Navigation("Incidents");
+
+                    b.Navigation("Maintenances");
+                });
+
+            modelBuilder.Entity("Backend.API.Models.Incident", b =>
+                {
+                    b.Navigation("Maintenance");
+                });
+
+            modelBuilder.Entity("Backend.API.Models.Maintenance", b =>
+                {
+                    b.Navigation("SpareParts");
                 });
 
             modelBuilder.Entity("Backend.API.Models.Role", b =>
@@ -351,11 +539,18 @@ namespace Backend.API.Data.Migrations
                     b.Navigation("Users");
                 });
 
+            modelBuilder.Entity("Backend.API.Models.SparePart", b =>
+                {
+                    b.Navigation("Usages");
+                });
+
             modelBuilder.Entity("Backend.API.Models.User", b =>
                 {
                     b.Navigation("Assignments");
 
                     b.Navigation("Incidents");
+
+                    b.Navigation("Maintenances");
                 });
 #pragma warning restore 612, 618
         }

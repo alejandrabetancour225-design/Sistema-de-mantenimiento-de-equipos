@@ -8,8 +8,8 @@ public class Incident
     public string Description { get; set; } = string.Empty;
     public DateTime ReportedAt { get; set; }
     public IncidentStatus Status { get; set; } = IncidentStatus.OPEN;
-    public Guid? MaintenanceId { get; set; }
 
     public Equipment? Equipment { get; set; }
     public User? Reporter { get; set; }
+    public Maintenance? Maintenance { get; set; }
 }

@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Backend.API.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20261001125006_AddMaintenanceAndSpareParts")]
+    [Migration("20261003030131_AddMaintenanceAndSpareParts")]
     partial class AddMaintenanceAndSpareParts
     {
         /// <inheritdoc />
@@ -209,6 +209,7 @@ namespace Backend.API.Data.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<decimal>("LaborCost")
+                        .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
 
                     b.Property<DateOnly?>("NextMaintenanceDate")
@@ -219,6 +220,7 @@ namespace Backend.API.Data.Migrations
                         .HasColumnType("text");
 
                     b.Property<decimal>("OtherCosts")
+                        .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
 
                     b.Property<string>("ReportedProblem")
@@ -275,6 +277,7 @@ namespace Backend.API.Data.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<decimal>("UnitCostAtUse")
+                        .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
 
                     b.HasKey("Id");
@@ -344,6 +347,7 @@ namespace Backend.API.Data.Migrations
                         .HasColumnType("text");
 
                     b.Property<decimal>("UnitCost")
+                        .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
 
                     b.Property<DateTime>("UpdatedAt")
@@ -471,7 +475,7 @@ namespace Backend.API.Data.Migrations
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("Backend.API.Models.User", "Technician")
-                        .WithMany("MaintenancesAsTechnician")
+                        .WithMany("Maintenances")
                         .HasForeignKey("TechnicianId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
@@ -549,7 +553,7 @@ namespace Backend.API.Data.Migrations
 
                     b.Navigation("Incidents");
 
-                    b.Navigation("MaintenancesAsTechnician");
+                    b.Navigation("Maintenances");
                 });
 #pragma warning restore 612, 618
         }

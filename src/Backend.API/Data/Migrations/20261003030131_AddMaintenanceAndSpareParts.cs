@@ -27,8 +27,8 @@ namespace Backend.API.Data.Migrations
                     Status = table.Column<int>(type: "integer", nullable: false),
                     ReportedProblem = table.Column<string>(type: "text", nullable: false),
                     WorkDone = table.Column<string>(type: "text", nullable: true),
-                    LaborCost = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
-                    OtherCosts = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
+                    LaborCost = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false),
+                    OtherCosts = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false),
                     NextMaintenanceDate = table.Column<DateOnly>(type: "date", nullable: true),
                     Observations = table.Column<string>(type: "text", nullable: false),
                     StartedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
@@ -66,7 +66,7 @@ namespace Backend.API.Data.Migrations
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     Name = table.Column<string>(type: "text", nullable: false),
                     Description = table.Column<string>(type: "text", nullable: true),
-                    UnitCost = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
+                    UnitCost = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false),
                     Active = table.Column<bool>(type: "boolean", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
@@ -84,7 +84,7 @@ namespace Backend.API.Data.Migrations
                     MaintenanceId = table.Column<Guid>(type: "uuid", nullable: false),
                     SparePartId = table.Column<Guid>(type: "uuid", nullable: false),
                     Quantity = table.Column<int>(type: "integer", nullable: false),
-                    UnitCostAtUse = table.Column<decimal>(type: "numeric(18,2)", nullable: false)
+                    UnitCostAtUse = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false)
                 },
                 constraints: table =>
                 {

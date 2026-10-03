@@ -496,7 +496,7 @@ public class MaintenanceService : IMaintenanceService
             Description = incident.Description,
             ReportedAt = incident.ReportedAt,
             Status = incident.Status,
-            MaintenanceId = incident.MaintenanceId
+            MaintenanceId = incident.Maintenance?.Id
         };
     }
 }
