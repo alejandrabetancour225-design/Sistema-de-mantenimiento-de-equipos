@@ -87,7 +87,7 @@ public class IncidentService : IIncidentService
         return new IncidentResult(IncidentActionStatus.Success, Map(incident));
     }
 
-    public async Task<IncidentResult> UpdateAsync(Guid id, UpdateIncidentRequest request)
+    public async Task<IncidentResult> UpdateAsync(Guid id, UpdateIncidentRequest request, Guid currentUserId, string? currentRole)
     {
         var incident = await _context.Incidents
             .Include(i => i.Equipment)
@@ -96,6 +96,10 @@ public class IncidentService : IIncidentService
             .FirstOrDefaultAsync(i => i.Id == id);
 
         if (incident is null)
+        {
+            return new IncidentResult(IncidentActionStatus.NotFound, null);
+        }
+        if (currentRole == Roles.Empleado && incident.ReportedBy != currentUserId)
         {
             return new IncidentResult(IncidentActionStatus.NotFound, null);
         }
@@ -108,10 +112,14 @@ public class IncidentService : IIncidentService
         return new IncidentResult(IncidentActionStatus.Success, Map(incident));
     }
 
-    public async Task<IncidentActionStatus> DeleteAsync(Guid id)
+    public async Task<IncidentActionStatus> DeleteAsync(Guid id, Guid currentUserId, string? currentRole)
     {
         var incident = await _context.Incidents.FirstOrDefaultAsync(i => i.Id == id);
         if (incident is null)
+        {
+            return IncidentActionStatus.NotFound;
+        }
+        if (currentRole == Roles.Empleado && incident.ReportedBy != currentUserId)
         {
             return IncidentActionStatus.NotFound;
         }

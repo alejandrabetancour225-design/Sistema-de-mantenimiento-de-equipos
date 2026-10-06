@@ -53,7 +53,9 @@ public class IncidentController : ControllerBase
     [HttpPut("PutIncident/{id:guid}")]
     public async Task<ActionResult<IncidentResponse>> PutIncident(Guid id, UpdateIncidentRequest request)
     {
-        var result = await _incidentService.UpdateAsync(id, request);
+        var currentUserId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var currentRole = User.FindFirstValue(ClaimTypes.Role);
+        var result = await _incidentService.UpdateAsync(id, request, currentUserId, currentRole);
         return ToActionResult(result);
     }
 
@@ -61,7 +63,9 @@ public class IncidentController : ControllerBase
     [HttpDelete("DeleteIncident/{id:guid}")]
     public async Task<IActionResult> DeleteIncident(Guid id)
     {
-        var status = await _incidentService.DeleteAsync(id);
+        var currentUserId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var currentRole = User.FindFirstValue(ClaimTypes.Role);
+        var status = await _incidentService.DeleteAsync(id, currentUserId, currentRole);
         return status == IncidentActionStatus.NotFound ? NotFound() : NoContent();
     }
 
