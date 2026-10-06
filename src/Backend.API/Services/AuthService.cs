@@ -79,7 +79,7 @@ public class AuthService : IAuthService
             user.FailedAttempts++;
             if (user.FailedAttempts > MaxFailedLoginAttempts)
             {
-                user.Active = false;
+                if (user.Role?.Name != Roles.Administrador) user.Active = false;
             }
 
             user.UpdatedAt = DateTime.UtcNow;
