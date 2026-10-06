@@ -1,9 +1,11 @@
 ﻿using Backend.API.DTOs;
 using Backend.API.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Backend.API.Controllers;
 
+[EnableRateLimiting("auth")]
 [ApiController]
 [Route("api/[controller]")]
 public class AuthController : ControllerBase

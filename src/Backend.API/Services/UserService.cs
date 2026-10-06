@@ -58,7 +58,8 @@ public class UserService : IUserService
         if (request.Email is not null)
         {
             var emailHash = _encryption.ComputeLookup(request.Email);
-            var inUse = await _context.Users.AnyAsync(u => u.EmailHash == emailHash && u.Id != userId);
+            var emailCandidates = _encryption.ComputeLookupCandidates(request.Email);
+            var inUse = await _context.Users.AnyAsync(u => emailCandidates.Contains(u.EmailHash) && u.Id != userId);
             if (inUse)
             {
                 return new UpdateUserResult(UpdateUserStatus.EmailInUse, null);

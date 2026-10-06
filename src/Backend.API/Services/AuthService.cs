@@ -29,7 +29,8 @@ public class AuthService : IAuthService
     public async Task<AuthResponse?> RegisterAsync(RegisterRequest request)
     {
         var emailHash = _encryption.ComputeLookup(request.Email);
-        var emailExists = await _context.Users.AnyAsync(u => u.EmailHash == emailHash);
+        var emailCandidates = _encryption.ComputeLookupCandidates(request.Email);
+        var emailExists = await _context.Users.AnyAsync(u => emailCandidates.Contains(u.EmailHash));
         if (emailExists)
         {
             return null;
@@ -63,10 +64,10 @@ public class AuthService : IAuthService
 
     public async Task<AuthResponse?> LoginAsync(LoginRequest request)
     {
-        var emailHash = _encryption.ComputeLookup(request.Email);
+        var emailCandidates = _encryption.ComputeLookupCandidates(request.Email);
         var user = await _context.Users
             .Include(u => u.Role)
-            .FirstOrDefaultAsync(u => u.EmailHash == emailHash);
+            .FirstOrDefaultAsync(u => emailCandidates.Contains(u.EmailHash));
 
         if (user is null)
         {

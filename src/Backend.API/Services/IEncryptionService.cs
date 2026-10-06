@@ -6,4 +6,6 @@ public interface IEncryptionService
     string Encrypt(string plaintext);
     string Decrypt(string ciphertext);
     string ComputeLookup(string value);
+    string[] ComputeLookupCandidates(string value);
+    bool TryDecryptWithPrimaryKey(string ciphertext, out string plaintext);
 }
