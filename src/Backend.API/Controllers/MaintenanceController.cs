@@ -7,13 +7,12 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Backend.API.Controllers;
 
-[Authorize]
+// Consulta del historial: todos los roles (incluido Cliente). Gestión: Administrador y Técnico.
+[Authorize(Roles = Roles.AnyRole)]
 [ApiController]
 [Route("api/[controller]")]
 public class MaintenanceController : ControllerBase
 {
-    private const string AdminOrTechnician = Roles.Administrador + "," + Roles.Tecnico;
-
     private readonly IMaintenanceService _maintenanceService;
 
     public MaintenanceController(IMaintenanceService maintenanceService)
@@ -47,7 +46,7 @@ public class MaintenanceController : ControllerBase
         return history is null ? NotFound(new { message = "El equipo no existe." }) : Ok(history);
     }
 
-    [Authorize(Roles = AdminOrTechnician)]
+    [Authorize(Roles = Roles.AdminOrTechnician)]
     [HttpPost("PostNewMaintenance")]
     public async Task<ActionResult<MaintenanceResponse>> PostNewMaintenance(CreateMaintenanceRequest request)
     {
@@ -55,7 +54,7 @@ public class MaintenanceController : ControllerBase
         return ToActionResult(result);
     }
 
-    [Authorize(Roles = AdminOrTechnician)]
+    [Authorize(Roles = Roles.AdminOrTechnician)]
     [HttpPost("CreateFromIncident/{incidentId:guid}")]
     public async Task<ActionResult<MaintenanceResponse>> CreateFromIncident(Guid incidentId)
     {
@@ -64,7 +63,7 @@ public class MaintenanceController : ControllerBase
         return ToActionResult(result);
     }
 
-    [Authorize(Roles = AdminOrTechnician)]
+    [Authorize(Roles = Roles.AdminOrTechnician)]
     [HttpPut("PutMaintenance/{id:guid}")]
     public async Task<ActionResult<MaintenanceResponse>> PutMaintenance(Guid id, UpdateMaintenanceRequest request)
     {
@@ -72,7 +71,7 @@ public class MaintenanceController : ControllerBase
         return ToActionResult(result);
     }
 
-    [Authorize(Roles = AdminOrTechnician)]
+    [Authorize(Roles = Roles.AdminOrTechnician)]
     [HttpPost("CloseMaintenance/{id:guid}")]
     public async Task<ActionResult<MaintenanceResponse>> CloseMaintenance(Guid id, CloseMaintenanceRequest request)
     {
@@ -80,7 +79,7 @@ public class MaintenanceController : ControllerBase
         return ToActionResult(result);
     }
 
-    [Authorize(Roles = AdminOrTechnician)]
+    [Authorize(Roles = Roles.AdminOrTechnician)]
     [HttpPost("AddSparePart/{maintenanceId:guid}")]
     public async Task<ActionResult<MaintenanceResponse>> AddSparePart(Guid maintenanceId, AddSparePartToMaintenanceRequest request)
     {
@@ -88,7 +87,7 @@ public class MaintenanceController : ControllerBase
         return ToActionResult(result);
     }
 
-    [Authorize(Roles = AdminOrTechnician)]
+    [Authorize(Roles = Roles.AdminOrTechnician)]
     [HttpDelete("RemoveSparePart/{maintenanceId:guid}/{maintenanceSparePartId:guid}")]
     public async Task<IActionResult> RemoveSparePart(Guid maintenanceId, Guid maintenanceSparePartId)
     {
@@ -103,12 +102,18 @@ public class MaintenanceController : ControllerBase
         };
     }
 
-    [Authorize(Roles = AdminOrTechnician)]
+    [Authorize(Roles = Roles.AdminOrTechnician)]
     [HttpDelete("DeleteMaintenance/{id:guid}")]
     public async Task<IActionResult> DeleteMaintenance(Guid id)
     {
         var status = await _maintenanceService.DeleteAsync(id);
-        return status == MaintenanceActionStatus.NotFound ? NotFound() : NoContent();
+        return status switch
+        {
+            MaintenanceActionStatus.Success => NoContent(),
+            MaintenanceActionStatus.NotFound => NotFound(new { message = "El mantenimiento no existe." }),
+            MaintenanceActionStatus.CannotDeleteCompleted => Conflict(new { message = "Un mantenimiento completado forma parte del historial y no se puede borrar." }),
+            _ => StatusCode(StatusCodes.Status500InternalServerError)
+        };
     }
 
     private ActionResult<MaintenanceResponse> ToActionResult(MaintenanceResult result)
@@ -127,6 +132,13 @@ public class MaintenanceController : ControllerBase
             MaintenanceActionStatus.SparePartInactive => BadRequest(new { message = "El repuesto está inactivo." }),
             MaintenanceActionStatus.DuplicateSparePartInMaintenance => Conflict(new { message = "El repuesto ya está asociado a este mantenimiento o la cantidad es inválida." }),
             MaintenanceActionStatus.MaintenanceSparePartNotFound => NotFound(new { message = "El repuesto del mantenimiento no existe." }),
+            MaintenanceActionStatus.IncidentEquipmentMismatch => BadRequest(new { message = "La incidencia pertenece a otro equipo." }),
+            MaintenanceActionStatus.IncidentNotOpen => BadRequest(new { message = "La incidencia ya está resuelta, cerrada o en atención." }),
+            MaintenanceActionStatus.EquipmentDecommissioned => BadRequest(new { message = "El equipo está dado de baja." }),
+            MaintenanceActionStatus.EquipmentHasOpenMaintenance => Conflict(new { message = "El equipo ya tiene un mantenimiento abierto o en progreso." }),
+            MaintenanceActionStatus.MustUseClose => BadRequest(new { message = "Para completar un mantenimiento usa CloseMaintenance (exige el trabajo realizado)." }),
+            MaintenanceActionStatus.InvalidFinalStatus => BadRequest(new { message = "Al cerrar, el equipo no puede quedar UNDER_MAINTENANCE y la incidencia debe quedar RESOLVED o CLOSED." }),
+            MaintenanceActionStatus.InvalidDates => BadRequest(new { message = "La fecha del próximo mantenimiento no puede ser anterior al inicio del mantenimiento." }),
             _ => StatusCode(StatusCodes.Status500InternalServerError)
         };
     }

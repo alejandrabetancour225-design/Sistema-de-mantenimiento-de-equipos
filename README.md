@@ -1,6 +1,6 @@
 # Backend.API
 
-API .NET 10 con autenticación JWT y base de datos PostgreSQL (Docker).
+API .NET 10 con autenticación JWT y base de datos PostgreSQL.
 
 ## Requisitos
 
@@ -9,30 +9,27 @@ API .NET 10 con autenticación JWT y base de datos PostgreSQL (Docker).
 
 ## Puesta en marcha
 
-> Puedes levantar la base de datos con **Docker** (opción recomendada, pasos 1-4) o con un **PostgreSQL instalado localmente** (ver sección "Opción alternativa" más abajo).
+La API usa la base PostgreSQL **compartida en Neon** (host, base y usuario en `appsettings.json`, sección `Database`, con `SslMode=Require`). Todo el equipo trabaja sobre la misma base.
 
-### 1. Levantar la base de datos (Docker)
+### 1. Configurar los secretos (User Secrets)
 
-Desde la raíz del proyecto:
-
-```bash
-docker compose up -d
-```
-
-Esto crea un contenedor PostgreSQL con la base de datos `database`, usuario `postgres` y contraseña `postgres` (configurable con la variable de entorno `POSTGRES_PASSWORD`).
-
-### 2. Configurar los secretos locales (User Secrets)
-
-La API no guarda secretos en el repositorio. Ejecuta una vez por máquina:
+La API no guarda secretos en el repositorio. **Nunca** los pongas en archivos dentro de la carpeta del proyecto (`setup.ps1`, `.md`, etc.): se terminan subiendo a GitHub. Compártelos con el equipo por un canal privado.
 
 ```bash
 dotnet user-secrets init --project src/Backend.API/Backend.API.csproj
-dotnet user-secrets set "Jwt:Key" "usa-una-clave-larga-y-aleatoria" --project src/Backend.API/Backend.API.csproj
-dotnet user-secrets set "Database:Password" "postgres" --project src/Backend.API/Backend.API.csproj
+dotnet user-secrets set "Database:Password" "<password-de-neon>" --project src/Backend.API/Backend.API.csproj
+dotnet user-secrets set "Jwt:Key" "<clave-aleatoria-de-al-menos-32-caracteres>" --project src/Backend.API/Backend.API.csproj
 dotnet user-secrets set "Encryption:Key" "<clave-base64-de-32-bytes>" --project src/Backend.API/Backend.API.csproj
+
+# Administrador inicial (solo se usa si no existe ningún Administrador activo)
+dotnet user-secrets set "Bootstrap:AdminEmail" "admin@tu-dominio.com" --project src/Backend.API/Backend.API.csproj
+dotnet user-secrets set "Bootstrap:AdminPassword" "<contraseña-fuerte>" --project src/Backend.API/Backend.API.csproj
+dotnet user-secrets set "Bootstrap:AdminFullName" "Administrador" --project src/Backend.API/Backend.API.csproj
 ```
 
-Para generar `Encryption:Key` (PowerShell):
+`Jwt:Key` y `Encryption:Key` deben ser **iguales en todo el equipo** (con otra `Encryption:Key` no se pueden descifrar los correos y teléfonos guardados en Neon).
+
+Para generar una clave (PowerShell):
 
 ```powershell
 $b = New-Object byte[] 32
@@ -40,131 +37,126 @@ $b = New-Object byte[] 32
 [Convert]::ToBase64String($b)
 ```
 
-> Si el valor de `Jwt:Key` o `Encryption:Key` ya existe en tu equipo, consérvalo (el equipo debe compartir la misma clave si se validan tokens o se comparte la misma base de datos). En producción se leen de variables de entorno (`Jwt__Key`, `Database__Password`, `Encryption__Key`).
->
-> `Encryption:Key` **no debe cambiarse** después de guardar datos: se usa para descifrar los correos y teléfonos.
+> En producción se leen de variables de entorno (`Jwt__Key`, `Encryption__Key`, `Database__Password`, `Bootstrap__AdminEmail`, ...).
 
-### 3. Crear la base de datos (migraciones)
+### 2. Aplicar las migraciones (una sola vez por cambio de esquema)
+
+Las migraciones **no** se aplican solas al arrancar (`Database:MigrateOnStartup=false`): con una base compartida, un solo integrante las aplica cuando hay migraciones nuevas.
 
 ```bash
 dotnet tool restore
 dotnet tool run dotnet-ef database update --project src/Backend.API --startup-project src/Backend.API
 ```
 
-> Alternativa: estas migraciones también se aplican **automáticamente al arrancar la API** (`Database.Migrate()`), así que en muchos casos basta con `dotnet run`.
-
-### 4. Ejecutar la API
+### 3. Ejecutar la API
 
 ```bash
 dotnet run --project src/Backend.API
 ```
 
-La API queda disponible en `http://localhost:5255` (dev). También es posible abrir la solución `Backend.slnx` en Visual Studio y presionar F5.
+Si no hay ningún Administrador activo, la API lo crea con los datos de `Bootstrap:*`. Después puedes borrar `Bootstrap:AdminPassword` de los user-secrets.
 
-## Opción alternativa: correr sin Docker (PostgreSQL local)
+La API queda disponible en `http://localhost:5255`.
 
-Si no quieres usar Docker, instala PostgreSQL directamente en tu máquina:
+### Usuario de la base con permisos mínimos (recomendado)
 
-1. **Instala PostgreSQL** desde https://www.postgresql.org/download/ (acepta los valores por defecto: puerto `5432`, usuario `postgres`, deja que se registre como servicio de Windows y define la contraseña que usará el servicio).
-
-2. **Crea la base de datos** `database` con `psql`:
-
-   ```bash
-   psql -U postgres -c "CREATE DATABASE database;"
-   ```
-
-3. **Asegúrate de que la contraseña coincida** con la que la API espera (`Database:Password`, por defecto `postgres`). Si elegiste otra en la instalación, actualiza el secreto:
-
-   ```bash
-   dotnet user-secrets set "Database:Password" "tu-contraseña" --project src/Backend.API/Backend.API.csproj
-   ```
-
-4. **Configura los secretos** (si aún no los habías definido en esta máquina):
-
-   ```bash
-   dotnet user-secrets init --project src/Backend.API/Backend.API.csproj
-   dotnet user-secrets set "Jwt:Key" "usa-una-clave-larga-y-aleatoria" --project src/Backend.API/Backend.API.csproj
-   dotnet user-secrets set "Database:Password" "tu-contraseña" --project src/Backend.API/Backend.API.csproj
-   dotnet user-secrets set "Encryption:Key" "<clave-base64-de-32-bytes>" --project src/Backend.API/Backend.API.csproj
-   ```
-
-5. **Aplica las migraciones** (crea las tablas):
-
-   ```bash
-   dotnet tool restore
-   dotnet tool run dotnet-ef database update --project src/Backend.API --startup-project src/Backend.API
-   ```
-
-6. **Ejecuta la API**:
-
-   ```bash
-   dotnet run --project src/Backend.API
-   ```
-
-> No hay que cambiar nada en el código: el proyecto solo necesita un PostgreSQL accesible en `localhost:5432` con la base `database`, igual que hace Docker. Si tu PostgreSQL local usa otro puerto u host, ajústalos en `Database:Port` / `Database:Host` (appsettings o User Secrets).
-
-## Base de datos en la nube (Neon)
-
-Por defecto la API apunta a una base PostgreSQL **compartida en Neon** (host, puerto, base y usuario en `appsettings.json`, sección `Database`, con `SslMode=Require`). Así todo el equipo trabaja sobre la **misma base de datos**.
-
-Para conectar tu máquina:
-
-1. Define la contraseña de la base de Neon:
+Hoy la API se conecta con `neondb_owner`, que puede modificar o borrar tablas. Para que la API solo lea y escriba datos, crea un usuario con [`database/app_user_role.sql`](database/app_user_role.sql) (en la consola SQL de Neon) y úsalo en tus user-secrets:
 
 ```bash
-dotnet user-secrets set "Database:Password" "<password-de-neon>" --project src/Backend.API/Backend.API.csproj
+dotnet user-secrets set "Database:User" "app_user" --project src/Backend.API/Backend.API.csproj
+dotnet user-secrets set "Database:Password" "<password-de-app_user>" --project src/Backend.API/Backend.API.csproj
 ```
 
-2. Usa el **mismo** `Jwt:Key` y `Encryption:Key` que el resto del equipo. Compartir `Encryption:Key` es imprescindible para descifrar los correos/teléfonos ya guardados; compartir `Jwt:Key` hace que un token emitido en una máquina se valide en las demás. Para ver los que ya tienes configurados:
+Las migraciones se siguen aplicando con `neondb_owner`.
 
-```bash
-dotnet user-secrets list --project src/Backend.API/Backend.API.csproj
-```
+### Base local con Docker (opcional)
 
-3. Aplica las migraciones (crea las tablas y siembra los roles):
+Crea un archivo `.env` junto a `docker-compose.yml` (ignorado por git) con `POSTGRES_PASSWORD=...`, ejecuta `docker compose up -d` (el puerto solo queda en `127.0.0.1`) y sobrescribe en tus user-secrets `Database:Host=localhost`, `Database:Name=database`, `Database:User=postgres`, `Database:Password=<la del .env>` y `Database:SslMode=Disable`.
 
-```bash
-dotnet tool restore
-dotnet tool run dotnet-ef database update --project src/Backend.API --startup-project src/Backend.API
-```
+## Seguridad
 
-> Paso opcional: la API aplica las migraciones pendientes **automáticamente al arrancar** (`Database.Migrate()`), por lo que normalmente basta con ejecutar `dotnet run`.
+### Autenticación y sesión
 
-> La migración se aplica **una sola vez** a la base compartida; los datos que hubiera en la base local (Docker) no se migran solos. El **primer usuario registrado** en la base compartida será el `Administrador`.
+- El login y el registro devuelven el token **y** lo dejan en una cookie `httpOnly` (`access_token`, `SameSite=Strict`, `Secure` fuera de desarrollo). La API acepta el token por la cabecera `Authorization: Bearer` o por la cookie.
+- Mientras el frontend no use la cookie, el token se sigue devolviendo en el cuerpo (`Auth:ReturnTokenInBody=true`). Cuando el frontend use `withCredentials: true`, ponlo en `false`.
+- Las peticiones que modifican datos y se autentican **con la cookie** deben enviar la cabecera `X-CSRF: 1` (protección CSRF).
+- En cada petición se valida contra la base que el usuario siga activo, que su rol no haya cambiado y que su **sello de seguridad** (`SecurityStamp`) sea el mismo. Cambiar el rol, desactivar, cambiar el correo, restablecer la contraseña o cerrar sesión invalida los tokens anteriores de inmediato.
+- `GET /api/auth/me` devuelve el usuario de la sesión; `POST /api/auth/logout` cierra todas sus sesiones.
 
-Si quieres volver a usar el PostgreSQL local de Docker, revierte la sección `Database` de `appsettings.json` a `Host: localhost`, `User: postgres` y quita `SslMode`.
+### Contraseñas y bloqueo
+
+- Mínimo 10 caracteres (máximo 128), con al menos una letra y un número.
+- Hash PBKDF2-SHA256 con 600.000 iteraciones. Los hashes antiguos se regeneran solos al iniciar sesión.
+- Tras **5 intentos fallidos** la cuenta queda **bloqueada 15 minutos** (todos los roles, incluido el Administrador). Ya no se desactiva la cuenta: nadie puede dejar fuera a otro de forma permanente. Un Administrador puede levantar el bloqueo antes enviando `"active": true`.
+- El login responde igual (y tarda lo mismo) si el correo no existe, si la contraseña es incorrecta o si la cuenta está inactiva o bloqueada.
+- Cualquier usuario cambia su propia contraseña con `POST /api/auth/change-password` (pide la actual). Se cierran sus demás sesiones y la actual sigue con un token nuevo. Los intentos con la contraseña actual incorrecta cuentan para el bloqueo temporal.
+- "Olvidé mi contraseña": el Administrador la restablece con `PUT /api/users/{id}/password`.
+
+### Límites
+
+- General: 300 peticiones por minuto por usuario (o por IP sin sesión).
+- Login: 10 por minuto por IP. Registro: 5 cada 15 minutos por IP.
+- Cuerpo de la petición: máximo 1 MB. Textos con largo máximo y JSON libre (`characteristics`, `specifications`) de máximo 8.000 caracteres.
+- Todos configurables en `appsettings.json` (`RateLimiting`, `Limits`).
+
+### Errores y auditoría
+
+- Los errores no controlados responden `{ "message", "traceId" }` sin detalles internos; el detalle queda en el log con el mismo `traceId`.
+- Toda alta, cambio o borrado queda en la tabla `AuditLogs` (usuario, IP, entidad, campos modificados), igual que los inicios de sesión, fallos y bloqueos. Consulta: `GET /api/audit` (solo Administrador; filtros `userId`, `entityType`, `entityId`, `action`, `take`).
+
+### Cabeceras
+
+`X-Content-Type-Options`, `X-Frame-Options`, `Content-Security-Policy`, `Referrer-Policy`, `Permissions-Policy`, `Cache-Control: no-store`, HSTS fuera de desarrollo y sin cabecera `Server`.
+
+## Roles y permisos
+
+Hay 4 roles fijos: `Administrador`, `Técnico`, `Empleado` y `Cliente`. Cada usuario tiene **un solo rol**.
+
+- El **registro público siempre crea `Cliente`**. El primer Administrador se crea desde la configuración (`Bootstrap:*`).
+- No se puede desactivar ni quitar el rol al **último Administrador activo**, y un Administrador no puede desactivarse ni quitarse el rol a sí mismo.
+
+| Módulo | Administrador | Técnico | Empleado | Cliente |
+|---|---|---|---|---|
+| Usuarios y roles | Todo | — | — | — |
+| Auditoría | Consulta | — | — | — |
+| Equipos | Todo | Todo | Consulta | — |
+| Componentes | Todo | Todo | Consulta | — |
+| Asignaciones | Todo | Todo | Solo las suyas | — |
+| Incidentes | Todo | Consulta | Reportar; editar/borrar solo los suyos abiertos | — |
+| Mantenimiento | Todo | Todo | Consulta | Consulta del historial |
+| Repuestos | Todo | Todo | — | — |
 
 ## Endpoints
 
-| Método | Ruta                       | Autorización        | Descripción                          |
-|--------|----------------------------|---------------------|--------------------------------------|
-| POST   | `/api/auth/register`       | Anónimo             | Registra un usuario y devuelve token |
-| POST   | `/api/auth/login`          | Anónimo             | Inicia sesión y devuelve token       |
-| GET    | `/api/roles`               | Administrador       | Lista los roles disponibles          |
-| GET    | `/api/users`               | Administrador       | Lista los usuarios con su rol        |
-| PUT    | `/api/users/{id}`          | Administrador       | Edita estado, rol, teléfono y correo |
-| PUT    | `/api/users/{id}/role`     | Administrador       | Asigna solo el rol a un usuario      |
-| GET    | `/api/equipment/GetEquipmentList`           | Autenticado         | Lista todos los equipos        |
-| GET    | `/api/equipment/GetEquipmentById/{id}`      | Autenticado         | Consulta un equipo             |
-| POST   | `/api/equipment/PostNewEquipment`           | Administrador/Técnico | Crea un equipo               |
-| PUT    | `/api/equipment/PutEquipment/{id}`          | Administrador/Técnico | Edita un equipo              |
-| PATCH  | `/api/equipment/PatchEquipmentStatus/{id}`  | Administrador/Técnico | Cambia el estado del equipo  |
-| DELETE | `/api/equipment/DeleteEquipment/{id}`       | Administrador/Técnico | Elimina un equipo            |
-| POST   | `/api/assignment/AssignEquipment`          | Administrador/Técnico | Asigna un equipo a un usuario |
-| PATCH  | `/api/assignment/ReleaseEquipment/{id}`     | Administrador/Técnico | Libera un equipo (marca la asignación como RELEASED) |
-| GET    | `/api/assignment/GetAssignments`            | Todos                 | Lista asignaciones (Empleado/Cliente solo las propias) |
-| GET    | `/api/equipmentcomponent/GetComponentList`                    | Autenticado           | Lista todos los componentes de equipos |
-| GET    | `/api/equipmentcomponent/GetComponentById/{id}`               | Autenticado           | Consulta un componente                 |
-| GET    | `/api/equipmentcomponent/GetComponentsByEquipment/{equipmentId}` | Autenticado         | Lista los componentes de un equipo     |
-| POST   | `/api/equipmentcomponent/PostNewComponent`                    | Administrador/Técnico | Crea un componente y lo asocia a un equipo |
-| PUT    | `/api/equipmentcomponent/PutComponent/{id}`                   | Administrador/Técnico | Edita un componente                    |
-| DELETE | `/api/equipmentcomponent/DeleteComponent/{id}`                | Administrador/Técnico | Elimina un componente                  |
-| GET    | `/api/incident/GetIncidentList`                                  | Autenticado           | Lista todos los incidentes             |
-| GET    | `/api/incident/GetIncidentById/{id}`                             | Autenticado           | Consulta un incidente                  |
-| GET    | `/api/incident/GetIncidentsByEquipment/{equipmentId}`            | Autenticado           | Lista los incidentes de un equipo      |
-| POST   | `/api/incident/PostNewIncident`                                  | Administrador/Empleado | Crea un incidente                    |
-| PUT    | `/api/incident/PutIncident/{id}`                                 | Administrador/Empleado | Edita descripción/estado/maintenanceId |
-| DELETE | `/api/incident/DeleteIncident/{id}`                              | Administrador/Empleado | Elimina un incidente                  |
+| Método | Ruta | Autorización | Descripción |
+|---|---|---|---|
+| POST | `/api/auth/register` | Anónimo | Registra un **Cliente** y abre sesión |
+| POST | `/api/auth/login` | Anónimo | Inicia sesión |
+| GET | `/api/auth/me` | Autenticado | Usuario de la sesión |
+| POST | `/api/auth/change-password` | Autenticado | Cambia la contraseña propia |
+| POST | `/api/auth/logout` | Autenticado | Cierra todas las sesiones del usuario |
+| GET | `/api/roles` | Administrador | Lista los roles |
+| GET | `/api/users` | Administrador | Lista los usuarios |
+| PUT | `/api/users/{id}` | Administrador | Edita estado, rol, teléfono y correo |
+| PUT | `/api/users/{id}/role` | Administrador | Asigna el rol |
+| PUT | `/api/users/{id}/password` | Administrador | Restablece la contraseña |
+| GET | `/api/audit` | Administrador | Eventos de auditoría |
+| GET | `/api/equipment/GetEquipmentList` | Adm./Téc./Emp. | Lista equipos |
+| GET | `/api/equipment/GetEquipmentById/{id}` | Adm./Téc./Emp. | Consulta un equipo |
+| POST | `/api/equipment/PostNewEquipment` | Adm./Téc. | Crea un equipo |
+| PUT | `/api/equipment/PutEquipment/{id}` | Adm./Téc. | Edita un equipo |
+| PATCH | `/api/equipment/PatchEquipmentStatus/{id}` | Adm./Téc. | Cambia el estado |
+| DELETE | `/api/equipment/DeleteEquipment/{id}` | Adm./Téc. | Elimina (solo sin historial) |
+| POST | `/api/assignment/AssignEquipment` | Adm./Téc. | Asigna un equipo |
+| PATCH | `/api/assignment/ReleaseEquipment/{id}` | Adm./Téc. | Libera un equipo |
+| GET | `/api/assignment/GetAssignments` | Adm./Téc./Emp. | Lista (Empleado: solo las suyas) |
+| GET | `/api/equipmentcomponent/...` | Adm./Téc./Emp. | Consulta componentes |
+| POST/PUT/DELETE | `/api/equipmentcomponent/...` | Adm./Téc. | Gestiona componentes |
+| GET | `/api/incident/...` | Adm./Téc./Emp. | Consulta incidentes |
+| POST/PUT/DELETE | `/api/incident/...` | Adm./Emp. | Gestiona incidentes |
+| GET | `/api/maintenance/...` | Todos los roles | Consulta mantenimientos e historial |
+| POST/PUT/DELETE | `/api/maintenance/...` | Adm./Téc. | Gestiona mantenimientos |
+| GET/POST/PUT/PATCH | `/api/sparepart/...` | Adm./Téc. | Repuestos |
 
 **Registro**
 
@@ -177,234 +169,65 @@ Si quieres volver a usar el PostgreSQL local de Docker, revierte la sección `Da
 }
 ```
 
-> `phone` es opcional.
+Login y registro devuelven `{ "token", "userId", "fullName", "email", "role", "active", "expiresAt" }` y dejan la cookie de sesión.
 
-**Login**
+Los errores de validación responden `400` con `{ "message": "...", "errors": { "campo": ["..."] } }`.
 
-```json
-{
-  "email": "juan@test.com",
-  "password": "secreto123"
-}
-```
+## Reglas de negocio
 
-Ambos devuelven `{ "token": "...", "fullName": "...", "email": "...", "role": "Cliente", "active": true }`. Usa el token en el header `Authorization: Bearer <token>` para los endpoints protegidos.
+### Equipos
 
-## Probar la API
+- `internalCode` y `serialNumber` son únicos (`409`).
+- `UNDER_MAINTENANCE` solo lo pone el flujo de mantenimiento; con un mantenimiento abierto, el estado del equipo cambia al cerrarlo o cancelarlo.
+- La garantía no puede terminar antes de la fecha de compra; el precio no puede ser negativo.
+- Un equipo con historial (asignaciones, componentes, incidentes o mantenimientos) no se borra: se pasa a `DECOMMISSIONED`.
 
-Con la API corriendo en `http://localhost:5255`:
+### Asignaciones
 
-- **OpenAPI** (para importar en Postman/Insomnia): `http://localhost:5255/openapi/v1.json`
-- **Archivo de peticiones**: `src/Backend.API/Backend.API.http` (se abre directo en Visual Studio o Rider). Reemplaza `{{token}}` por el token devuelto por el login y `{{equipmentId}}` por el `id` de un equipo.
+- Un equipo solo puede tener una asignación `ACTIVE` (garantizado también por un índice único, incluso con peticiones simultáneas).
+- No se asignan equipos en mantenimiento, fuera de servicio o dados de baja, ni a usuarios inactivos.
 
-Obtener un token desde la terminal:
+### Incidentes
 
-```bash
-curl -s -X POST http://localhost:5255/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d "{\"email\":\"tu-correo@test.com\",\"password\":\"tu-contraseña\"}"
-```
+- Un equipo solo puede tener un incidente `OPEN` o `IN_PROGRESS` (índice único).
+- No se reportan incidentes de equipos dados de baja ni con fecha futura.
+- `IN_PROGRESS` solo lo pone el mantenimiento; con un mantenimiento asociado, el estado lo maneja ese mantenimiento.
+- El Empleado solo edita o borra **sus** incidentes mientras están `OPEN` y sin mantenimiento, y solo puede pasarlos a `CLOSED`.
+- Un incidente con mantenimiento asociado no se borra.
 
-> Recuerda: el **primer usuario registrado** es el `Administrador`. Si la base está vacía, regístrate primero con ese correo.
+### Mantenimiento
 
-## Roles
+- Un equipo solo puede tener un mantenimiento `OPEN` o `IN_PROGRESS` (índice único).
+- La incidencia vinculada debe ser del mismo equipo y estar `OPEN`.
+- Costos y cantidades no pueden ser negativos; la fecha de inicio no puede ser futura y el próximo mantenimiento no puede ser anterior al inicio.
+- **Completar solo con `POST /api/maintenance/CloseMaintenance/{id}`** (exige el trabajo realizado). `PutMaintenance` no acepta `COMPLETED`.
+- Al cerrar, el equipo no puede quedar `UNDER_MAINTENANCE` y la incidencia queda `RESOLVED` o `CLOSED`.
+- Cancelar libera el equipo y devuelve la incidencia a `OPEN` (se desvincula y queda anotado en las observaciones).
+- Un mantenimiento completado no se borra (es historial y costo del equipo).
 
-El sistema tiene 4 roles fijos (no se crean ni eliminan): `Administrador`, `Técnico`, `Empleado` y `Cliente`. Cada usuario tiene **un solo rol**.
+### Enums
 
-- El **primer usuario registrado** recibe automáticamente el rol `Administrador`; los siguientes reciben `Cliente`.
-- Solo un usuario con rol `Administrador` puede listar usuarios/roles y asignar roles.
-
-**Asignar un rol**
-
-```json
-PUT /api/users/{id}/role
-Authorization: Bearer <token-de-administrador>
-
-{
-  "role": "Técnico"
-}
-```
-
-**Editar usuario** (estado, rol, teléfono y correo)
-
-```json
-PUT /api/users/{id}
-Authorization: Bearer <token-de-administrador>
-
-{
-  "active": false,
-  "role": "Empleado",
-  "phone": "3009876543",
-  "email": "nuevo@test.com"
-}
-```
-
-Solo se actualizan los campos que envíes; todos son opcionales. Responde `200` con el usuario actualizado, `400` si el rol no es uno de los 4 válidos, `403` si quien llama no es Administrador, `404` si el usuario no existe y `409` si el correo ya lo usa otro usuario.
-
-## Estado del usuario
-
-El estado se guarda en el campo booleano `Active` (`true` = activo, `false` = inactivo). Solo un `Administrador` puede cambiarlo. Un usuario inactivo **no puede iniciar sesión** (el login responde `401`).
-
-Además, ante cada intento de login fallido se incrementa `failedAttempts`, y se reinicia a `0` al iniciar sesión correctamente. Si `failedAttempts` supera **3**, la cuenta se **desactiva automáticamente** (`active = false`) y ya no puede iniciar sesión; un `Administrador` debe reactivarla (al reactivarla, el siguiente login correcto reinicia el contador).
+Se aceptan solo por nombre (`"OPEN"`); un número (`99`) o un nombre inexistente responde `400`.
 
 ## Datos sensibles (cifrado)
 
-El `email` y el `phone` se guardan **cifrados** en la base de datos con `AES-256-GCM` (clave en `Encryption:Key`). La API los devuelve descifrados en las respuestas.
+`email` y `phone` se guardan cifrados con AES-256-GCM. Desde esta versión el cifrado usa el formato `v2`, que **ata cada valor a su usuario y campo** (datos asociados): un valor copiado a otro usuario o columna ya no se puede descifrar. Los valores del formato anterior se siguen leyendo y se migran al iniciar sesión o con la rotación.
 
-Como el correo cifrado no permite buscarlo por igualdad, se guarda además `EmailHash`, un índice ciego (`HMAC-SHA256` determinista) que se usa para el login y para la unicidad del correo. Por eso **nunca** debe cambiarse `Encryption:Key` una vez que hay datos guardados: dejarías de poder descifrar correos/teléfonos.
+`EmailHash` es un índice ciego (HMAC-SHA256) para buscar por correo sin descifrar.
 
-## Equipos
+**Rotar `Encryption:Key`**: pon la clave vieja en `Encryption:PreviousKeys`, la nueva en `Encryption:Key` y arranca una vez con `Encryption__RotateOnStartup=true`. La API vuelve a cifrar todo con la clave nueva, lo verifica y se detiene. Luego quita la clave vieja de `PreviousKeys`.
 
-La entidad `Equipment` tiene los campos: `id`, `internalCode`, `serialNumber`, `type`, `brand`, `model`, `characteristics` (JSON libre, se guarda como `jsonb`), `acquisitionDate`, `acquisitionPrice`, `warrantyUntil`, `location`, `status`, `createdAt`, `updatedAt`.
-
-- **Consultar** la lista o un equipo: cualquier usuario autenticado.
-- **Crear, editar, cambiar estado y eliminar**: solo `Administrador` y `Técnico`.
-- `internalCode` y `serialNumber` son **únicos** (si se repiten, responde `409`).
-
-**Estados** (`EquipmentStatus`, se serializan como texto): `AVAILABLE`, `IN_USE`, `UNDER_MAINTENANCE`, `OUT_OF_SERVICE`, `DECOMMISSIONED`. Al crear, si no se envía `status`, queda en `AVAILABLE`.
-
-**Crear equipo**
-
-```json
-POST /api/equipment/PostNewEquipment
-Authorization: Bearer <token-admin-o-tecnico>
-
-{
-  "internalCode": "EQ-001",
-  "serialNumber": "SN-ABC-123",
-  "type": "Laptop",
-  "brand": "Dell",
-  "model": "Latitude 5420",
-  "characteristics": { "ram": "16GB", "cpu": "i7", "storage": "512GB SSD" },
-  "acquisitionDate": "2024-03-15",
-  "acquisitionPrice": 1200.50,
-  "warrantyUntil": "2027-03-15",
-  "location": "Oficina 201"
-}
-```
-
-**Editar equipo** (`PUT /api/equipment/PutEquipment/{id}`): solo se actualizan los campos que envíes.
-
-**Cambiar estado**
-
-```json
-PATCH /api/equipment/PatchEquipmentStatus/{id}
-Authorization: Bearer <token-admin-o-tecnico>
-
-{
-  "status": "IN_USE"
-}
-```
-
-**Eliminar**: `DELETE /api/equipment/DeleteEquipment/{id}` responde `204` (o `404` si no existe).
-
-## Asignaciones
-
-La entidad `Assignment` registra la entrega de un equipo a un usuario. Un **usuario puede tener muchas asignaciones**; **una asignación contiene un solo equipo** (`EquipmentId` → `Equipments`, `UserId` → `Users`). No se puede eliminar un equipo o usuario que tenga asignaciones.
-
-Campos: `id`, `equipmentId`, `userId`, `assignedAt` (UTC, se asigna al crear), `releasedAt` (UTC, se asigna al liberar; null mientras está activa), `status`, `observations`.
-
-**Estados** (`AssignmentStatus`): `ACTIVE`, `RELEASED`.
-
-- **Asignar** (POST `/api/assignment/AssignEquipment`): solo `Administrador` y `Técnico`. Valida que el equipo y el usuario existan; si el equipo ya tiene una asignación `ACTIVE`, responde `409`.
-- **Liberar** (PATCH `/api/assignment/ReleaseEquipment/{id}`): solo `Administrador` y `Técnico`. Marca la asignación como `RELEASED` y asigna `releasedAt`; si ya está liberada, responde `400`.
-- **Consultar** (GET `/api/assignment/GetAssignments`): cualquier rol autenticado. `Administrador` y `Técnico` ven **todas**; `Empleado` y `Cliente` ven **solo las suyas**.
-
-**Asignar equipo**
-
-```json
-POST /api/assignment/AssignEquipment
-Authorization: Bearer <token-admin-o-tecnico>
-
-{
-  "equipmentId": "32aa98f7-...-uuid-del-equipo",
-  "userId": "6a5c...-uuid-del-usuario",
-  "observations": "Entrega inicial del equipo"
-}
-```
-
-**Liberar** (`PATCH /api/assignment/ReleaseEquipment/{id}`) acepta opcionalmente `observations` en el body.
-
-## Componentes de equipos
-
-La entidad `EquipmentComponent` registra el listado de componentes de cada equipo. Un **equipo puede tener muchos componentes**; cada componente pertenece a **un solo equipo** (`EquipmentId` → `Equipments`). No se puede eliminar un equipo que tenga componentes.
-
-Campos: `id`, `equipmentId`, `componentType`, `brand`, `model`, `serialNumber`, `specifications` (JSON libre, se guarda como `jsonb`), `installedAt` (UTC; si no se envía, se usa el momento de creación).
-
-- **Crear, editar y eliminar**: solo `Administrador` y `Técnico`. Si el `equipmentId` no existe, responde `404`.
-- **Consultar** (lista, por id o por equipo): cualquier usuario autenticado.
-
-**Crear componente**
-
-```json
-POST /api/equipmentcomponent/PostNewComponent
-Authorization: Bearer <token-admin-o-tecnico>
-
-{
-  "equipmentId": "32aa98f7-...-uuid-del-equipo",
-  "componentType": "RAM",
-  "brand": "Kingston",
-  "model": "KVR32S22S8/16",
-  "serialNumber": "RAM-001",
-  "specifications": { "capacity": "16GB", "speed": "3200MHz" },
-  "installedAt": "2026-01-10T00:00:00Z"
-}
-```
-
-**Editar** (`PUT /api/equipmentcomponent/PutComponent/{id}`): se actualizan solo los campos enviados. **Eliminar**: `DELETE /api/equipmentcomponent/DeleteComponent/{id}` responde `204` (o `404`).
-
-## Incidentes
-
-La entidad `Incident` registra los incidentes reportados sobre los equipos. Un **equipo puede tener muchos incidentes**; cada incidente pertenece a **un solo equipo** (`EquipmentId` → `Equipments`). No se puede eliminar un equipo que tenga incidentes.
-
-Campos: `id`, `equipmentId`, `reportedBy` (usuario autenticado que reporta), `description`, `reportedAt` (UTC; si no se envía, se usa el momento de creación), `status`, `maintenanceId` (opcional, solo un identificador de referencia; no hay entidad de mantenimiento por el momento).
-
-**Estados** (`IncidentStatus`): `OPEN`, `IN_PROGRESS`, `CLOSED`, `RESOLVED`.
-
-- **Crear, editar y eliminar**: solo `Administrador` y `Empleado`.
-- **Regla**: no se puede crear un incidente para un equipo que ya tenga uno en estado `OPEN` o `IN_PROGRESS` (responde `409`).
-- **Consultar** (lista, por id o por equipo): cualquier usuario autenticado.
-
-**Crear incidente**
-
-```json
-POST /api/incident/PostNewIncident
-Authorization: Bearer <token-de-administrador-o-empleado>
-
-{
-  "equipmentId": "32aa98f7-...-uuid-del-equipo",
-  "description": "El equipo no enciende",
-  "reportedAt": "2026-09-29T00:00:00Z",
-  "maintenanceId": null
-}
-```
-
-**Editar** (`PUT /api/incident/PutIncident/{id}`): se actualizan solo los campos enviados (descripción, `status`, `maintenanceId`). **Eliminar**: `DELETE /api/incident/DeleteIncident/{id}` responde `204` (o `404`).
-
-## CORS (conexión desde el front)
-
-En desarrollo se aceptan peticiones de cualquier origen en `localhost` (React, Angular, etc.), no hay que configurar nada.
-
-Para producción, define los orígenes permitidos en `appsettings.json` (o con la variable de entorno `Cors__AllowedOrigins__0`):
-
-```json
-"Cors": {
-  "AllowedOrigins": ["https://tu-front.example.com"]
-}
-```
+> `fullName` no se cifra porque se usa para ordenar y se muestra en asignaciones, incidentes y mantenimientos.
 
 ## Base de datos
 
-- Base: `database`
-- Usuario: `postgres`
-- Contraseña: `postgres` (por defecto)
-- Puerto: `5432`
+Tablas: `Users` (con `Email`/`Phone` cifrados, `EmailHash`, `LockoutEnd`, `SecurityStamp`), `Roles`, `Equipments`, `Assignments`, `EquipmentComponents`, `Incidents`, `Maintenances`, `SpareParts`, `MaintenanceSpareParts` y `AuditLogs`.
 
-Tabla `Users`: `Id`, `Email` (cifrado), `EmailHash` (índice ciego), `PasswordHash`, `FullName`, `Phone` (cifrado), `Active` (booleano), `FailedAttempts`, `CreatedAt`, `UpdatedAt`, `RoleId`.
-Tabla `Roles`: `Id`, `Name` (4 roles fijos).
-Tabla `Equipments`: `Id`, `InternalCode` (único), `SerialNumber` (único), `Type`, `Brand`, `Model`, `Characteristics` (jsonb), `AcquisitionDate`, `AcquisitionPrice`, `WarrantyUntil`, `Location`, `Status`, `CreatedAt`, `UpdatedAt`.
-Tabla `Assignments`: `Id`, `EquipmentId` (FK), `UserId` (FK), `AssignedAt`, `ReleasedAt`, `Status`, `Observations`.
-Tabla `EquipmentComponents`: `Id`, `EquipmentId` (FK), `ComponentType`, `Brand`, `Model`, `SerialNumber`, `Specifications` (jsonb), `InstalledAt`.
-Tabla `Incidents`: `Id`, `EquipmentId` (FK), `ReportedBy` (FK a Users), `Description`, `ReportedAt`, `Status`, `MaintenanceId`.
+## Probar la API
 
-Para conectarse desde un cliente (DBeaver, pgAdmin): host `localhost`, puerto `5432`, base `database`, usuario `postgres`, contraseña `postgres`.git status
+- **OpenAPI** (solo en desarrollo): `http://localhost:5255/openapi/v1.json`
+- **Archivo de peticiones**: `src/Backend.API/Backend.API.http`.
+
+## CORS
+
+En desarrollo se acepta cualquier origen `localhost` (con credenciales). En producción define los orígenes en `Cors:AllowedOrigins` (o `Cors__AllowedOrigins__0`).

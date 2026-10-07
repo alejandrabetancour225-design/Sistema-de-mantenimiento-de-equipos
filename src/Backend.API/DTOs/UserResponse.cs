@@ -9,6 +9,7 @@ public class UserResponse
     public bool Active { get; set; }
     public string? Role { get; set; }
     public int FailedAttempts { get; set; }
+    public DateTime? LockoutEnd { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }

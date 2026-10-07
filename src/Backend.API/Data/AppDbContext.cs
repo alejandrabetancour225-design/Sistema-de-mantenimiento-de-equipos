@@ -16,6 +16,12 @@ public class AppDbContext : DbContext
     public DbSet<Maintenance> Maintenances => Set<Maintenance>();
     public DbSet<SparePart> SpareParts => Set<SparePart>();
     public DbSet<MaintenanceSparePart> MaintenanceSpareParts => Set<MaintenanceSparePart>();
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+
+    // Nombres de los índices únicos parciales que evitan duplicados por peticiones simultáneas.
+    public const string ActiveAssignmentPerEquipmentIndex = "IX_Assignments_EquipmentId_Active";
+    public const string OpenIncidentPerEquipmentIndex = "IX_Incidents_EquipmentId_Open";
+    public const string OpenMaintenancePerEquipmentIndex = "IX_Maintenances_EquipmentId_Open";
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -47,6 +53,11 @@ public class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict);
             entity.HasIndex(a => a.EquipmentId);
             entity.HasIndex(a => a.UserId);
+
+            // Un equipo solo puede tener una asignación ACTIVE (Status = 0).
+            entity.HasIndex(a => a.EquipmentId, ActiveAssignmentPerEquipmentIndex)
+                .IsUnique()
+                .HasFilter("\"Status\" = 0");
         });
 
         modelBuilder.Entity<EquipmentComponent>(entity =>
@@ -71,6 +82,11 @@ public class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict);
             entity.HasIndex(i => i.EquipmentId);
             entity.HasIndex(i => i.ReportedBy);
+
+            // Un equipo solo puede tener un incidente OPEN (0) o IN_PROGRESS (1).
+            entity.HasIndex(i => i.EquipmentId, OpenIncidentPerEquipmentIndex)
+                .IsUnique()
+                .HasFilter("\"Status\" IN (0, 1)");
         });
 
         modelBuilder.Entity<Maintenance>(entity =>
@@ -94,6 +110,11 @@ public class AppDbContext : DbContext
             entity.HasIndex(m => m.TechnicianId);
             entity.HasIndex(m => m.Status);
             entity.HasIndex(m => m.NextMaintenanceDate);
+
+            // Un equipo solo puede tener un mantenimiento OPEN (0) o IN_PROGRESS (1).
+            entity.HasIndex(m => m.EquipmentId, OpenMaintenancePerEquipmentIndex)
+                .IsUnique()
+                .HasFilter("\"Status\" IN (0, 1)");
         });
 
         modelBuilder.Entity<SparePart>(entity =>
@@ -115,6 +136,12 @@ public class AppDbContext : DbContext
             entity.Property(ms => ms.UnitCostAtUse).HasPrecision(18, 2);
             entity.HasIndex(ms => new { ms.MaintenanceId, ms.SparePartId }).IsUnique();
             entity.HasIndex(ms => ms.SparePartId);
+        });
+
+        modelBuilder.Entity<AuditLog>(entity =>
+        {
+            entity.HasIndex(a => a.Timestamp);
+            entity.HasIndex(a => a.UserId);
         });
 
         modelBuilder.Entity<Role>().HasData(

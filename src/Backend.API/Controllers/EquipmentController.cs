@@ -6,13 +6,12 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Backend.API.Controllers;
 
-[Authorize]
+// Cliente: sin acceso. Lectura: Administrador, Técnico y Empleado. Escritura: Administrador y Técnico.
+[Authorize(Roles = Roles.Staff)]
 [ApiController]
 [Route("api/[controller]")]
 public class EquipmentController : ControllerBase
 {
-    private const string AdminOrTechnician = Roles.Administrador + "," + Roles.Tecnico;
-
     private readonly IEquipmentService _equipmentService;
 
     public EquipmentController(IEquipmentService equipmentService)
@@ -33,7 +32,7 @@ public class EquipmentController : ControllerBase
         return equipment is null ? NotFound() : Ok(equipment);
     }
 
-    [Authorize(Roles = AdminOrTechnician)]
+    [Authorize(Roles = Roles.AdminOrTechnician)]
     [HttpPost("PostNewEquipment")]
     public async Task<ActionResult<EquipmentResponse>> PostNewEquipment(CreateEquipmentRequest request)
     {
@@ -41,7 +40,7 @@ public class EquipmentController : ControllerBase
         return ToActionResult(result);
     }
 
-    [Authorize(Roles = AdminOrTechnician)]
+    [Authorize(Roles = Roles.AdminOrTechnician)]
     [HttpPut("PutEquipment/{id:guid}")]
     public async Task<ActionResult<EquipmentResponse>> PutEquipment(Guid id, UpdateEquipmentRequest request)
     {
@@ -49,7 +48,7 @@ public class EquipmentController : ControllerBase
         return ToActionResult(result);
     }
 
-    [Authorize(Roles = AdminOrTechnician)]
+    [Authorize(Roles = Roles.AdminOrTechnician)]
     [HttpPatch("PatchEquipmentStatus/{id:guid}")]
     public async Task<ActionResult<EquipmentResponse>> PatchEquipmentStatus(Guid id, ChangeStatusRequest request)
     {
@@ -62,12 +61,18 @@ public class EquipmentController : ControllerBase
         return ToActionResult(result);
     }
 
-    [Authorize(Roles = AdminOrTechnician)]
+    [Authorize(Roles = Roles.AdminOrTechnician)]
     [HttpDelete("DeleteEquipment/{id:guid}")]
     public async Task<IActionResult> DeleteEquipment(Guid id)
     {
         var status = await _equipmentService.DeleteAsync(id);
-        return status == EquipmentActionStatus.NotFound ? NotFound() : NoContent();
+        return status switch
+        {
+            EquipmentActionStatus.Success => NoContent(),
+            EquipmentActionStatus.NotFound => NotFound(new { message = "El equipo no existe." }),
+            EquipmentActionStatus.HasRelatedRecords => Conflict(new { message = "El equipo tiene historial (asignaciones, componentes, incidentes o mantenimientos). Cámbialo a DECOMMISSIONED en lugar de borrarlo." }),
+            _ => StatusCode(StatusCodes.Status500InternalServerError)
+        };
     }
 
     private ActionResult<EquipmentResponse> ToActionResult(EquipmentResult result)
@@ -75,11 +80,15 @@ public class EquipmentController : ControllerBase
         return result.Status switch
         {
             EquipmentActionStatus.Success => Ok(result.Equipment),
-            EquipmentActionStatus.NotFound => NotFound(),
+            EquipmentActionStatus.NotFound => NotFound(new { message = "El equipo no existe." }),
             EquipmentActionStatus.DuplicateInternalCode => Conflict(
                 new { message = "Ya existe un equipo con ese código interno." }),
             EquipmentActionStatus.DuplicateSerialNumber => Conflict(
                 new { message = "Ya existe un equipo con ese número de serie." }),
+            EquipmentActionStatus.InvalidDates => BadRequest(
+                new { message = "La fecha de fin de garantía no puede ser anterior a la fecha de compra." }),
+            EquipmentActionStatus.InvalidStatusChange => BadRequest(
+                new { message = "El estado UNDER_MAINTENANCE lo asigna el flujo de mantenimiento, y con un mantenimiento abierto el estado solo cambia al cerrarlo o cancelarlo." }),
             _ => StatusCode(StatusCodes.Status500InternalServerError)
         };
     }

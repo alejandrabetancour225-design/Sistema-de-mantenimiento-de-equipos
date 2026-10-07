@@ -233,3 +233,42 @@ DELETE {{Backend.API_HostAddress}}/api/incident/DeleteIncident/{{incidentId}}
 Authorization: Bearer {{token}}
 
 ###
+
+# Usuario de la sesión actual
+GET {{Backend.API_HostAddress}}/api/auth/me
+Authorization: Bearer {{token}}
+
+###
+
+# Cualquier usuario cambia su propia contraseña
+POST {{Backend.API_HostAddress}}/api/auth/change-password
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "currentPassword": "ClaveActual2026",
+  "newPassword": "ClaveNueva2026"
+}
+
+###
+
+# Cierra todas las sesiones del usuario (invalida sus tokens)
+POST {{Backend.API_HostAddress}}/api/auth/logout
+Authorization: Bearer {{token}}
+
+###
+
+# El Administrador restablece la contraseña de un usuario
+PUT {{Backend.API_HostAddress}}/api/users/{{userId}}/password
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "newPassword": "NuevaClave2026"
+}
+
+###
+
+# Auditoría (solo Administrador)
+GET {{Backend.API_HostAddress}}/api/audit?take=50
+Authorization: Bearer {{token}}

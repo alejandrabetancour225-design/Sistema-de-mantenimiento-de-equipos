@@ -6,13 +6,12 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Backend.API.Controllers;
 
-[Authorize]
+// Repuestos (incluye costos): solo Administrador y Técnico.
+[Authorize(Roles = Roles.AdminOrTechnician)]
 [ApiController]
 [Route("api/[controller]")]
 public class SparePartController : ControllerBase
 {
-    private const string AdminOrTechnician = Roles.Administrador + "," + Roles.Tecnico;
-
     private readonly ISparePartService _sparePartService;
 
     public SparePartController(ISparePartService sparePartService)
@@ -33,7 +32,6 @@ public class SparePartController : ControllerBase
         return sparePart is null ? NotFound() : Ok(sparePart);
     }
 
-    [Authorize(Roles = AdminOrTechnician)]
     [HttpPost("PostNewSparePart")]
     public async Task<ActionResult<SparePartResponse>> PostNewSparePart(CreateSparePartRequest request)
     {
@@ -41,7 +39,6 @@ public class SparePartController : ControllerBase
         return ToActionResult(result);
     }
 
-    [Authorize(Roles = AdminOrTechnician)]
     [HttpPut("PutSparePart/{id:guid}")]
     public async Task<ActionResult<SparePartResponse>> PutSparePart(Guid id, UpdateSparePartRequest request)
     {
@@ -49,7 +46,6 @@ public class SparePartController : ControllerBase
         return ToActionResult(result);
     }
 
-    [Authorize(Roles = AdminOrTechnician)]
     [HttpPatch("DeactivateSparePart/{id:guid}")]
     public async Task<IActionResult> DeactivateSparePart(Guid id)
     {
@@ -57,7 +53,6 @@ public class SparePartController : ControllerBase
         return status == SparePartActionStatus.NotFound ? NotFound() : NoContent();
     }
 
-    [Authorize(Roles = AdminOrTechnician)]
     [HttpPatch("ReactivateSparePart/{id:guid}")]
     public async Task<IActionResult> ReactivateSparePart(Guid id)
     {

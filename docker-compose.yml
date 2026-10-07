@@ -5,9 +5,11 @@ services:
     environment:
       POSTGRES_DB: database
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      # Sin contraseña por defecto: defínela en un archivo .env (ignorado por git) junto a este archivo.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Define POSTGRES_PASSWORD en un archivo .env junto a docker-compose.yml}
     ports:
-      - "5432:5432"
+      # Solo accesible desde este equipo, no desde la red.
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 

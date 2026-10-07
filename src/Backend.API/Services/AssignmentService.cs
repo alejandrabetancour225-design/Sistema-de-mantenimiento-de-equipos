@@ -1,5 +1,6 @@
 using Backend.API.Data;
 using Backend.API.DTOs;
+using Backend.API.Infrastructure;
 using Backend.API.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -38,14 +39,28 @@ public class AssignmentService : IAssignmentService
 
     public async Task<AssignmentResult> AssignAsync(CreateAssignmentRequest request)
     {
-        if (await _context.Equipments.AnyAsync(e => e.Id == request.EquipmentId) is false)
+        var equipment = await _context.Equipments.FirstOrDefaultAsync(e => e.Id == request.EquipmentId);
+        if (equipment is null)
         {
             return new AssignmentResult(AssignmentActionStatus.EquipmentNotFound, null);
         }
 
-        if (await _context.Users.AnyAsync(u => u.Id == request.UserId) is false)
+        if (equipment.Status is EquipmentStatus.UNDER_MAINTENANCE
+            or EquipmentStatus.OUT_OF_SERVICE
+            or EquipmentStatus.DECOMMISSIONED)
+        {
+            return new AssignmentResult(AssignmentActionStatus.EquipmentNotAssignable, null);
+        }
+
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == request.UserId);
+        if (user is null)
         {
             return new AssignmentResult(AssignmentActionStatus.UserNotFound, null);
+        }
+
+        if (!user.Active)
+        {
+            return new AssignmentResult(AssignmentActionStatus.UserInactive, null);
         }
 
         var alreadyAssigned = await _context.Assignments
@@ -67,10 +82,18 @@ public class AssignmentService : IAssignmentService
         };
 
         _context.Assignments.Add(assignment);
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex) when (DbErrors.IsUniqueViolation(ex, AppDbContext.ActiveAssignmentPerEquipmentIndex))
+        {
+            // Otra petición asignó el mismo equipo al mismo tiempo: el índice único lo impidió.
+            return new AssignmentResult(AssignmentActionStatus.EquipmentAlreadyAssigned, null);
+        }
 
-        _context.Entry(assignment).Reference(a => a.Equipment).Load();
-        _context.Entry(assignment).Reference(a => a.User).Load();
+        await _context.Entry(assignment).Reference(a => a.Equipment).LoadAsync();
+        await _context.Entry(assignment).Reference(a => a.User).LoadAsync();
 
         return new AssignmentResult(AssignmentActionStatus.Success, Map(assignment));
     }

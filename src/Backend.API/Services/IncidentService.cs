@@ -1,5 +1,6 @@
 using Backend.API.Data;
 using Backend.API.DTOs;
+using Backend.API.Infrastructure;
 using Backend.API.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -55,9 +56,15 @@ public class IncidentService : IIncidentService
 
     public async Task<IncidentResult> CreateAsync(CreateIncidentRequest request, Guid reportedBy)
     {
-        if (await _context.Equipments.AnyAsync(e => e.Id == request.EquipmentId) is false)
+        var equipment = await _context.Equipments.FirstOrDefaultAsync(e => e.Id == request.EquipmentId);
+        if (equipment is null)
         {
             return new IncidentResult(IncidentActionStatus.EquipmentNotFound, null);
+        }
+
+        if (equipment.Status == EquipmentStatus.DECOMMISSIONED)
+        {
+            return new IncidentResult(IncidentActionStatus.EquipmentDecommissioned, null);
         }
 
         var hasOpenIncident = await _context.Incidents
@@ -74,15 +81,23 @@ public class IncidentService : IIncidentService
             EquipmentId = request.EquipmentId,
             ReportedBy = reportedBy,
             Description = request.Description.Trim(),
-            ReportedAt = request.ReportedAt ?? DateTime.UtcNow,
+            ReportedAt = DateTimeUtc.Normalize(request.ReportedAt) ?? DateTime.UtcNow,
             Status = IncidentStatus.OPEN
         };
 
         _context.Incidents.Add(incident);
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex) when (DbErrors.IsUniqueViolation(ex, AppDbContext.OpenIncidentPerEquipmentIndex))
+        {
+            // Dos reportes simultáneos sobre el mismo equipo: el índice único dejó pasar solo uno.
+            return new IncidentResult(IncidentActionStatus.EquipmentHasOpenIncident, null);
+        }
 
-        _context.Entry(incident).Reference(i => i.Equipment).Load();
-        _context.Entry(incident).Reference(i => i.Reporter).Load();
+        await _context.Entry(incident).Reference(i => i.Equipment).LoadAsync();
+        await _context.Entry(incident).Reference(i => i.Reporter).LoadAsync();
 
         return new IncidentResult(IncidentActionStatus.Success, Map(incident));
     }
@@ -99,35 +114,102 @@ public class IncidentService : IIncidentService
         {
             return new IncidentResult(IncidentActionStatus.NotFound, null);
         }
-        if (currentRole == Roles.Empleado && incident.ReportedBy != currentUserId)
+
+        var isEmployee = currentRole == Roles.Empleado;
+
+        // El Empleado solo ve como "existentes" sus propios incidentes al editar.
+        if (isEmployee && incident.ReportedBy != currentUserId)
         {
             return new IncidentResult(IncidentActionStatus.NotFound, null);
         }
 
-        if (request.Description is not null) incident.Description = request.Description.Trim();
-        if (request.Status is not null) incident.Status = request.Status.Value;
+        // El Empleado solo puede tocar su incidente mientras está abierto y sin mantenimiento.
+        if (isEmployee && (incident.Status != IncidentStatus.OPEN || incident.Maintenance is not null))
+        {
+            return new IncidentResult(IncidentActionStatus.HasMaintenance, null);
+        }
 
-        await _context.SaveChangesAsync();
+        if (request.Status is not null && request.Status.Value != incident.Status)
+        {
+            var statusError = ValidateStatusChange(incident, request.Status.Value, isEmployee);
+            if (statusError is not null)
+            {
+                return new IncidentResult(statusError.Value, null);
+            }
+
+            incident.Status = request.Status.Value;
+        }
+
+        if (request.Description is not null) incident.Description = request.Description.Trim();
+
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex) when (DbErrors.IsUniqueViolation(ex, AppDbContext.OpenIncidentPerEquipmentIndex))
+        {
+            // Reabrir chocaría con otro incidente abierto del mismo equipo.
+            return new IncidentResult(IncidentActionStatus.EquipmentHasOpenIncident, null);
+        }
 
         return new IncidentResult(IncidentActionStatus.Success, Map(incident));
     }
 
     public async Task<IncidentActionStatus> DeleteAsync(Guid id, Guid currentUserId, string? currentRole)
     {
-        var incident = await _context.Incidents.FirstOrDefaultAsync(i => i.Id == id);
+        var incident = await _context.Incidents
+            .Include(i => i.Maintenance)
+            .FirstOrDefaultAsync(i => i.Id == id);
         if (incident is null)
         {
             return IncidentActionStatus.NotFound;
         }
-        if (currentRole == Roles.Empleado && incident.ReportedBy != currentUserId)
+
+        var isEmployee = currentRole == Roles.Empleado;
+        if (isEmployee && incident.ReportedBy != currentUserId)
         {
             return IncidentActionStatus.NotFound;
+        }
+
+        // Un incidente con mantenimiento forma parte del historial del equipo.
+        if (incident.Maintenance is not null)
+        {
+            return IncidentActionStatus.HasMaintenance;
+        }
+
+        if (isEmployee && incident.Status != IncidentStatus.OPEN)
+        {
+            return IncidentActionStatus.InvalidStatusChange;
         }
 
         _context.Incidents.Remove(incident);
         await _context.SaveChangesAsync();
 
         return IncidentActionStatus.Success;
+    }
+
+    // Reglas de estado:
+    //  - IN_PROGRESS lo pone el flujo de mantenimiento, nunca a mano.
+    //  - Con un mantenimiento asociado, el estado lo maneja ese mantenimiento.
+    //  - El Empleado solo puede retirar su reporte (OPEN -> CLOSED).
+    private static IncidentActionStatus? ValidateStatusChange(Incident incident, IncidentStatus newStatus, bool isEmployee)
+    {
+        if (newStatus == IncidentStatus.IN_PROGRESS)
+        {
+            return IncidentActionStatus.InvalidStatusChange;
+        }
+
+        if (incident.Maintenance is not null)
+        {
+            return IncidentActionStatus.HasMaintenance;
+        }
+
+        if (isEmployee && !(incident.Status == IncidentStatus.OPEN && newStatus == IncidentStatus.CLOSED))
+        {
+            return IncidentActionStatus.InvalidStatusChange;
+        }
+
+        return null;
     }
 
     private static IncidentResponse Map(Incident incident)

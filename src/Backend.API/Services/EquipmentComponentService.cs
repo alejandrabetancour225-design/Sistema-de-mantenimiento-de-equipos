@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Backend.API.Data;
 using Backend.API.DTOs;
+using Backend.API.Infrastructure;
 using Backend.API.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -66,7 +67,7 @@ public class EquipmentComponentService : IEquipmentComponentService
             Model = request.Model.Trim(),
             SerialNumber = request.SerialNumber.Trim(),
             Specifications = HasJsonValue(request.Specifications) ? request.Specifications!.Value.GetRawText() : null,
-            InstalledAt = request.InstalledAt ?? DateTime.UtcNow
+            InstalledAt = DateTimeUtc.Normalize(request.InstalledAt) ?? DateTime.UtcNow
         };
 
         _context.EquipmentComponents.Add(component);
@@ -93,7 +94,7 @@ public class EquipmentComponentService : IEquipmentComponentService
         if (request.Model is not null) component.Model = request.Model.Trim();
         if (request.SerialNumber is not null) component.SerialNumber = request.SerialNumber.Trim();
         if (HasJsonValue(request.Specifications)) component.Specifications = request.Specifications!.Value.GetRawText();
-        if (request.InstalledAt is not null) component.InstalledAt = request.InstalledAt.Value;
+        if (request.InstalledAt is not null) component.InstalledAt = DateTimeUtc.Normalize(request.InstalledAt.Value);
 
         await _context.SaveChangesAsync();
 

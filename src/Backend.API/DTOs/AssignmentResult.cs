@@ -7,7 +7,10 @@ public enum AssignmentActionStatus
     EquipmentNotFound,
     UserNotFound,
     EquipmentAlreadyAssigned,
-    NotActive
+    NotActive,
+    // Equipo en mantenimiento, fuera de servicio o dado de baja.
+    EquipmentNotAssignable,
+    UserInactive
 }
 
 public record AssignmentResult(AssignmentActionStatus Status, AssignmentResponse? Assignment);

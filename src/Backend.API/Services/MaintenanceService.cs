@@ -1,5 +1,6 @@
 using Backend.API.Data;
 using Backend.API.DTOs;
+using Backend.API.Infrastructure;
 using Backend.API.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -70,10 +71,23 @@ public class MaintenanceService : IMaintenanceService
                 return new MaintenanceResult(MaintenanceActionStatus.IncidentNotFound, null);
             }
 
-            if (incident.Maintenance is not null)
+            // La incidencia debe ser del mismo equipo que el mantenimiento.
+            if (incident.EquipmentId != request.EquipmentId)
             {
-                return new MaintenanceResult(MaintenanceActionStatus.IncidentAlreadyLinked, null);
+                return new MaintenanceResult(MaintenanceActionStatus.IncidentEquipmentMismatch, null);
             }
+        }
+
+        var startedAt = DateTimeUtc.Normalize(request.StartedAt) ?? DateTime.UtcNow;
+        if (!NextDateIsValid(request.NextMaintenanceDate, startedAt))
+        {
+            return new MaintenanceResult(MaintenanceActionStatus.InvalidDates, null);
+        }
+
+        var preconditionError = await ValidateCanOpenMaintenanceAsync(equipment, incident);
+        if (preconditionError is not null)
+        {
+            return new MaintenanceResult(preconditionError.Value, null);
         }
 
         var now = DateTime.UtcNow;
@@ -90,29 +104,12 @@ public class MaintenanceService : IMaintenanceService
             OtherCosts = request.OtherCosts,
             NextMaintenanceDate = request.NextMaintenanceDate,
             Observations = request.Observations?.Trim() ?? string.Empty,
-            StartedAt = request.StartedAt ?? now,
+            StartedAt = startedAt,
             CreatedAt = now,
             UpdatedAt = now
         };
 
-        _context.Maintenances.Add(maintenance);
-
-        // R4: el equipo pasa a En mantenimiento
-        equipment.Status = EquipmentStatus.UNDER_MAINTENANCE;
-        equipment.UpdatedAt = now;
-
-        // HU-11: la incidencia queda en progreso al enlazarse
-        if (incident is not null)
-        {
-            incident.Status = IncidentStatus.IN_PROGRESS;
-        }
-
-        await _context.SaveChangesAsync();
-
-        await _context.Entry(maintenance).Reference(m => m.Equipment).LoadAsync();
-        await _context.Entry(maintenance).Reference(m => m.Technician).LoadAsync();
-
-        return new MaintenanceResult(MaintenanceActionStatus.Success, Map(maintenance));
+        return await OpenMaintenanceAsync(maintenance, equipment, incident, now);
     }
 
     public async Task<MaintenanceResult> CreateFromIncidentAsync(Guid incidentId, Guid currentUserId)
@@ -127,15 +124,21 @@ public class MaintenanceService : IMaintenanceService
             return new MaintenanceResult(MaintenanceActionStatus.IncidentNotFound, null);
         }
 
-        if (incident.Maintenance is not null)
+        if (incident.Equipment is null)
         {
-            return new MaintenanceResult(MaintenanceActionStatus.IncidentAlreadyLinked, null);
+            return new MaintenanceResult(MaintenanceActionStatus.EquipmentNotFound, null);
         }
 
         var technicianResult = await ValidateTechnicianAsync(currentUserId);
         if (technicianResult is not null)
         {
             return technicianResult;
+        }
+
+        var preconditionError = await ValidateCanOpenMaintenanceAsync(incident.Equipment, incident);
+        if (preconditionError is not null)
+        {
+            return new MaintenanceResult(preconditionError.Value, null);
         }
 
         var now = DateTime.UtcNow;
@@ -156,22 +159,7 @@ public class MaintenanceService : IMaintenanceService
             UpdatedAt = now
         };
 
-        _context.Maintenances.Add(maintenance);
-
-        incident.Status = IncidentStatus.IN_PROGRESS;
-
-        if (incident.Equipment is not null)
-        {
-            incident.Equipment.Status = EquipmentStatus.UNDER_MAINTENANCE;
-            incident.Equipment.UpdatedAt = now;
-        }
-
-        await _context.SaveChangesAsync();
-
-        await _context.Entry(maintenance).Reference(m => m.Equipment).LoadAsync();
-        await _context.Entry(maintenance).Reference(m => m.Technician).LoadAsync();
-
-        return new MaintenanceResult(MaintenanceActionStatus.Success, Map(maintenance));
+        return await OpenMaintenanceAsync(maintenance, incident.Equipment, incident, now);
     }
 
     public async Task<MaintenanceResult> UpdateAsync(Guid id, UpdateMaintenanceRequest request)
@@ -187,6 +175,18 @@ public class MaintenanceService : IMaintenanceService
             return new MaintenanceResult(MaintenanceActionStatus.InvalidStatusTransition, null);
         }
 
+        // Completar exige el cierre formal (trabajo realizado, estado final del equipo e incidencia).
+        if (request.Status == MaintenanceStatus.COMPLETED)
+        {
+            return new MaintenanceResult(MaintenanceActionStatus.MustUseClose, null);
+        }
+
+        var nextDate = request.NextMaintenanceDate ?? maintenance.NextMaintenanceDate;
+        if (!NextDateIsValid(nextDate, maintenance.StartedAt))
+        {
+            return new MaintenanceResult(MaintenanceActionStatus.InvalidDates, null);
+        }
+
         if (request.TechnicianId is not null && request.TechnicianId != maintenance.TechnicianId)
         {
             var technicianResult = await ValidateTechnicianAsync(request.TechnicianId.Value);
@@ -198,12 +198,38 @@ public class MaintenanceService : IMaintenanceService
             maintenance.TechnicianId = request.TechnicianId.Value;
         }
 
-        if (request.Status is not null)
+        var now = DateTime.UtcNow;
+        var observationsHandled = false;
+
+        if (request.Status is not null && request.Status != maintenance.Status)
         {
             maintenance.Status = request.Status.Value;
-            if (request.Status == MaintenanceStatus.COMPLETED && maintenance.CompletedAt is null)
+
+            // Cancelar libera el equipo y devuelve la incidencia a "abierta" para atenderla de nuevo.
+            if (request.Status == MaintenanceStatus.CANCELLED)
             {
-                maintenance.CompletedAt = DateTime.UtcNow;
+                if (maintenance.Equipment is { Status: EquipmentStatus.UNDER_MAINTENANCE })
+                {
+                    maintenance.Equipment.Status = EquipmentStatus.AVAILABLE;
+                    maintenance.Equipment.UpdatedAt = now;
+                }
+
+                if (maintenance.Incident is { Status: IncidentStatus.IN_PROGRESS })
+                {
+                    maintenance.Incident.Status = IncidentStatus.OPEN;
+                }
+
+                // Se desvincula la incidencia para poder abrirle un mantenimiento nuevo,
+                // dejando constancia en las observaciones.
+                if (maintenance.IncidentId is { } unlinkedIncidentId)
+                {
+                    var note = $"[Cancelado: se desvinculó la incidencia {unlinkedIncidentId}]";
+                    var observations = request.Observations?.Trim() ?? maintenance.Observations;
+                    maintenance.Observations = string.IsNullOrEmpty(observations) ? note : $"{observations} {note}";
+                    maintenance.IncidentId = null;
+                    maintenance.Incident = null;
+                    observationsHandled = true;
+                }
             }
         }
 
@@ -212,9 +238,12 @@ public class MaintenanceService : IMaintenanceService
         if (request.LaborCost is not null) maintenance.LaborCost = request.LaborCost.Value;
         if (request.OtherCosts is not null) maintenance.OtherCosts = request.OtherCosts.Value;
         if (request.NextMaintenanceDate is not null) maintenance.NextMaintenanceDate = request.NextMaintenanceDate;
-        if (request.Observations is not null) maintenance.Observations = request.Observations.Trim();
+        if (request.Observations is not null && !observationsHandled)
+        {
+            maintenance.Observations = request.Observations.Trim();
+        }
 
-        maintenance.UpdatedAt = DateTime.UtcNow;
+        maintenance.UpdatedAt = now;
         await _context.SaveChangesAsync();
 
         await _context.Entry(maintenance).Reference(m => m.Technician).LoadAsync();
@@ -233,6 +262,19 @@ public class MaintenanceService : IMaintenanceService
         if (maintenance.Status is MaintenanceStatus.COMPLETED or MaintenanceStatus.CANCELLED)
         {
             return new MaintenanceResult(MaintenanceActionStatus.InvalidStatusTransition, null);
+        }
+
+        // Al cerrar, el equipo no puede quedar "en mantenimiento" y la incidencia debe quedar resuelta o cerrada.
+        if (request.EquipmentFinalStatus == EquipmentStatus.UNDER_MAINTENANCE
+            || request.IncidentFinalStatus is IncidentStatus.OPEN or IncidentStatus.IN_PROGRESS)
+        {
+            return new MaintenanceResult(MaintenanceActionStatus.InvalidFinalStatus, null);
+        }
+
+        var nextDate = request.NextMaintenanceDate ?? maintenance.NextMaintenanceDate;
+        if (!NextDateIsValid(nextDate, maintenance.StartedAt))
+        {
+            return new MaintenanceResult(MaintenanceActionStatus.InvalidDates, null);
         }
 
         var now = DateTime.UtcNow;
@@ -312,7 +354,14 @@ public class MaintenanceService : IMaintenanceService
 
         _context.MaintenanceSpareParts.Add(link);
         maintenance.UpdatedAt = DateTime.UtcNow;
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex) when (DbErrors.IsUniqueViolation(ex, "IX_MaintenanceSpareParts_MaintenanceId_SparePartId"))
+        {
+            return new MaintenanceResult(MaintenanceActionStatus.DuplicateSparePartInMaintenance, null);
+        }
 
         // Recargar navegación de repuestos
         await _context.Entry(maintenance).Collection(m => m.SpareParts!).Query()
@@ -351,10 +400,34 @@ public class MaintenanceService : IMaintenanceService
 
     public async Task<MaintenanceActionStatus> DeleteAsync(Guid id)
     {
-        var maintenance = await _context.Maintenances.FirstOrDefaultAsync(m => m.Id == id);
+        var maintenance = await _context.Maintenances
+            .Include(m => m.Equipment)
+            .Include(m => m.Incident)
+            .FirstOrDefaultAsync(m => m.Id == id);
         if (maintenance is null)
         {
             return MaintenanceActionStatus.NotFound;
+        }
+
+        // Un mantenimiento completado es historial y costo del equipo: no se borra.
+        if (maintenance.Status == MaintenanceStatus.COMPLETED)
+        {
+            return MaintenanceActionStatus.CannotDeleteCompleted;
+        }
+
+        // Si estaba en curso, se deja el equipo y la incidencia como estaban antes de abrirlo.
+        if (maintenance.Status is MaintenanceStatus.OPEN or MaintenanceStatus.IN_PROGRESS)
+        {
+            if (maintenance.Equipment is { Status: EquipmentStatus.UNDER_MAINTENANCE })
+            {
+                maintenance.Equipment.Status = EquipmentStatus.AVAILABLE;
+                maintenance.Equipment.UpdatedAt = DateTime.UtcNow;
+            }
+
+            if (maintenance.Incident is { Status: IncidentStatus.IN_PROGRESS })
+            {
+                maintenance.Incident.Status = IncidentStatus.OPEN;
+            }
         }
 
         _context.Maintenances.Remove(maintenance);
@@ -416,6 +489,80 @@ public class MaintenanceService : IMaintenanceService
             .Include(m => m.Technician)
             .Include(m => m.Incident)
             .Include(m => m.SpareParts!).ThenInclude(ms => ms.SparePart);
+    }
+
+    // Reglas para abrir un mantenimiento: equipo no dado de baja, sin otro mantenimiento abierto,
+    // e incidencia (si hay) abierta y sin mantenimiento previo.
+    private async Task<MaintenanceActionStatus?> ValidateCanOpenMaintenanceAsync(Equipment equipment, Incident? incident)
+    {
+        if (equipment.Status == EquipmentStatus.DECOMMISSIONED)
+        {
+            return MaintenanceActionStatus.EquipmentDecommissioned;
+        }
+
+        if (incident is not null)
+        {
+            if (incident.Maintenance is not null)
+            {
+                return MaintenanceActionStatus.IncidentAlreadyLinked;
+            }
+
+            if (incident.Status is not IncidentStatus.OPEN)
+            {
+                return MaintenanceActionStatus.IncidentNotOpen;
+            }
+        }
+
+        var hasOpenMaintenance = await _context.Maintenances.AnyAsync(m =>
+            m.EquipmentId == equipment.Id
+            && (m.Status == MaintenanceStatus.OPEN || m.Status == MaintenanceStatus.IN_PROGRESS));
+
+        return hasOpenMaintenance ? MaintenanceActionStatus.EquipmentHasOpenMaintenance : null;
+    }
+
+    // Guarda el mantenimiento nuevo, pone el equipo en mantenimiento y la incidencia en progreso.
+    // Los índices únicos resuelven las peticiones simultáneas que pasaron las validaciones previas.
+    private async Task<MaintenanceResult> OpenMaintenanceAsync(
+        Maintenance maintenance,
+        Equipment equipment,
+        Incident? incident,
+        DateTime now)
+    {
+        _context.Maintenances.Add(maintenance);
+
+        // R4: el equipo pasa a En mantenimiento
+        equipment.Status = EquipmentStatus.UNDER_MAINTENANCE;
+        equipment.UpdatedAt = now;
+
+        // HU-11: la incidencia queda en progreso al enlazarse
+        if (incident is not null)
+        {
+            incident.Status = IncidentStatus.IN_PROGRESS;
+        }
+
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex) when (DbErrors.IsUniqueViolation(ex, AppDbContext.OpenMaintenancePerEquipmentIndex))
+        {
+            return new MaintenanceResult(MaintenanceActionStatus.EquipmentHasOpenMaintenance, null);
+        }
+        catch (DbUpdateException ex) when (DbErrors.IsUniqueViolation(ex, "IX_Maintenances_IncidentId"))
+        {
+            return new MaintenanceResult(MaintenanceActionStatus.IncidentAlreadyLinked, null);
+        }
+
+        await _context.Entry(maintenance).Reference(m => m.Equipment).LoadAsync();
+        await _context.Entry(maintenance).Reference(m => m.Technician).LoadAsync();
+
+        return new MaintenanceResult(MaintenanceActionStatus.Success, Map(maintenance));
+    }
+
+    private static bool NextDateIsValid(DateOnly? nextMaintenanceDate, DateTime startedAt)
+    {
+        return nextMaintenanceDate is null
+            || nextMaintenanceDate.Value >= DateOnly.FromDateTime(startedAt);
     }
 
     private async Task<MaintenanceResult?> ValidateTechnicianAsync(Guid technicianId)

@@ -1,5 +1,6 @@
 using Backend.API.Data;
 using Backend.API.DTOs;
+using Backend.API.Infrastructure;
 using Backend.API.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -59,7 +60,14 @@ public class SparePartService : ISparePartService
         };
 
         _context.SpareParts.Add(sparePart);
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex) when (DbErrors.IsUniqueViolation(ex, "IX_SpareParts_Name"))
+        {
+            return new SparePartResult(SparePartActionStatus.DuplicateName, null);
+        }
 
         return new SparePartResult(SparePartActionStatus.Success, Map(sparePart));
     }
@@ -92,7 +100,14 @@ public class SparePartService : ISparePartService
         if (request.Active is not null) sparePart.Active = request.Active.Value;
 
         sparePart.UpdatedAt = DateTime.UtcNow;
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex) when (DbErrors.IsUniqueViolation(ex, "IX_SpareParts_Name"))
+        {
+            return new SparePartResult(SparePartActionStatus.DuplicateName, null);
+        }
 
         return new SparePartResult(SparePartActionStatus.Success, Map(sparePart));
     }

@@ -53,7 +53,49 @@ namespace Backend.API.Data.Migrations
 
                     b.HasIndex("UserId");
 
+                    b.HasIndex(new[] { "EquipmentId" }, "IX_Assignments_EquipmentId_Active")
+                        .IsUnique()
+                        .HasFilter("\"Status\" = 0");
+
                     b.ToTable("Assignments");
+                });
+
+            modelBuilder.Entity("Backend.API.Models.AuditLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Details")
+                        .HasColumnType("text");
+
+                    b.Property<string>("EntityId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("EntityType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("IpAddress")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Timestamp");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("AuditLogs");
                 });
 
             modelBuilder.Entity("Backend.API.Models.Equipment", b =>
@@ -184,6 +226,10 @@ namespace Backend.API.Data.Migrations
 
                     b.HasIndex("ReportedBy");
 
+                    b.HasIndex(new[] { "EquipmentId" }, "IX_Incidents_EquipmentId_Open")
+                        .IsUnique()
+                        .HasFilter("\"Status\" IN (0, 1)");
+
                     b.ToTable("Incidents");
                 });
 
@@ -254,6 +300,10 @@ namespace Backend.API.Data.Migrations
                     b.HasIndex("Status");
 
                     b.HasIndex("TechnicianId");
+
+                    b.HasIndex(new[] { "EquipmentId" }, "IX_Maintenances_EquipmentId_Open")
+                        .IsUnique()
+                        .HasFilter("\"Status\" IN (0, 1)");
 
                     b.ToTable("Maintenances");
                 });
@@ -385,6 +435,9 @@ namespace Backend.API.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<DateTime?>("LockoutEnd")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasColumnType("text");
@@ -394,6 +447,9 @@ namespace Backend.API.Data.Migrations
                         .HasColumnType("text");
 
                     b.Property<Guid?>("RoleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SecurityStamp")
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("UpdatedAt")

@@ -52,12 +52,15 @@ public static class EncryptionRotationRunner
                 cancellationToken.ThrowIfCancellationRequested();
                 var user = await context.Users.FirstAsync(u => u.Id == row.Id, cancellationToken);
 
+                var emailContext = EncryptionContexts.UserEmail(user.Id);
+                var phoneContext = EncryptionContexts.UserPhone(user.Id);
+
                 string email;
                 string phone;
                 try
                 {
-                    email = encryption.Normalize(encryption.Decrypt(user.Email));
-                    phone = string.IsNullOrEmpty(user.Phone) ? string.Empty : encryption.Decrypt(user.Phone);
+                    email = encryption.Normalize(encryption.Decrypt(user.Email, emailContext));
+                    phone = string.IsNullOrEmpty(user.Phone) ? string.Empty : encryption.Decrypt(user.Phone, phoneContext);
                 }
                 catch (CryptographicException ex)
                 {
@@ -67,15 +70,18 @@ public static class EncryptionRotationRunner
                 }
 
                 var newHash = encryption.ComputeLookup(email);
-                if (user.EmailHash == newHash)
+                var isCurrent = user.EmailHash == newHash
+                    && encryption.IsCurrentFormat(user.Email, emailContext)
+                    && (phone.Length == 0 || encryption.IsCurrentFormat(user.Phone, phoneContext));
+                if (isCurrent)
                 {
                     alreadyCurrent++;
                     continue;
                 }
 
-                user.Email = encryption.Encrypt(email);
+                user.Email = encryption.Encrypt(email, emailContext);
                 user.EmailHash = newHash;
-                user.Phone = phone.Length == 0 ? string.Empty : encryption.Encrypt(phone);
+                user.Phone = phone.Length == 0 ? string.Empty : encryption.Encrypt(phone, phoneContext);
                 user.UpdatedAt = DateTime.UtcNow;
                 changed = true;
                 rotated++;
@@ -108,7 +114,11 @@ public static class EncryptionRotationRunner
 
         foreach (var user in users)
         {
-            if (!encryption.TryDecryptWithPrimaryKey(user.Email, out var email))
+            var emailContext = EncryptionContexts.UserEmail(user.Id);
+            var phoneContext = EncryptionContexts.UserPhone(user.Id);
+
+            if (!encryption.IsCurrentFormat(user.Email, emailContext)
+                || !encryption.TryDecryptWithPrimaryKey(user.Email, emailContext, out var email))
             {
                 logger.LogError("Verificación: el correo de {UserId} no se descifra con Encryption:Key", user.Id);
                 continue;
@@ -126,7 +136,7 @@ public static class EncryptionRotationRunner
                 continue;
             }
 
-            if (!string.IsNullOrEmpty(user.Phone) && !encryption.TryDecryptWithPrimaryKey(user.Phone, out _))
+            if (!string.IsNullOrEmpty(user.Phone) && !encryption.IsCurrentFormat(user.Phone, phoneContext))
             {
                 logger.LogError("Verificación: el teléfono de {UserId} no se descifra con Encryption:Key", user.Id);
                 continue;

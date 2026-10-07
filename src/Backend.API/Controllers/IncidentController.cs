@@ -7,13 +7,12 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Backend.API.Controllers;
 
-[Authorize]
+// Cliente: sin acceso. Lectura: personal interno. Reportar/editar: Administrador y Empleado (solo los propios).
+[Authorize(Roles = Roles.Staff)]
 [ApiController]
 [Route("api/[controller]")]
 public class IncidentController : ControllerBase
 {
-    private const string AdminOrEmployee = Roles.Administrador + "," + Roles.Empleado;
-
     private readonly IIncidentService _incidentService;
 
     public IncidentController(IIncidentService incidentService)
@@ -40,7 +39,7 @@ public class IncidentController : ControllerBase
         return Ok(await _incidentService.GetByEquipmentAsync(equipmentId));
     }
 
-    [Authorize(Roles = AdminOrEmployee)]
+    [Authorize(Roles = Roles.AdminOrEmployee)]
     [HttpPost("PostNewIncident")]
     public async Task<ActionResult<IncidentResponse>> PostNewIncident(CreateIncidentRequest request)
     {
@@ -49,7 +48,7 @@ public class IncidentController : ControllerBase
         return ToActionResult(result);
     }
 
-    [Authorize(Roles = AdminOrEmployee)]
+    [Authorize(Roles = Roles.AdminOrEmployee)]
     [HttpPut("PutIncident/{id:guid}")]
     public async Task<ActionResult<IncidentResponse>> PutIncident(Guid id, UpdateIncidentRequest request)
     {
@@ -59,14 +58,21 @@ public class IncidentController : ControllerBase
         return ToActionResult(result);
     }
 
-    [Authorize(Roles = AdminOrEmployee)]
+    [Authorize(Roles = Roles.AdminOrEmployee)]
     [HttpDelete("DeleteIncident/{id:guid}")]
     public async Task<IActionResult> DeleteIncident(Guid id)
     {
         var currentUserId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var currentRole = User.FindFirstValue(ClaimTypes.Role);
         var status = await _incidentService.DeleteAsync(id, currentUserId, currentRole);
-        return status == IncidentActionStatus.NotFound ? NotFound() : NoContent();
+        return status switch
+        {
+            IncidentActionStatus.Success => NoContent(),
+            IncidentActionStatus.NotFound => NotFound(new { message = "El incidente no existe." }),
+            IncidentActionStatus.HasMaintenance => Conflict(new { message = "El incidente tiene un mantenimiento asociado y forma parte del historial; no se puede borrar." }),
+            IncidentActionStatus.InvalidStatusChange => BadRequest(new { message = "Solo puedes borrar tus incidentes mientras están abiertos." }),
+            _ => StatusCode(StatusCodes.Status500InternalServerError)
+        };
     }
 
     private ActionResult<IncidentResponse> ToActionResult(IncidentResult result)
@@ -78,6 +84,12 @@ public class IncidentController : ControllerBase
             IncidentActionStatus.EquipmentNotFound => NotFound(new { message = "El equipo no existe." }),
             IncidentActionStatus.EquipmentHasOpenIncident => Conflict(
                 new { message = "El equipo ya tiene un incidente abierto (OPEN o IN_PROGRESS)." }),
+            IncidentActionStatus.EquipmentDecommissioned => BadRequest(
+                new { message = "El equipo está dado de baja; no se pueden reportar incidentes." }),
+            IncidentActionStatus.InvalidStatusChange => BadRequest(
+                new { message = "Cambio de estado no permitido. IN_PROGRESS lo asigna el mantenimiento y el Empleado solo puede cerrar (CLOSED) su reporte abierto." }),
+            IncidentActionStatus.HasMaintenance => Conflict(
+                new { message = "El incidente ya está en atención o tiene un mantenimiento asociado; su estado lo gestiona el mantenimiento." }),
             _ => StatusCode(StatusCodes.Status500InternalServerError)
         };
     }

@@ -6,13 +6,12 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Backend.API.Controllers;
 
-[Authorize]
+// Cliente: sin acceso. Lectura: Administrador, Técnico y Empleado. Escritura: Administrador y Técnico.
+[Authorize(Roles = Roles.Staff)]
 [ApiController]
 [Route("api/[controller]")]
 public class EquipmentComponentController : ControllerBase
 {
-    private const string AdminOrTechnician = Roles.Administrador + "," + Roles.Tecnico;
-
     private readonly IEquipmentComponentService _componentService;
 
     public EquipmentComponentController(IEquipmentComponentService componentService)
@@ -39,7 +38,7 @@ public class EquipmentComponentController : ControllerBase
         return Ok(await _componentService.GetByEquipmentAsync(equipmentId));
     }
 
-    [Authorize(Roles = AdminOrTechnician)]
+    [Authorize(Roles = Roles.AdminOrTechnician)]
     [HttpPost("PostNewComponent")]
     public async Task<ActionResult<EquipmentComponentResponse>> PostNewComponent(CreateEquipmentComponentRequest request)
     {
@@ -47,7 +46,7 @@ public class EquipmentComponentController : ControllerBase
         return ToActionResult(result);
     }
 
-    [Authorize(Roles = AdminOrTechnician)]
+    [Authorize(Roles = Roles.AdminOrTechnician)]
     [HttpPut("PutComponent/{id:guid}")]
     public async Task<ActionResult<EquipmentComponentResponse>> PutComponent(Guid id, UpdateEquipmentComponentRequest request)
     {
@@ -55,7 +54,7 @@ public class EquipmentComponentController : ControllerBase
         return ToActionResult(result);
     }
 
-    [Authorize(Roles = AdminOrTechnician)]
+    [Authorize(Roles = Roles.AdminOrTechnician)]
     [HttpDelete("DeleteComponent/{id:guid}")]
     public async Task<IActionResult> DeleteComponent(Guid id)
     {

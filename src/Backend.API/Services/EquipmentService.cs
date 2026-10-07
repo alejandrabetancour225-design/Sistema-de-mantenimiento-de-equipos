@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Backend.API.Data;
 using Backend.API.DTOs;
+using Backend.API.Infrastructure;
 using Backend.API.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -39,6 +40,17 @@ public class EquipmentService : IEquipmentService
         var internalCode = request.InternalCode.Trim();
         var serialNumber = request.SerialNumber.Trim();
 
+        if (!DatesAreConsistent(request.AcquisitionDate, request.WarrantyUntil))
+        {
+            return new EquipmentResult(EquipmentActionStatus.InvalidDates, null);
+        }
+
+        // Un equipo nuevo no puede nacer "en mantenimiento": ese estado lo pone el flujo de mantenimiento.
+        if (request.Status == EquipmentStatus.UNDER_MAINTENANCE)
+        {
+            return new EquipmentResult(EquipmentActionStatus.InvalidStatusChange, null);
+        }
+
         if (await _context.Equipments.AnyAsync(e => e.InternalCode == internalCode))
         {
             return new EquipmentResult(EquipmentActionStatus.DuplicateInternalCode, null);
@@ -69,7 +81,11 @@ public class EquipmentService : IEquipmentService
         };
 
         _context.Equipments.Add(equipment);
-        await _context.SaveChangesAsync();
+        var duplicate = await SaveDetectingDuplicatesAsync();
+        if (duplicate is not null)
+        {
+            return new EquipmentResult(duplicate.Value, null);
+        }
 
         return new EquipmentResult(EquipmentActionStatus.Success, Map(equipment));
     }
@@ -112,10 +128,29 @@ public class EquipmentService : IEquipmentService
         if (request.AcquisitionPrice is not null) equipment.AcquisitionPrice = request.AcquisitionPrice;
         if (request.WarrantyUntil is not null) equipment.WarrantyUntil = request.WarrantyUntil;
         if (request.Location is not null) equipment.Location = request.Location.Trim();
-        if (request.Status is not null) equipment.Status = request.Status.Value;
+
+        if (!DatesAreConsistent(equipment.AcquisitionDate, equipment.WarrantyUntil))
+        {
+            return new EquipmentResult(EquipmentActionStatus.InvalidDates, null);
+        }
+
+        if (request.Status is not null && request.Status.Value != equipment.Status)
+        {
+            var statusError = await ValidateStatusChangeAsync(equipment, request.Status.Value);
+            if (statusError is not null)
+            {
+                return new EquipmentResult(statusError.Value, null);
+            }
+
+            equipment.Status = request.Status.Value;
+        }
 
         equipment.UpdatedAt = DateTime.UtcNow;
-        await _context.SaveChangesAsync();
+        var duplicate = await SaveDetectingDuplicatesAsync();
+        if (duplicate is not null)
+        {
+            return new EquipmentResult(duplicate.Value, null);
+        }
 
         return new EquipmentResult(EquipmentActionStatus.Success, Map(equipment));
     }
@@ -126,6 +161,15 @@ public class EquipmentService : IEquipmentService
         if (equipment is null)
         {
             return new EquipmentResult(EquipmentActionStatus.NotFound, null);
+        }
+
+        if (status != equipment.Status)
+        {
+            var statusError = await ValidateStatusChangeAsync(equipment, status);
+            if (statusError is not null)
+            {
+                return new EquipmentResult(statusError.Value, null);
+            }
         }
 
         equipment.Status = status;
@@ -143,10 +187,62 @@ public class EquipmentService : IEquipmentService
             return EquipmentActionStatus.NotFound;
         }
 
+        // Con historial (asignaciones, componentes, incidentes, mantenimientos) no se borra:
+        // se cambia el estado a DECOMMISSIONED para conservar la trazabilidad.
+        var hasRelatedRecords =
+            await _context.Assignments.AnyAsync(a => a.EquipmentId == id)
+            || await _context.EquipmentComponents.AnyAsync(c => c.EquipmentId == id)
+            || await _context.Incidents.AnyAsync(i => i.EquipmentId == id)
+            || await _context.Maintenances.AnyAsync(m => m.EquipmentId == id);
+        if (hasRelatedRecords)
+        {
+            return EquipmentActionStatus.HasRelatedRecords;
+        }
+
         _context.Equipments.Remove(equipment);
         await _context.SaveChangesAsync();
 
         return EquipmentActionStatus.Success;
+    }
+
+    private async Task<EquipmentActionStatus?> ValidateStatusChangeAsync(Equipment equipment, EquipmentStatus newStatus)
+    {
+        // UNDER_MAINTENANCE solo lo asigna el flujo de mantenimiento.
+        if (newStatus == EquipmentStatus.UNDER_MAINTENANCE)
+        {
+            return EquipmentActionStatus.InvalidStatusChange;
+        }
+
+        // Con un mantenimiento abierto, el estado se libera al cerrar o cancelar ese mantenimiento.
+        var hasOpenMaintenance = await _context.Maintenances.AnyAsync(m =>
+            m.EquipmentId == equipment.Id
+            && (m.Status == MaintenanceStatus.OPEN || m.Status == MaintenanceStatus.IN_PROGRESS));
+
+        return hasOpenMaintenance ? EquipmentActionStatus.InvalidStatusChange : null;
+    }
+
+    private static bool DatesAreConsistent(DateOnly? acquisitionDate, DateOnly? warrantyUntil)
+    {
+        return acquisitionDate is null || warrantyUntil is null || warrantyUntil >= acquisitionDate;
+    }
+
+    // Traduce la violación de los índices únicos (código interno, serie) a un resultado controlado,
+    // incluso si dos peticiones simultáneas pasaron la verificación previa.
+    private async Task<EquipmentActionStatus?> SaveDetectingDuplicatesAsync()
+    {
+        try
+        {
+            await _context.SaveChangesAsync();
+            return null;
+        }
+        catch (DbUpdateException ex) when (DbErrors.IsUniqueViolation(ex, "IX_Equipments_InternalCode"))
+        {
+            return EquipmentActionStatus.DuplicateInternalCode;
+        }
+        catch (DbUpdateException ex) when (DbErrors.IsUniqueViolation(ex, "IX_Equipments_SerialNumber"))
+        {
+            return EquipmentActionStatus.DuplicateSerialNumber;
+        }
     }
 
     private static bool HasJsonValue(JsonElement? element)

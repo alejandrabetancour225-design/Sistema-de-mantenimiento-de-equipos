@@ -10,6 +10,13 @@ public class User
     public string Phone { get; set; } = string.Empty;
     public bool Active { get; set; } = true;
     public int FailedAttempts { get; set; }
+
+    // Bloqueo temporal tras varios intentos fallidos (no desactiva la cuenta).
+    public DateTime? LockoutEnd { get; set; }
+
+    // Cambia cuando se modifica el rol, el estado o la contraseña; invalida los tokens emitidos antes.
+    public Guid SecurityStamp { get; set; } = Guid.NewGuid();
+
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 

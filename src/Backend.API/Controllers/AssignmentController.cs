@@ -7,13 +7,12 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Backend.API.Controllers;
 
-[Authorize]
+// Cliente: sin acceso. Empleado: solo consulta sus propias asignaciones.
+[Authorize(Roles = Roles.Staff)]
 [ApiController]
 [Route("api/[controller]")]
 public class AssignmentController : ControllerBase
 {
-    private const string AdminOrTechnician = Roles.Administrador + "," + Roles.Tecnico;
-
     private readonly IAssignmentService _assignmentService;
 
     public AssignmentController(IAssignmentService assignmentService)
@@ -21,7 +20,7 @@ public class AssignmentController : ControllerBase
         _assignmentService = assignmentService;
     }
 
-    [Authorize(Roles = AdminOrTechnician)]
+    [Authorize(Roles = Roles.AdminOrTechnician)]
     [HttpPost("AssignEquipment")]
     public async Task<ActionResult<AssignmentResponse>> AssignEquipment(CreateAssignmentRequest request)
     {
@@ -29,7 +28,7 @@ public class AssignmentController : ControllerBase
         return ToActionResult(result);
     }
 
-    [Authorize(Roles = AdminOrTechnician)]
+    [Authorize(Roles = Roles.AdminOrTechnician)]
     [HttpPatch("ReleaseEquipment/{id:guid}")]
     public async Task<ActionResult<AssignmentResponse>> ReleaseEquipment(Guid id, ReleaseAssignmentRequest? request)
     {
@@ -55,6 +54,8 @@ public class AssignmentController : ControllerBase
             AssignmentActionStatus.UserNotFound => NotFound(new { message = "El usuario no existe." }),
             AssignmentActionStatus.EquipmentAlreadyAssigned => Conflict(new { message = "El equipo ya está asignado (tiene una asignación activa)." }),
             AssignmentActionStatus.NotActive => BadRequest(new { message = "Solo se pueden liberar asignaciones activas." }),
+            AssignmentActionStatus.EquipmentNotAssignable => BadRequest(new { message = "El equipo está en mantenimiento, fuera de servicio o dado de baja; no se puede asignar." }),
+            AssignmentActionStatus.UserInactive => BadRequest(new { message = "El usuario está inactivo." }),
             _ => StatusCode(StatusCodes.Status500InternalServerError)
         };
     }
