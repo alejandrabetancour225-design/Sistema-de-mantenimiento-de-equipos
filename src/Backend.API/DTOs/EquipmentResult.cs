@@ -11,7 +11,10 @@ public enum EquipmentActionStatus
     // UNDER_MAINTENANCE lo asigna solo el flujo de mantenimiento; tampoco se cambia el estado con un mantenimiento abierto.
     InvalidStatusChange,
     // Tiene asignaciones, componentes, incidentes o mantenimientos: dar de baja en lugar de borrar.
-    HasRelatedRecords
+    HasRelatedRecords,
+    AlreadyDecommissioned,
+    HasActiveAssignment,
+    HasOpenMaintenance
 }
 
 public record EquipmentResult(EquipmentActionStatus Status, EquipmentResponse? Equipment);

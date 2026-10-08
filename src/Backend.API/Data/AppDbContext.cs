@@ -17,6 +17,7 @@ public class AppDbContext : DbContext
     public DbSet<SparePart> SpareParts => Set<SparePart>();
     public DbSet<MaintenanceSparePart> MaintenanceSpareParts => Set<MaintenanceSparePart>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    public DbSet<PasswordResetCode> PasswordResetCodes => Set<PasswordResetCode>();
 
     // Nombres de los índices únicos parciales que evitan duplicados por peticiones simultáneas.
     public const string ActiveAssignmentPerEquipmentIndex = "IX_Assignments_EquipmentId_Active";
@@ -96,7 +97,7 @@ public class AppDbContext : DbContext
                 .HasForeignKey(m => m.EquipmentId)
                 .OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(m => m.Technician)
-                .WithMany(u => u.Maintenances!)
+                .WithMany(u => u.MaintenancesAsTechnician!)
                 .HasForeignKey(m => m.TechnicianId)
                 .OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(m => m.Incident)
@@ -148,6 +149,17 @@ public class AppDbContext : DbContext
             new Role { Id = Guid.Parse("a0000000-0000-0000-0000-000000000001"), Name = Backend.API.Models.Roles.Administrador },
             new Role { Id = Guid.Parse("a0000000-0000-0000-0000-000000000002"), Name = Backend.API.Models.Roles.Tecnico },
             new Role { Id = Guid.Parse("a0000000-0000-0000-0000-000000000003"), Name = Backend.API.Models.Roles.Empleado },
-            new Role { Id = Guid.Parse("a0000000-0000-0000-0000-000000000004"), Name = Backend.API.Models.Roles.Cliente });
+            new Role { Id = Guid.Parse("a0000000-0000-0000-0000-000000000004"), Name = Backend.API.Models.Roles.Cliente }
+        );
+
+        modelBuilder.Entity<PasswordResetCode>(entity =>
+        {
+            entity.HasOne(c => c.User)
+                .WithMany()
+                .HasForeignKey(c => c.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(c => c.UserId);
+            entity.HasIndex(c => c.ExpiresAt);
+        });
     }
 }

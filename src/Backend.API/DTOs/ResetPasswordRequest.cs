@@ -3,11 +3,17 @@ using Backend.API.Validation;
 
 namespace Backend.API.DTOs;
 
-// Usado por el Administrador para restablecer la contraseña de un usuario
-// (el flujo de "olvidé mi contraseña" pasa por el Administrador).
 public class ResetPasswordRequest
 {
-    [Required(ErrorMessage = "La contraseña nueva es obligatoria.")]
+    [Required]
+    [EmailAddress]
+    public string Email { get; set; } = string.Empty;
+
+    [Required]
+    [StringLength(6, MinimumLength = 6)]
+    public string Code { get; set; } = string.Empty;
+
+    [Required]
     [StrongPassword]
     public string NewPassword { get; set; } = string.Empty;
 }

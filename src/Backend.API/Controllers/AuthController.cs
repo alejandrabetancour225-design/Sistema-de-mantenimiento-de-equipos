@@ -13,12 +13,18 @@ namespace Backend.API.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
+    private readonly IPasswordResetService _passwordResetService;
     private readonly IConfiguration _configuration;
     private readonly IWebHostEnvironment _environment;
 
-    public AuthController(IAuthService authService, IConfiguration configuration, IWebHostEnvironment environment)
+    public AuthController(
+      IAuthService authService,
+      IPasswordResetService passwordResetService,
+      IConfiguration configuration,
+      IWebHostEnvironment environment)
     {
         _authService = authService;
+        _passwordResetService = passwordResetService;
         _configuration = configuration;
         _environment = environment;
     }
@@ -103,4 +109,31 @@ public class AuthController : ControllerBase
     private bool UseSecureCookie() => Request.IsHttps || !_environment.IsDevelopment();
 
     private Guid CurrentUserId() => Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+    [AllowAnonymous]
+    [EnableRateLimiting(RateLimitPolicies.Login)]
+    [HttpPost("forgot-password")]
+    public async Task<IActionResult> ForgotPassword(ForgotPasswordRequest request)
+    {
+        await _passwordResetService.RequestResetAsync(request.Email);
+        return Ok(new { message = "Si el correo está registrado, recibirás un código de recuperación." });
+    }
+
+    [AllowAnonymous]
+    [EnableRateLimiting(RateLimitPolicies.Login)]
+    [HttpPost("reset-password")]
+    public async Task<IActionResult> ResetPassword(ResetPasswordRequest request)
+    {
+        var status = await _passwordResetService.ResetAsync(
+            request.Email, request.Code, request.NewPassword);
+
+        return status switch
+        {
+            PasswordResetStatus.Success => Ok(new { message = "Contraseña restablecida correctamente." }),
+            PasswordResetStatus.InvalidCode => BadRequest(new { message = "Código inválido." }),
+            PasswordResetStatus.Expired => BadRequest(new { message = "El código expiró. Solicita uno nuevo." }),
+            PasswordResetStatus.TooManyAttempts => BadRequest(new { message = "Demasiados intentos. Solicita un código nuevo." }),
+            _ => BadRequest(new { message = "No se pudo restablecer la contraseña." })
+        };
+    }
 }

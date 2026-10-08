@@ -274,6 +274,19 @@ builder.Services.AddScoped<IEquipmentComponentService, EquipmentComponentService
 builder.Services.AddScoped<IIncidentService, IncidentService>();
 builder.Services.AddScoped<IMaintenanceService, MaintenanceService>();
 builder.Services.AddScoped<ISparePartService, SparePartService>();
+builder.Services.AddScoped<IDashboardService, DashboardService>();
+builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddScoped<IReportPdfGenerator, ReportPdfGenerator>();
+builder.Services.AddScoped<IReportExcelGenerator, ReportExcelGenerator>();
+builder.Services.AddScoped<IEmailSender>(sp =>
+{
+    var config = sp.GetRequiredService<IConfiguration>();
+    var host = config["Email:Host"];
+    return string.IsNullOrWhiteSpace(host)
+        ? new LogEmailSender(sp.GetRequiredService<ILogger<LogEmailSender>>())
+        : ActivatorUtilities.CreateInstance<SmtpEmailSender>(sp);
+});
+builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();
 
 var app = builder.Build();
 

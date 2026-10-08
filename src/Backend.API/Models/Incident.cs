@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace Backend.API.Models;
 
 public class Incident
@@ -12,4 +14,7 @@ public class Incident
     public Equipment? Equipment { get; set; }
     public User? Reporter { get; set; }
     public Maintenance? Maintenance { get; set; }
+
+    [NotMapped]
+    public Guid? MaintenanceId => Maintenance?.Id;
 }

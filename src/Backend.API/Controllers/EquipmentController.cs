@@ -70,7 +70,12 @@ public class EquipmentController : ControllerBase
         {
             EquipmentActionStatus.Success => NoContent(),
             EquipmentActionStatus.NotFound => NotFound(new { message = "El equipo no existe." }),
-            EquipmentActionStatus.HasRelatedRecords => Conflict(new { message = "El equipo tiene historial (asignaciones, componentes, incidentes o mantenimientos). Cámbialo a DECOMMISSIONED en lugar de borrarlo." }),
+            EquipmentActionStatus.AlreadyDecommissioned => Conflict(
+                new { message = "El equipo ya está dado de baja." }),
+            EquipmentActionStatus.HasActiveAssignment => Conflict(
+                new { message = "El equipo tiene una asignación activa. Libéralo antes de darlo de baja." }),
+            EquipmentActionStatus.HasOpenMaintenance => Conflict(
+                new { message = "El equipo tiene un mantenimiento abierto. Ciérralo o cancélalo antes de darlo de baja." }),
             _ => StatusCode(StatusCodes.Status500InternalServerError)
         };
     }
