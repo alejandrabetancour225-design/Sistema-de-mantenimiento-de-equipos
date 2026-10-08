@@ -57,6 +57,11 @@ export default function Sidebar() {
               Usuarios
             </Link>
           )}
+          {(role === "Administrador" || role === "Cliente") && (
+            <Link to="/reportes" className={linkClass("/reportes")}>
+              Reportes
+            </Link>
+          )}
         </div>
       </nav>
 

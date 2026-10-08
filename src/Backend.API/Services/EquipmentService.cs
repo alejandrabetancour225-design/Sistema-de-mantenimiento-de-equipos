@@ -181,25 +181,39 @@ public class EquipmentService : IEquipmentService
 
     public async Task<EquipmentActionStatus> DeleteAsync(Guid id)
     {
-        var equipment = await _context.Equipments.FirstOrDefaultAsync(e => e.Id == id);
+        var equipment = await _context.Equipments
+            .Include(e => e.Assignments)
+            .Include(e => e.Maintenances)
+            .FirstOrDefaultAsync(e => e.Id == id);
+
         if (equipment is null)
         {
             return EquipmentActionStatus.NotFound;
         }
 
-        // Con historial (asignaciones, componentes, incidentes, mantenimientos) no se borra:
-        // se cambia el estado a DECOMMISSIONED para conservar la trazabilidad.
-        var hasRelatedRecords =
-            await _context.Assignments.AnyAsync(a => a.EquipmentId == id)
-            || await _context.EquipmentComponents.AnyAsync(c => c.EquipmentId == id)
-            || await _context.Incidents.AnyAsync(i => i.EquipmentId == id)
-            || await _context.Maintenances.AnyAsync(m => m.EquipmentId == id);
-        if (hasRelatedRecords)
+        if (equipment.Status == EquipmentStatus.DECOMMISSIONED)
         {
-            return EquipmentActionStatus.HasRelatedRecords;
+            return EquipmentActionStatus.AlreadyDecommissioned;
         }
 
-        _context.Equipments.Remove(equipment);
+        // No se puede dar de baja un equipo que está en manos de alguien.
+        var hasActiveAssignment = equipment.Assignments?
+            .Any(a => a.Status == AssignmentStatus.ACTIVE) == true;
+        if (hasActiveAssignment)
+        {
+            return EquipmentActionStatus.HasActiveAssignment;
+        }
+
+        // No se puede dar de baja un equipo que está en taller.
+        var hasOpenMaintenance = equipment.Maintenances?
+            .Any(m => m.Status == MaintenanceStatus.OPEN || m.Status == MaintenanceStatus.IN_PROGRESS) == true;
+        if (hasOpenMaintenance)
+        {
+            return EquipmentActionStatus.HasOpenMaintenance;
+        }
+
+        equipment.Status = EquipmentStatus.DECOMMISSIONED;
+        equipment.UpdatedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync();
 
         return EquipmentActionStatus.Success;

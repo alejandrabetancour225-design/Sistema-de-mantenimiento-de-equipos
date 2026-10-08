@@ -55,7 +55,7 @@ académico desarrollado con metodología Scrum.
 ## Stack técnico
 
 | Capa | Tecnología |
-|---|---|
+| --- | --- |
 | Backend | ASP.NET Core (.NET 10) + C# |
 | Base de datos | PostgreSQL (local vía Docker, o compartida en Neon) + Entity Framework Core |
 | Frontend | React 19 + TypeScript + Vite |
@@ -71,7 +71,7 @@ académico desarrollado con metodología Scrum.
 Permisos por módulo:
 
 | Módulo | Administrador | Técnico | Empleado | Cliente |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | Equipos (ver) | ✅ | ✅ | ✅ | ✅ |
 | Equipos (crear/editar/baja) | ✅ | ✅ | ❌ | ❌ |
 | Componentes de equipo | ✅ | ✅ | ❌ | ❌ |
@@ -133,7 +133,7 @@ Permisos por módulo:
 Base: `VITE_API_URL` (ej. `http://localhost:5255/api`).
 
 | Método | Ruta | Uso | Usado en UI |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | GET | `/maintenance/GetMaintenancesByEquipment/{equipmentId}` | Lista por equipo | ✅ |
 | POST | `/maintenance/PostNewMaintenance` | Crear | ✅ |
 | POST | `/maintenance/CloseMaintenance/{id}` | Cerrar | ✅ |
@@ -152,7 +152,7 @@ Todos requieren JWT. Las escrituras exigen rol Administrador o Técnico.
 
 ### Archivos del front relacionados
 
-```
+```md
 Frontend/src/
 ├── components/MaintenanceSection.tsx   # Formulario + lista + detalle (se monta en EquipoDetailPage)
 ├── hooks/useMaintenance.ts             # useMaintenancesByEquipment, useSpareParts
@@ -166,7 +166,7 @@ Frontend/src/
 ## Rutas del frontend
 
 | Ruta | Acceso | Página |
-|---|---|---|
+| --- | --- | --- |
 | `/` | Público | Login |
 | `/register` | Público | Registro |
 | `/dashboard` | Autenticado | Placeholder (pendiente) |
@@ -177,7 +177,7 @@ Frontend/src/
 
 ## Estructura del repositorio
 
-```
+```md
 Backend/
 ├── src/Backend.API/        # API .NET (Controllers, Services, Models, DTOs, Data, Migrations)
 ├── Frontend/                # Aplicación React + Vite
@@ -253,7 +253,7 @@ npm run dev
 Vite abre en `http://localhost:5173`. Confirma que `Frontend/.env` (créalo si no
 existe, no se sube al repo) tenga:
 
-```
+```env
 VITE_API_URL=http://localhost:5255/api
 ```
 
@@ -281,7 +281,7 @@ Otros scripts: `npm run build` (compila TypeScript y genera el build),
 ## Equipo del proyecto
 
 | Rol | Responsabilidad |
-|---|---|
+| --- | --- |
 | Cliente | Necesidad del negocio, prioridades y validación |
 | Product Owner | Gestionar y priorizar el Product Backlog |
 | Scrum Master | Facilitar Scrum y eliminar impedimentos |

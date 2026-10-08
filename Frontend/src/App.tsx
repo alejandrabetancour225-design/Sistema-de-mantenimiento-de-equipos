@@ -9,6 +9,8 @@ import AssignmentsPage from "./pages/AssignmentsPage";
 import SparePartsPage from "./pages/SparePartsPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Sidebar from "./components/Sidebar";
+import DashboardPage from "./pages/DashboardPage";
+import ReportsPage from "./pages/ReportsPage";
 
 function Layout() {
   return (
@@ -29,7 +31,7 @@ export default function App() {
         <Route path="/register" element={<RegisterPage />} />
 
         <Route element={<ProtectedRoute />}>
-          <Route path="/dashboard" element={<h1 className="p-8">Dashboard (pendiente)</h1>} />
+          <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/equipos" element={<EquipoListPage />} />
           <Route path="/equipos/nuevo" element={<EquipoFormPage />} />
           <Route path="/equipos/:id" element={<EquipoDetailPage />} />
@@ -41,6 +43,12 @@ export default function App() {
           element={<ProtectedRoute allowedRoles={["Administrador", "Técnico"]} />}
         >
           <Route path="/repuestos" element={<SparePartsPage />} />
+        </Route>
+
+        <Route
+          element={<ProtectedRoute allowedRoles={["Administrador", "Cliente"]} />}
+        >
+          <Route path="/reportes" element={<ReportsPage />} />
         </Route>
 
         <Route element={<ProtectedRoute allowedRoles={["Administrador"]} />}>

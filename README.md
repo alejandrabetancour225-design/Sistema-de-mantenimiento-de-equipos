@@ -116,7 +116,7 @@ Hay 4 roles fijos: `Administrador`, `Técnico`, `Empleado` y `Cliente`. Cada usu
 - No se puede desactivar ni quitar el rol al **último Administrador activo**, y un Administrador no puede desactivarse ni quitarse el rol a sí mismo.
 
 | Módulo | Administrador | Técnico | Empleado | Cliente |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | Usuarios y roles | Todo | — | — | — |
 | Auditoría | Consulta | — | — | — |
 | Equipos | Todo | Todo | Consulta | — |
@@ -129,7 +129,7 @@ Hay 4 roles fijos: `Administrador`, `Técnico`, `Empleado` y `Cliente`. Cada usu
 ## Endpoints
 
 | Método | Ruta | Autorización | Descripción |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | POST | `/api/auth/register` | Anónimo | Registra un **Cliente** y abre sesión |
 | POST | `/api/auth/login` | Anónimo | Inicia sesión |
 | GET | `/api/auth/me` | Autenticado | Usuario de la sesión |
@@ -146,7 +146,7 @@ Hay 4 roles fijos: `Administrador`, `Técnico`, `Empleado` y `Cliente`. Cada usu
 | POST | `/api/equipment/PostNewEquipment` | Adm./Téc. | Crea un equipo |
 | PUT | `/api/equipment/PutEquipment/{id}` | Adm./Téc. | Edita un equipo |
 | PATCH | `/api/equipment/PatchEquipmentStatus/{id}` | Adm./Téc. | Cambia el estado |
-| DELETE | `/api/equipment/DeleteEquipment/{id}` | Adm./Téc. | Elimina (solo sin historial) |
+| DELETE | `/api/equipment/DeleteEquipment/{id}` | Adm./Téc. | Da de baja |
 | POST | `/api/assignment/AssignEquipment` | Adm./Téc. | Asigna un equipo |
 | PATCH | `/api/assignment/ReleaseEquipment/{id}` | Adm./Téc. | Libera un equipo |
 | GET | `/api/assignment/GetAssignments` | Adm./Téc./Emp. | Lista (Empleado: solo las suyas) |
@@ -158,7 +158,7 @@ Hay 4 roles fijos: `Administrador`, `Técnico`, `Empleado` y `Cliente`. Cada usu
 | POST/PUT/DELETE | `/api/maintenance/...` | Adm./Téc. | Gestiona mantenimientos |
 | GET/POST/PUT/PATCH | `/api/sparepart/...` | Adm./Téc. | Repuestos |
 
-**Registro**
+### **Registro**
 
 ```json
 {
@@ -180,7 +180,8 @@ Los errores de validación responden `400` con `{ "message": "...", "errors": { 
 - `internalCode` y `serialNumber` son únicos (`409`).
 - `UNDER_MAINTENANCE` solo lo pone el flujo de mantenimiento; con un mantenimiento abierto, el estado del equipo cambia al cerrarlo o cancelarlo.
 - La garantía no puede terminar antes de la fecha de compra; el precio no puede ser negativo.
-- Un equipo con historial (asignaciones, componentes, incidentes o mantenimientos) no se borra: se pasa a `DECOMMISSIONED`.
+- En la baja de equipo, `DELETE /api/equipment/DeleteEquipment/{id}` no borra físicamente, sino que cambia el estado a `DECOMMISSIONED` y conserva todo el historial. Responde `409` si el equipo ya está dado de baja, si tiene una asignación `ACTIVE` o si tiene un mantenimiento `OPEN`/`IN_PROGRESS`.
+- Un equipo `DECOMMISSIONED` no puede volver a `AVAILABLE` ni asignarse.
 
 ### Asignaciones
 

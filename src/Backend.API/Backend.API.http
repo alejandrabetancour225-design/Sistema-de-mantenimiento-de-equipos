@@ -1,78 +1,93 @@
 @Backend.API_HostAddress = http://localhost:5255
-@token = PEGA-AQUI-EL-TOKEN-DEL-ADMIN
+@token = PEGA-AQUI-EL-TOKEN
 @userId = PEGA-AQUI-EL-ID-DEL-USUARIO
+@empleadoId = PEGA-AQUI-EL-ID-DEL-EMPLEADO
 @equipmentId = PEGA-AQUI-EL-ID-DEL-EQUIPO
+@equipmentId2 = PEGA-AQUI-EL-ID-DEL-EQUIPO-2
 @assignmentId = PEGA-AQUI-EL-ID-DE-LA-ASIGNACION
 @componentId = PEGA-AQUI-EL-ID-DEL-COMPONENTE
 @incidentId = PEGA-AQUI-EL-ID-DEL-INCIDENTE
+@sparePartId = PEGA-AQUI-EL-ID-DEL-REPUESTO
+@maintenanceId = PEGA-AQUI-EL-ID-DEL-MANTENIMIENTO
+@maintenanceSparePartId = PEGA-AQUI-EL-ID-DEL-REPUESTO-EN-MANTENIMIENTO
 
-POST {{Backend.API_HostAddress}}/api/auth/register
-Content-Type: application/json
-
-{
-  "fullName": "Juan Pérez",
-  "email": "juan@test.com",
-  "password": "secreto123",
-  "phone": "3001234567"
-}
-
-###
-
+### Login (Administrador)
 POST {{Backend.API_HostAddress}}/api/auth/login
 Content-Type: application/json
 
 {
-  "email": "juan@test.com",
-  "password": "secreto123"
+  "email": "admin@test.com",
+  "password": "AdminSegura123"
 }
 
-###
-
-GET {{Backend.API_HostAddress}}/api/roles
+### Usuario actual
+GET {{Backend.API_HostAddress}}/api/auth/me
 Authorization: Bearer {{token}}
 
-###
-
-GET {{Backend.API_HostAddress}}/api/users
+### Cambiar mi propia contraseña
+POST {{Backend.API_HostAddress}}/api/auth/change-password
 Authorization: Bearer {{token}}
-
-###
-
-PUT {{Backend.API_HostAddress}}/api/users/{{userId}}
-Authorization: Bearer {{token}}
+X-CSRF: 1
 Content-Type: application/json
 
 {
-  "active": false,
+  "currentPassword": "AdminSegura123",
+  "newPassword": "NuevaSegura456"
+}
+
+### Listar roles
+GET {{Backend.API_HostAddress}}/api/roles
+Authorization: Bearer {{token}}
+
+### Listar usuarios
+GET {{Backend.API_HostAddress}}/api/users
+Authorization: Bearer {{token}}
+
+### Editar usuario (estado, rol, teléfono, correo)
+PUT {{Backend.API_HostAddress}}/api/users/{{userId}}
+Authorization: Bearer {{token}}
+X-CSRF: 1
+Content-Type: application/json
+
+{
+  "active": true,
   "role": "Empleado",
   "phone": "3009876543",
   "email": "nuevo@test.com"
 }
 
-###
-
+### Asignar rol
 PUT {{Backend.API_HostAddress}}/api/users/{{userId}}/role
 Authorization: Bearer {{token}}
+X-CSRF: 1
 Content-Type: application/json
 
 {
   "role": "Técnico"
 }
 
-###
+### Restablecer contraseña de un usuario
+PUT {{Backend.API_HostAddress}}/api/users/{{userId}}/password
+Authorization: Bearer {{token}}
+X-CSRF: 1
+Content-Type: application/json
 
+{
+  "newPassword": "TemporalSegura123"
+}
+
+### Listar equipos
 GET {{Backend.API_HostAddress}}/api/equipment/GetEquipmentList
 Authorization: Bearer {{token}}
 
-###
-
+### Consultar un equipo
 GET {{Backend.API_HostAddress}}/api/equipment/GetEquipmentById/{{equipmentId}}
 Authorization: Bearer {{token}}
 
-###
-
+### Crear equipo
 POST {{Backend.API_HostAddress}}/api/equipment/PostNewEquipment
 Authorization: Bearer {{token}}
+X-CSRF: 1
 Content-Type: application/json
 
 {
@@ -88,10 +103,10 @@ Content-Type: application/json
   "location": "Oficina 201"
 }
 
-###
-
+### Editar equipo
 PUT {{Backend.API_HostAddress}}/api/equipment/PutEquipment/{{equipmentId}}
 Authorization: Bearer {{token}}
+X-CSRF: 1
 Content-Type: application/json
 
 {
@@ -99,67 +114,33 @@ Content-Type: application/json
   "location": "Oficina 202"
 }
 
-###
-
+### Cambiar estado del equipo
 PATCH {{Backend.API_HostAddress}}/api/equipment/PatchEquipmentStatus/{{equipmentId}}
 Authorization: Bearer {{token}}
+X-CSRF: 1
 Content-Type: application/json
 
 {
   "status": "IN_USE"
 }
 
-###
-
+### Dar de baja el equipo
 DELETE {{Backend.API_HostAddress}}/api/equipment/DeleteEquipment/{{equipmentId}}
 Authorization: Bearer {{token}}
+X-CSRF: 1
 
-###
-
-POST {{Backend.API_HostAddress}}/api/assignment/AssignEquipment
-Authorization: Bearer {{token}}
-Content-Type: application/json
-
-{
-  "equipmentId": "{{equipmentId}}",
-  "userId": "{{userId}}",
-  "observations": "Entrega inicial del equipo"
-}
-
-###
-
-PATCH {{Backend.API_HostAddress}}/api/assignment/ReleaseEquipment/{{assignmentId}}
-Authorization: Bearer {{token}}
-Content-Type: application/json
-
-{
-  "observations": "Devuelto en buen estado"
-}
-
-###
-
-GET {{Backend.API_HostAddress}}/api/assignment/GetAssignments
-Authorization: Bearer {{token}}
-
-###
-
+### Listar componentes
 GET {{Backend.API_HostAddress}}/api/equipmentcomponent/GetComponentList
 Authorization: Bearer {{token}}
 
-###
-
-GET {{Backend.API_HostAddress}}/api/equipmentcomponent/GetComponentById/{{componentId}}
-Authorization: Bearer {{token}}
-
-###
-
+### Componentes de un equipo
 GET {{Backend.API_HostAddress}}/api/equipmentcomponent/GetComponentsByEquipment/{{equipmentId}}
 Authorization: Bearer {{token}}
 
-###
-
+### Crear componente
 POST {{Backend.API_HostAddress}}/api/equipmentcomponent/PostNewComponent
 Authorization: Bearer {{token}}
+X-CSRF: 1
 Content-Type: application/json
 
 {
@@ -172,10 +153,10 @@ Content-Type: application/json
   "installedAt": "2026-01-10T00:00:00Z"
 }
 
-###
-
+### Editar componente
 PUT {{Backend.API_HostAddress}}/api/equipmentcomponent/PutComponent/{{componentId}}
 Authorization: Bearer {{token}}
+X-CSRF: 1
 Content-Type: application/json
 
 {
@@ -183,92 +164,251 @@ Content-Type: application/json
   "specifications": { "capacity": "32GB" }
 }
 
-###
-
+### Eliminar componente
 DELETE {{Backend.API_HostAddress}}/api/equipmentcomponent/DeleteComponent/{{componentId}}
 Authorization: Bearer {{token}}
+X-CSRF: 1
 
-###
-
-GET {{Backend.API_HostAddress}}/api/incident/GetIncidentList
+### Listar asignaciones
+GET {{Backend.API_HostAddress}}/api/assignment/GetAssignments
 Authorization: Bearer {{token}}
 
-###
-
-GET {{Backend.API_HostAddress}}/api/incident/GetIncidentById/{{incidentId}}
+### Asignar equipo
+POST {{Backend.API_HostAddress}}/api/assignment/AssignEquipment
 Authorization: Bearer {{token}}
-
-###
-
-GET {{Backend.API_HostAddress}}/api/incident/GetIncidentsByEquipment/{{equipmentId}}
-Authorization: Bearer {{token}}
-
-###
-
-POST {{Backend.API_HostAddress}}/api/incident/PostNewIncident
-Authorization: Bearer {{token}}
+X-CSRF: 1
 Content-Type: application/json
 
 {
   "equipmentId": "{{equipmentId}}",
-  "description": "El equipo no enciende",
-  "reportedAt": "2026-09-29T00:00:00Z",
-  "maintenanceId": null
+  "userId": "{{empleadoId}}",
+  "observations": "Entrega inicial"
 }
 
-###
-
-PUT {{Backend.API_HostAddress}}/api/incident/PutIncident/{{incidentId}}
+### Liberar asignación
+PATCH {{Backend.API_HostAddress}}/api/assignment/ReleaseEquipment/{{assignmentId}}
 Authorization: Bearer {{token}}
+X-CSRF: 1
 Content-Type: application/json
 
 {
-  "description": "El equipo no enciende - en revision",
+  "observations": "Devuelto en buen estado"
+}
+
+### Listar incidentes
+GET {{Backend.API_HostAddress}}/api/incident/GetIncidentList
+Authorization: Bearer {{token}}
+
+### Consultar un incidente
+GET {{Backend.API_HostAddress}}/api/incident/GetIncidentById/{{incidentId}}
+Authorization: Bearer {{token}}
+
+### Incidentes de un equipo
+GET {{Backend.API_HostAddress}}/api/incident/GetIncidentsByEquipment/{{equipmentId}}
+Authorization: Bearer {{token}}
+
+### Crear incidente
+POST {{Backend.API_HostAddress}}/api/incident/PostNewIncident
+Authorization: Bearer {{token}}
+X-CSRF: 1
+Content-Type: application/json
+
+{
+  "equipmentId": "{{equipmentId}}",
+  "description": "El equipo no enciende"
+}
+
+### Editar incidente
+PUT {{Backend.API_HostAddress}}/api/incident/PutIncident/{{incidentId}}
+Authorization: Bearer {{token}}
+X-CSRF: 1
+Content-Type: application/json
+
+{
+  "description": "El equipo no enciende - en revisión",
   "status": "IN_PROGRESS"
 }
 
-###
-
+### Eliminar incidente
 DELETE {{Backend.API_HostAddress}}/api/incident/DeleteIncident/{{incidentId}}
 Authorization: Bearer {{token}}
+X-CSRF: 1
 
-###
-
-# Usuario de la sesión actual
-GET {{Backend.API_HostAddress}}/api/auth/me
+### Listar repuestos
+GET {{Backend.API_HostAddress}}/api/sparepart/GetSparePartList
 Authorization: Bearer {{token}}
 
-###
-
-# Cualquier usuario cambia su propia contraseña
-POST {{Backend.API_HostAddress}}/api/auth/change-password
+### Listar incluyendo inactivos
+GET {{Backend.API_HostAddress}}/api/sparepart/GetSparePartList?includeInactive=true
 Authorization: Bearer {{token}}
+
+### Crear repuesto
+POST {{Backend.API_HostAddress}}/api/sparepart/PostNewSparePart
+Authorization: Bearer {{token}}
+X-CSRF: 1
 Content-Type: application/json
 
 {
-  "currentPassword": "ClaveActual2026",
-  "newPassword": "ClaveNueva2026"
+  "name": "Memoria RAM DDR4 16GB",
+  "description": "Kingston KVR32S22S8/16",
+  "unitCost": 45.50
 }
 
-###
-
-# Cierra todas las sesiones del usuario (invalida sus tokens)
-POST {{Backend.API_HostAddress}}/api/auth/logout
+### Editar repuesto
+PUT {{Backend.API_HostAddress}}/api/sparepart/PutSparePart/{{sparePartId}}
 Authorization: Bearer {{token}}
-
-###
-
-# El Administrador restablece la contraseña de un usuario
-PUT {{Backend.API_HostAddress}}/api/users/{{userId}}/password
-Authorization: Bearer {{token}}
+X-CSRF: 1
 Content-Type: application/json
 
 {
-  "newPassword": "NuevaClave2026"
+  "unitCost": 49.99
 }
 
-###
+### Desactivar repuesto
+PATCH {{Backend.API_HostAddress}}/api/sparepart/DeactivateSparePart/{{sparePartId}}
+Authorization: Bearer {{token}}
+X-CSRF: 1
 
-# Auditoría (solo Administrador)
+### Reactivar repuesto
+PATCH {{Backend.API_HostAddress}}/api/sparepart/ReactivateSparePart/{{sparePartId}}
+Authorization: Bearer {{token}}
+X-CSRF: 1
+
+### Listar mantenimientos
+GET {{Backend.API_HostAddress}}/api/maintenance/GetMaintenanceList
+Authorization: Bearer {{token}}
+
+### Consultar un mantenimiento
+GET {{Backend.API_HostAddress}}/api/maintenance/GetMaintenanceById/{{maintenanceId}}
+Authorization: Bearer {{token}}
+
+### Mantenimientos de un equipo
+GET {{Backend.API_HostAddress}}/api/maintenance/GetMaintenancesByEquipment/{{equipmentId}}
+Authorization: Bearer {{token}}
+
+### Historial completo del equipo (HU-13)
+GET {{Backend.API_HostAddress}}/api/maintenance/GetHistoryByEquipment/{{equipmentId}}
+Authorization: Bearer {{token}}
+
+### Crear mantenimiento preventivo
+POST {{Backend.API_HostAddress}}/api/maintenance/PostNewMaintenance
+Authorization: Bearer {{token}}
+X-CSRF: 1
+Content-Type: application/json
+
+{
+  "equipmentId": "{{equipmentId}}",
+  "technicianId": "{{userId}}",
+  "type": "PREVENTIVE",
+  "reportedProblem": "Mantenimiento preventivo programado",
+  "laborCost": 50.00,
+  "otherCosts": 0,
+  "nextMaintenanceDate": "2027-03-15",
+  "observations": "Limpieza general"
+}
+
+### Crear mantenimiento desde incidencia (HU-11)
+POST {{Backend.API_HostAddress}}/api/maintenance/CreateFromIncident/{{incidentId}}
+Authorization: Bearer {{token}}
+X-CSRF: 1
+
+### Editar mantenimiento
+PUT {{Backend.API_HostAddress}}/api/maintenance/PutMaintenance/{{maintenanceId}}
+Authorization: Bearer {{token}}
+X-CSRF: 1
+Content-Type: application/json
+
+{
+  "workDone": "Diagnóstico en curso",
+  "laborCost": 30.00
+}
+
+### Añadir repuesto al mantenimiento
+POST {{Backend.API_HostAddress}}/api/maintenance/AddSparePart/{{maintenanceId}}
+Authorization: Bearer {{token}}
+X-CSRF: 1
+Content-Type: application/json
+
+{
+  "sparePartId": "{{sparePartId}}",
+  "quantity": 2
+}
+
+### Quitar repuesto del mantenimiento
+DELETE {{Backend.API_HostAddress}}/api/maintenance/RemoveSparePart/{{maintenanceId}}/{{maintenanceSparePartId}}
+Authorization: Bearer {{token}}
+X-CSRF: 1
+
+### Cerrar mantenimiento
+POST {{Backend.API_HostAddress}}/api/maintenance/CloseMaintenance/{{maintenanceId}}
+Authorization: Bearer {{token}}
+X-CSRF: 1
+Content-Type: application/json
+
+{
+  "workDone": "Reemplazo y limpieza",
+  "laborCost": 80.00,
+  "otherCosts": 5.00,
+  "nextMaintenanceDate": "2027-09-15",
+  "observations": "Equipo operativo",
+  "equipmentFinalStatus": "AVAILABLE"
+}
+
+### Eliminar mantenimiento
+DELETE {{Backend.API_HostAddress}}/api/maintenance/DeleteMaintenance/{{maintenanceId}}
+Authorization: Bearer {{token}}
+X-CSRF: 1
+
+### Eventos de auditoría
 GET {{Backend.API_HostAddress}}/api/audit?take=50
 Authorization: Bearer {{token}}
+
+### Resumen de equipos por estado
+GET {{Backend.API_HostAddress}}/api/dashboard/GetEquipmentSummary
+Authorization: Bearer {{token}}
+
+### Incidencias abiertas
+GET {{Backend.API_HostAddress}}/api/dashboard/GetOpenIncidents
+Authorization: Bearer {{token}}
+
+### Mantenimientos próximos (30 días por defecto)
+GET {{Backend.API_HostAddress}}/api/dashboard/GetUpcomingMaintenances
+Authorization: Bearer {{token}}
+
+### Mantenimientos próximos (60 días)
+GET {{Backend.API_HostAddress}}/api/dashboard/GetUpcomingMaintenances?daysAhead=60
+Authorization: Bearer {{token}}
+
+### Reporte de equipos en PDF
+GET {{Backend.API_HostAddress}}/api/reports/GetEquipments?format=pdf
+Authorization: Bearer {{token}}
+
+### Reporte de equipos en Excel
+GET {{Backend.API_HostAddress}}/api/reports/GetEquipments?format=excel
+Authorization: Bearer {{token}}
+
+### Reporte de mantenimientos
+GET {{Backend.API_HostAddress}}/api/reports/GetMaintenances?from=2026-09-01&to=2026-10-31&format=pdf
+Authorization: Bearer {{token}}
+
+### Reporte de costos por equipo
+GET {{Backend.API_HostAddress}}/api/reports/GetCosts?format=excel
+Authorization: Bearer {{token}}
+
+### Solicitar código de recuperación de contraseña
+POST {{Backend.API_HostAddress}}/api/auth/forgot-password
+Content-Type: application/json
+
+{
+  "email": "admin@test.com"
+}
+
+### Restablecer contraseña con el código
+POST {{Backend.API_HostAddress}}/api/auth/reset-password
+Content-Type: application/json
+
+{
+  "email": "admin@test.com",
+  "code": "123456",
+  "newPassword": "NuevaSegura123"
+}
