@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { getMaintenancesByEquipment } from "../services/maintenanceServices";
+import { getMaintenancesByEquipment, getMaintenanceList } from "../services/maintenanceServices";
 import { getSpareParts } from "../services/sparePartServices";
 
 export function useMaintenancesByEquipment(equipmentId: string) {
@@ -14,5 +14,12 @@ export function useSpareParts(includeInactive = false) {
   return useQuery({
     queryKey: ["spareparts", includeInactive],
     queryFn: () => getSpareParts(includeInactive),
+  });
+}
+
+export function useAllMaintenances() {
+  return useQuery({
+    queryKey: ["maintenances", "all"],
+    queryFn: getMaintenanceList,
   });
 }

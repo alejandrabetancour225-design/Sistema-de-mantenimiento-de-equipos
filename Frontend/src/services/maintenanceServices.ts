@@ -77,3 +77,8 @@ export async function removeSparePart(
 export async function deleteMaintenance(id: string): Promise<void> {
   await api.delete(`/maintenance/DeleteMaintenance/${id}`);
 }
+
+export async function getMaintenanceList(): Promise<Maintenance[]> {
+  const res = await api.get<Maintenance[]>("/maintenance/GetMaintenanceList");
+  return res.data;
+}

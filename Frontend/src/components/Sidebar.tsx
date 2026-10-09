@@ -10,7 +10,7 @@ export default function Sidebar() {
 
   function handleLogout() {
     logout();
-    navigate("/login");
+    navigate("/");
   }
 
   const isActive = (path: string) => location.pathname === path;
@@ -21,6 +21,8 @@ export default function Sidebar() {
         : "text-gray-300 hover:bg-white/5 hover:text-white"
     }`;
 
+  // Personal interno = todos los roles menos Cliente (Roles.Staff en el backend)
+  const isStaff = role !== "Cliente";
   const canManageEquipment = role === "Administrador" || role === "Técnico";
 
   return (
@@ -41,11 +43,18 @@ export default function Sidebar() {
 
         <div>
           <p className="px-4 text-xs font-semibold text-gray-500 uppercase mb-1">Gestión</p>
-          <Link to="/equipos" className={linkClass("/equipos")}>
-            Equipos
-          </Link>
-          <Link to="/asignaciones" className={linkClass("/asignaciones")}>
-            Asignaciones
+          {isStaff && (
+            <>
+              <Link to="/equipos" className={linkClass("/equipos")}>
+                Equipos
+              </Link>
+              <Link to="/asignaciones" className={linkClass("/asignaciones")}>
+                Asignaciones
+              </Link>
+            </>
+          )}
+          <Link to="/mantenimientos" className={linkClass("/mantenimientos")}>
+            Mantenimientos
           </Link>
           {canManageEquipment && (
             <Link to="/repuestos" className={linkClass("/repuestos")}>
