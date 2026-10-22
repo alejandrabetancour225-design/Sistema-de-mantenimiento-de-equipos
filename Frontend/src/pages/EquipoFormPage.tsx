@@ -18,16 +18,17 @@ const schema = z.object({
   brand: z.string().min(1, "Requerido"),
   model: z.string().min(1, "Requerido"),
   location: z.string().min(1, "Requerido"),
+  operatingSystem: z.string().optional(),
   acquisitionDate: z.string().optional(),
   acquisitionPrice: z.coerce.number().optional(),
   warrantyUntil: z.string().optional(),
 });
 
-type FormInput = z.input<typeof schema>; // lo que el usuario escribe (acquisitionPrice: string)
-type FormValues = z.output<typeof schema>; // lo que sale ya validado (acquisitionPrice: number)
+type FormInput = z.input<typeof schema>;
+type FormValues = z.output<typeof schema>;
 
 export function EquipoFormPage() {
-  const { id } = useParams(); // presente solo en modo edición
+  const { id } = useParams();
   const isEdit = !!id;
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -54,6 +55,7 @@ export function EquipoFormPage() {
         brand: existing.brand,
         model: existing.model,
         location: existing.location,
+        operatingSystem: existing.operatingSystem ?? undefined,
         acquisitionDate: existing.acquisitionDate ?? undefined,
         acquisitionPrice: existing.acquisitionPrice ?? undefined,
         warrantyUntil: existing.warrantyUntil ?? undefined,
@@ -70,8 +72,6 @@ export function EquipoFormPage() {
     },
   });
 
-  // El backend responde 409 con { message } si el código interno
-  // o el número de serie ya existen.
   const conflictMessage = mutation.error
     ? getApiErrorMessage(mutation.error)
     : undefined;
@@ -105,6 +105,14 @@ export function EquipoFormPage() {
           <input {...register("model")} className="input" />
         </Field>
       </div>
+
+      <Field label="Sistema operativo" error={errors.operatingSystem?.message}>
+        <input
+          {...register("operatingSystem")}
+          className="input"
+          placeholder="Ej: Windows 11, Ubuntu 24.04"
+        />
+      </Field>
 
       <Field label="Ubicación" error={errors.location?.message}>
         <input {...register("location")} className="input" />
@@ -157,4 +165,4 @@ function Field({
       {error && <p className="text-xs text-red-600">{error}</p>}
     </div>
   );
-}  
+}

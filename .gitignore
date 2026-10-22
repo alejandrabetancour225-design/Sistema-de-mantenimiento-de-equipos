@@ -489,3 +489,5 @@ dist/
 setup.ps1
 setup.cmd
 >>>>>>> upstream/master
+
+ollama-data/

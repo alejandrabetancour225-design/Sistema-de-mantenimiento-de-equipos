@@ -646,4 +646,86 @@ public class MaintenanceService : IMaintenanceService
             MaintenanceId = incident.Maintenance?.Id
         };
     }
+
+    public async Task<MaintenanceResult> CreatePreventiveFromPredictionAsync(
+        Guid equipmentId,
+        Guid currentUserId,
+        string reportedProblem)
+    {
+        // 1. Validar equipo
+        var equipment = await _context.Equipments
+            .FirstOrDefaultAsync(e => e.Id == equipmentId);
+
+        if (equipment is null)
+            return new MaintenanceResult(MaintenanceActionStatus.EquipmentNotFound, null);
+
+        if (equipment.Status == EquipmentStatus.DECOMMISSIONED)
+            return new MaintenanceResult(MaintenanceActionStatus.InvalidStatusTransition, null);
+
+        // 2. Verificar que no haya mantenimiento abierto
+        var hasOpen = await _context.Maintenances.AnyAsync(m =>
+            m.EquipmentId == equipmentId
+            && (m.Status == MaintenanceStatus.OPEN || m.Status == MaintenanceStatus.IN_PROGRESS));
+
+        if (hasOpen)
+            return new MaintenanceResult(MaintenanceActionStatus.InvalidStatusTransition, null);
+
+        // 3. Determinar técnico:
+        var currentUser = await _context.Users
+            .Include(u => u.Role)
+            .FirstOrDefaultAsync(u => u.Id == currentUserId && u.Active);
+
+        Guid technicianId;
+        User? technician;
+
+        if (currentUser is not null
+            && (currentUser.Role?.Name == Roles.Tecnico || currentUser.Role?.Name == Roles.Administrador))
+        {
+            technicianId = currentUser.Id;
+            technician = currentUser;
+        }
+        else
+        {
+            technician = await _context.Users
+                .Include(u => u.Role)
+                .FirstOrDefaultAsync(u => u.Active && u.Role != null && u.Role.Name == Roles.Tecnico);
+
+            if (technician is null)
+                return new MaintenanceResult(MaintenanceActionStatus.TechnicianNotFound, null);
+
+            technicianId = technician.Id;
+        }
+
+        // 4. Crear mantenimiento preventivo
+        var now = DateTime.UtcNow;
+        var maintenance = new Maintenance
+        {
+            Id = Guid.NewGuid(),
+            EquipmentId = equipmentId,
+            IncidentId = null,
+            TechnicianId = technicianId,
+            Type = MaintenanceType.PREVENTIVE,
+            Status = MaintenanceStatus.OPEN,
+            ReportedProblem = reportedProblem.Trim(),
+            LaborCost = 0,
+            OtherCosts = 0,
+            Observations = "Generado automáticamente desde alerta de riesgo de falla (HU-18).",
+            StartedAt = now,
+            CreatedAt = now,
+            UpdatedAt = now
+        };
+
+        _context.Maintenances.Add(maintenance);
+
+        // R4: el equipo pasa a mantenimiento
+        equipment.Status = EquipmentStatus.UNDER_MAINTENANCE;
+        equipment.UpdatedAt = now;
+
+        await _context.SaveChangesAsync();
+
+        await _context.Entry(maintenance).Reference(m => m.Equipment).LoadAsync();
+        await _context.Entry(maintenance).Reference(m => m.Technician).LoadAsync();
+
+        return new MaintenanceResult(MaintenanceActionStatus.Success, Map(maintenance));
+    }
 }

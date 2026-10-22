@@ -36,4 +36,10 @@ public class DashboardController : ControllerBase
     {
         return Ok(await _dashboardService.GetUpcomingMaintenancesAsync(daysAhead));
     }
+
+    [HttpGet("GetHighRiskEquipments")]
+    public async Task<ActionResult<List<DashboardHighRiskResponse>>> GetHighRiskEquipments([FromQuery] int take = 5)
+    {
+        return Ok(await _dashboardService.GetHighRiskEquipmentsAsync(take));
+    }
 }

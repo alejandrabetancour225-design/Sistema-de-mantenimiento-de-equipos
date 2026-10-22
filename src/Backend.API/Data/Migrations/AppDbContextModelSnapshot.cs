@@ -22,6 +22,111 @@ namespace Backend.API.Data.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Backend.API.Models.AIDiagnosis", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<double>("Confidence")
+                        .HasColumnType("double precision");
+
+                    b.Property<string>("ContextSnapshotJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("EquipmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("IncidentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ModelVersion")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("RankedCausesJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("Reasoning")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("RequiresTechnician")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Symptom")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("EquipmentId");
+
+                    b.HasIndex("IncidentId");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("AIDiagnoses");
+                });
+
+            modelBuilder.Entity("Backend.API.Models.AIFeedback", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ActualCause")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DiagnosisId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsCorrect")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("text");
+
+                    b.Property<string>("PredictedCause")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("TechnicianId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("DiagnosisId");
+
+                    b.HasIndex("IsCorrect");
+
+                    b.HasIndex("TechnicianId");
+
+                    b.ToTable("AIFeedbacks");
+                });
+
             modelBuilder.Entity("Backend.API.Models.Assignment", b =>
                 {
                     b.Property<Guid>("Id")
@@ -132,6 +237,9 @@ namespace Backend.API.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("OperatingSystem")
+                        .HasColumnType("text");
+
                     b.Property<string>("SerialNumber")
                         .IsRequired()
                         .HasColumnType("text");
@@ -196,6 +304,106 @@ namespace Backend.API.Data.Migrations
                     b.HasIndex("EquipmentId");
 
                     b.ToTable("EquipmentComponents");
+                });
+
+            modelBuilder.Entity("Backend.API.Models.ErrorKnowledge", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("ComponentType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Confidence")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PossibleCauses")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Severity")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("SuggestedSolution")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Symptom")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Active");
+
+                    b.HasIndex("ComponentType");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("Symptom");
+
+                    b.ToTable("ErrorKnowledges");
+                });
+
+            modelBuilder.Entity("Backend.API.Models.FailurePrediction", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Acknowledged")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("EquipmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ModelVersion")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("PredictedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("RiskComponent")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("RiskScore")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Acknowledged");
+
+                    b.HasIndex("EquipmentId");
+
+                    b.HasIndex("PredictedAt");
+
+                    b.HasIndex("RiskScore");
+
+                    b.ToTable("FailurePredictions");
                 });
 
             modelBuilder.Entity("Backend.API.Models.Incident", b =>
@@ -499,6 +707,51 @@ namespace Backend.API.Data.Migrations
                     b.ToTable("Users");
                 });
 
+            modelBuilder.Entity("Backend.API.Models.AIDiagnosis", b =>
+                {
+                    b.HasOne("Backend.API.Models.User", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Backend.API.Models.Equipment", "Equipment")
+                        .WithMany()
+                        .HasForeignKey("EquipmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Backend.API.Models.Incident", "Incident")
+                        .WithMany()
+                        .HasForeignKey("IncidentId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("CreatedByUser");
+
+                    b.Navigation("Equipment");
+
+                    b.Navigation("Incident");
+                });
+
+            modelBuilder.Entity("Backend.API.Models.AIFeedback", b =>
+                {
+                    b.HasOne("Backend.API.Models.AIDiagnosis", "Diagnosis")
+                        .WithMany()
+                        .HasForeignKey("DiagnosisId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Backend.API.Models.User", "Technician")
+                        .WithMany()
+                        .HasForeignKey("TechnicianId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Diagnosis");
+
+                    b.Navigation("Technician");
+                });
+
             modelBuilder.Entity("Backend.API.Models.Assignment", b =>
                 {
                     b.HasOne("Backend.API.Models.Equipment", "Equipment")
@@ -524,6 +777,27 @@ namespace Backend.API.Data.Migrations
                         .WithMany("Components")
                         .HasForeignKey("EquipmentId")
                         .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Equipment");
+                });
+
+            modelBuilder.Entity("Backend.API.Models.ErrorKnowledge", b =>
+                {
+                    b.HasOne("Backend.API.Models.User", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("CreatedByUser");
+                });
+
+            modelBuilder.Entity("Backend.API.Models.FailurePrediction", b =>
+                {
+                    b.HasOne("Backend.API.Models.Equipment", "Equipment")
+                        .WithMany()
+                        .HasForeignKey("EquipmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Equipment");

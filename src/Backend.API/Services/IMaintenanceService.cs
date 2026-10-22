@@ -15,4 +15,8 @@ public interface IMaintenanceService
     Task<MaintenanceActionStatus> RemoveSparePartAsync(Guid maintenanceId, Guid maintenanceSparePartId);
     Task<MaintenanceActionStatus> DeleteAsync(Guid id);
     Task<EquipmentHistoryResponse?> GetHistoryByEquipmentAsync(Guid equipmentId);
+    Task<MaintenanceResult> CreatePreventiveFromPredictionAsync(
+      Guid equipmentId,
+      Guid currentUserId,
+      string reportedProblem);
 }

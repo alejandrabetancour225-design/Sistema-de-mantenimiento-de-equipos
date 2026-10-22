@@ -30,6 +30,7 @@ builder.Services.AddControllers()
         // Los enums solo se aceptan por nombre ("OPEN"), nunca como número (99).
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(allowIntegerValues: false));
         options.JsonSerializerOptions.MaxDepth = 32;
+        options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
     })
     .ConfigureApiBehaviorOptions(options =>
     {
@@ -287,6 +288,11 @@ builder.Services.AddScoped<IEmailSender>(sp =>
         : ActivatorUtilities.CreateInstance<SmtpEmailSender>(sp);
 });
 builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();
+builder.Services.AddScoped<IErrorKnowledgeService, ErrorKnowledgeService>();
+builder.Services.AddHttpClient<IAiClient, AiClient>();
+builder.Services.AddScoped<IDiagnosisService, DiagnosisService>();
+builder.Services.AddScoped<IPredictionService, PredictionService>();
+builder.Services.AddScoped<IFeedbackService, FeedbackService>();
 
 var app = builder.Build();
 

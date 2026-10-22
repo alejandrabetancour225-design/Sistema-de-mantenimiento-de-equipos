@@ -13,8 +13,11 @@ import Sidebar from "./components/Sidebar";
 import DashboardPage from "./pages/DashboardPage";
 import ReportsPage from "./pages/ReportsPage";
 import AuditPage from "./pages/AuditPage";
+import ErrorKnowledgePage from "./pages/ErrorKnowledgePage";
 import { useAuth } from "./context/authContext";
 import { roleHome } from "./utils/roleHome";
+import DiagnosisPage from "./pages/DiagnosisPage";
+import AIMetricsPage from "./pages/AIMetricsPage";
 
 function Layout() {
   return (
@@ -56,12 +59,15 @@ export default function App() {
           <Route path="/equipos" element={<EquipoListPage />} />
           <Route path="/equipos/:id" element={<EquipoDetailPage />} />
           <Route path="/asignaciones" element={<AssignmentsPage />} />
+          <Route path="/diagnosis" element={<DiagnosisPage />} />
         </Route>
 
         <Route element={<ProtectedRoute allowedRoles={["Administrador", "Técnico"]} />}>
           <Route path="/equipos/nuevo" element={<EquipoFormPage />} />
           <Route path="/equipos/:id/editar" element={<EquipoFormPage />} />
           <Route path="/repuestos" element={<SparePartsPage />} />
+          <Route path="/error-knowledge" element={<ErrorKnowledgePage />} />
+          <Route path="/ai-metrics" element={<AIMetricsPage />} />
         </Route>
 
         <Route element={<ProtectedRoute allowedRoles={["Administrador"]} />}>

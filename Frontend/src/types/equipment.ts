@@ -28,6 +28,7 @@ export interface Equipment {
   status: EquipmentStatus;
   createdAt: string;
   updatedAt: string;
+  operatingSystem?: string | null;
 }
 
 export interface CreateEquipmentRequest {
@@ -42,6 +43,7 @@ export interface CreateEquipmentRequest {
   warrantyUntil?: string;
   location: string;
   status?: EquipmentStatus;
+  operatingSystem?: string;
 }
 
 export type UpdateEquipmentRequest = Partial<CreateEquipmentRequest>;

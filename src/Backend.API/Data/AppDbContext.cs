@@ -18,6 +18,10 @@ public class AppDbContext : DbContext
     public DbSet<MaintenanceSparePart> MaintenanceSpareParts => Set<MaintenanceSparePart>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<PasswordResetCode> PasswordResetCodes => Set<PasswordResetCode>();
+    public DbSet<ErrorKnowledge> ErrorKnowledges => Set<ErrorKnowledge>();
+    public DbSet<AIDiagnosis> AIDiagnoses => Set<AIDiagnosis>();
+    public DbSet<FailurePrediction> FailurePredictions => Set<FailurePrediction>();
+    public DbSet<AIFeedback> AIFeedbacks => Set<AIFeedback>();
 
     // Nombres de los índices únicos parciales que evitan duplicados por peticiones simultáneas.
     public const string ActiveAssignmentPerEquipmentIndex = "IX_Assignments_EquipmentId_Active";
@@ -160,6 +164,71 @@ public class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade);
             entity.HasIndex(c => c.UserId);
             entity.HasIndex(c => c.ExpiresAt);
+        });
+
+        modelBuilder.Entity<ErrorKnowledge>(entity =>
+        {
+            entity.HasIndex(e => e.Symptom);
+            entity.HasIndex(e => e.ComponentType);
+            entity.HasIndex(e => e.Active);
+            entity.HasOne(e => e.CreatedByUser)
+                  .WithMany()
+                  .HasForeignKey(e => e.CreatedByUserId)
+                  .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<AIDiagnosis>(entity =>
+        {
+            entity.HasOne(d => d.Equipment)
+                .WithMany()
+                .HasForeignKey(d => d.EquipmentId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(d => d.Incident)
+                .WithMany()
+                .HasForeignKey(d => d.IncidentId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(d => d.CreatedByUser)
+                .WithMany()
+                .HasForeignKey(d => d.CreatedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(d => d.EquipmentId);
+            entity.HasIndex(d => d.CreatedAt);
+            entity.HasIndex(d => d.Status);
+            entity.Property(d => d.RankedCausesJson).HasColumnType("jsonb");
+        });
+
+        modelBuilder.Entity<FailurePrediction>(entity =>
+        {
+            entity.HasOne(p => p.Equipment)
+                .WithMany()
+                .HasForeignKey(p => p.EquipmentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(p => p.EquipmentId);
+            entity.HasIndex(p => p.RiskScore);
+            entity.HasIndex(p => p.PredictedAt);
+            entity.HasIndex(p => p.Acknowledged);
+        });
+
+        modelBuilder.Entity<AIFeedback>(entity =>
+        {
+            entity.HasOne(f => f.Diagnosis)
+                .WithMany()
+                .HasForeignKey(f => f.DiagnosisId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(f => f.Technician)
+                .WithMany()
+                .HasForeignKey(f => f.TechnicianId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(f => f.DiagnosisId);
+            entity.HasIndex(f => f.TechnicianId);
+            entity.HasIndex(f => f.CreatedAt);
+            entity.HasIndex(f => f.IsCorrect);
         });
     }
 }

@@ -97,6 +97,12 @@ export default function EquipoDetailPage() {
         <p className="text-sm text-gray-600">
           {equipment.type} · {equipment.location} · {EQUIPMENT_STATUS_LABEL[equipment.status]}
         </p>
+        {equipment.operatingSystem && (
+          <p className="text-sm text-gray-600">
+            <span className="font-medium">Sistema operativo:</span>{" "}
+            {equipment.operatingSystem}
+          </p>
+        )}
       </div>
 
       {/* Componentes */}
@@ -109,25 +115,25 @@ export default function EquipoDetailPage() {
               placeholder="Tipo (RAM, disco...)"
               value={compForm.componentType}
               onChange={(e) => setCompForm({ ...compForm, componentType: e.target.value })}
-              className="input flex-1 min-w-[120px]"
+              className="input flex-1 min-w-30"
             />
             <input
               placeholder="Marca"
               value={compForm.brand}
               onChange={(e) => setCompForm({ ...compForm, brand: e.target.value })}
-              className="input flex-1 min-w-[100px]"
+              className="input flex-1 min-w-25"
             />
             <input
               placeholder="Modelo"
               value={compForm.model}
               onChange={(e) => setCompForm({ ...compForm, model: e.target.value })}
-              className="input flex-1 min-w-[100px]"
+              className="input flex-1 min-w-25"
             />
             <input
               placeholder="Serie"
               value={compForm.serialNumber}
               onChange={(e) => setCompForm({ ...compForm, serialNumber: e.target.value })}
-              className="input flex-1 min-w-[100px]"
+              className="input flex-1 min-w-25"
             />
             <button
               type="submit"
@@ -244,7 +250,7 @@ export default function EquipoDetailPage() {
         )}
       </section>
 
-      {/* Mantenimientos (nuevo) */}
+      {/* Mantenimientos */}
       {canManageComponents && <MaintenanceSection equipmentId={equipmentId} />}
     </div>
   );

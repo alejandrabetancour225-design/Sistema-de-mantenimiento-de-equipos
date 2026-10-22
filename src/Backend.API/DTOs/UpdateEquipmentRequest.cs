@@ -25,6 +25,8 @@ public class UpdateEquipmentRequest
     [MaxJsonLength(8000)]
     public JsonElement? Characteristics { get; set; }
 
+    public string? OperatingSystem { get; set; }
+
     public DateOnly? AcquisitionDate { get; set; }
 
     [Range(typeof(decimal), "0", "9999999999", ErrorMessage = "El precio de compra debe estar entre 0 y 9.999.999.999.")]

@@ -87,4 +87,24 @@ public class DashboardService : IDashboardService
             };
         }).ToList();
     }
+
+    public async Task<List<DashboardHighRiskResponse>> GetHighRiskEquipmentsAsync(int take = 5)
+    {
+        var predictions = await _context.FailurePredictions
+            .AsNoTracking()
+            .Include(p => p.Equipment)
+            .Where(p => p.RiskScore >= 60 && !p.Acknowledged)
+            .OrderByDescending(p => p.RiskScore)
+            .Take(take)
+            .ToListAsync();
+
+        return predictions.Select(p => new DashboardHighRiskResponse
+        {
+            EquipmentId = p.EquipmentId,
+            EquipmentInternalCode = p.Equipment?.InternalCode ?? string.Empty,
+            RiskScore = p.RiskScore,
+            RiskComponent = p.RiskComponent,
+            Reason = p.Reason
+        }).ToList();
+    }
 }

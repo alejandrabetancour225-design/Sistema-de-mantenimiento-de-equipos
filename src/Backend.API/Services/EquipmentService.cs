@@ -71,6 +71,7 @@ public class EquipmentService : IEquipmentService
             Brand = request.Brand.Trim(),
             Model = request.Model.Trim(),
             Characteristics = HasJsonValue(request.Characteristics) ? request.Characteristics!.Value.GetRawText() : null,
+            OperatingSystem = string.IsNullOrWhiteSpace(request.OperatingSystem) ? null : request.OperatingSystem.Trim(),
             AcquisitionDate = request.AcquisitionDate,
             AcquisitionPrice = request.AcquisitionPrice,
             WarrantyUntil = request.WarrantyUntil,
@@ -124,6 +125,14 @@ public class EquipmentService : IEquipmentService
         if (request.Brand is not null) equipment.Brand = request.Brand.Trim();
         if (request.Model is not null) equipment.Model = request.Model.Trim();
         if (HasJsonValue(request.Characteristics)) equipment.Characteristics = request.Characteristics!.Value.GetRawText();
+
+        if (request.OperatingSystem is not null)
+        {
+            equipment.OperatingSystem = string.IsNullOrWhiteSpace(request.OperatingSystem)
+                ? null
+                : request.OperatingSystem.Trim();
+        }
+
         if (request.AcquisitionDate is not null) equipment.AcquisitionDate = request.AcquisitionDate;
         if (request.AcquisitionPrice is not null) equipment.AcquisitionPrice = request.AcquisitionPrice;
         if (request.WarrantyUntil is not null) equipment.WarrantyUntil = request.WarrantyUntil;
@@ -276,6 +285,7 @@ public class EquipmentService : IEquipmentService
             Brand = equipment.Brand,
             Model = equipment.Model,
             Characteristics = ParseCharacteristics(equipment.Characteristics),
+            OperatingSystem = equipment.OperatingSystem,
             AcquisitionDate = equipment.AcquisitionDate,
             AcquisitionPrice = equipment.AcquisitionPrice,
             WarrantyUntil = equipment.WarrantyUntil,

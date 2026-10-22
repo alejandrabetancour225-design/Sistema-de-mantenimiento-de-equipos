@@ -1,6 +1,9 @@
 import axios from "axios";
 
-export function getApiErrorMessage(error: unknown, fallback = "Ocurrió un error."): string {
+export function getApiErrorMessage(
+  error: unknown,
+  fallback = "Ocurrió un error."
+): string {
   if (axios.isAxiosError(error)) {
     const data = error.response?.data;
     if (data && typeof data === "object" && "message" in data) {

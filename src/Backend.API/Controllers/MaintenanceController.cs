@@ -142,4 +142,17 @@ public class MaintenanceController : ControllerBase
             _ => StatusCode(StatusCodes.Status500InternalServerError)
         };
     }
+
+    [Authorize(Roles = Roles.AdminOrTechnician)]
+    [HttpPost("CreatePreventiveFromPrediction/{equipmentId:guid}")]
+    public async Task<ActionResult<MaintenanceResponse>> CreatePreventiveFromPrediction(
+        Guid equipmentId,
+        [FromBody] CreatePreventiveFromPredictionRequest request)
+    {
+        var currentUserId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var result = await _maintenanceService.CreatePreventiveFromPredictionAsync(
+            equipmentId, currentUserId, request.ReportedProblem);
+
+        return ToActionResult(result);
+    }
 }

@@ -12,6 +12,7 @@ public class EquipmentResponse
     public string Brand { get; set; } = string.Empty;
     public string Model { get; set; } = string.Empty;
     public JsonElement? Characteristics { get; set; }
+    public string? OperatingSystem { get; set; }
     public DateOnly? AcquisitionDate { get; set; }
     public decimal? AcquisitionPrice { get; set; }
     public DateOnly? WarrantyUntil { get; set; }

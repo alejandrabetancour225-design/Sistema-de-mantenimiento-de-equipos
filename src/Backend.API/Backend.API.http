@@ -412,3 +412,87 @@ Content-Type: application/json
   "code": "123456",
   "newPassword": "NuevaSegura123"
 }
+
+### Diagnosticar un equipo
+POST {{Backend.API_HostAddress}}/api/diagnosis/Diagnose
+Authorization: Bearer {{token}}
+X-CSRF: 1
+Content-Type: application/json
+
+{
+  "equipmentId": "{{equipmentId}}",
+  "symptom": "El equipo no enciende",
+  "incidentId": null
+}
+
+### Diagnosticar sobre una incidencia
+POST {{Backend.API_HostAddress}}/api/diagnosis/Diagnose
+Authorization: Bearer {{token}}
+X-CSRF: 1
+Content-Type: application/json
+
+{
+  "equipmentId": "{{equipmentId}}",
+  "symptom": "El equipo no enciende",
+  "incidentId": "{{incidentId}}"
+}
+
+### Consultar un diagnóstico
+GET {{Backend.API_HostAddress}}/api/diagnosis/GetDiagnosisById/{{diagnosisId}}
+Authorization: Bearer {{token}}
+
+### Diagnósticos de un equipo
+GET {{Backend.API_HostAddress}}/api/diagnosis/GetDiagnosesByEquipment/{{equipmentId}}
+Authorization: Bearer {{token}}
+
+### Diagnósticos recientes
+GET {{Backend.API_HostAddress}}/api/diagnosis/GetRecentDiagnoses?take=20
+Authorization: Bearer {{token}}
+
+### Refrescar todas las predicciones
+POST {{Backend.API_HostAddress}}/api/prediction/RefreshAll
+Authorization: Bearer {{token}}
+X-CSRF: 1
+
+### Equipos de alto riesgo
+GET {{Backend.API_HostAddress}}/api/prediction/GetHighRisk?take=10
+Authorization: Bearer {{token}}
+
+### Predicción de un equipo
+GET {{Backend.API_HostAddress}}/api/prediction/GetByEquipment/{{equipmentId}}
+Authorization: Bearer {{token}}
+
+### Refrescar predicción de un equipo
+POST {{Backend.API_HostAddress}}/api/prediction/RefreshForEquipment/{{equipmentId}}
+Authorization: Bearer {{token}}
+X-CSRF: 1
+
+### Reconocer una predicción
+POST {{Backend.API_HostAddress}}/api/prediction/Acknowledge/{{predictionId}}
+Authorization: Bearer {{token}}
+X-CSRF: 1
+
+### Registrar feedback de un diagnóstico
+POST {{Backend.API_HostAddress}}/api/feedback/CreateFeedback
+Authorization: Bearer {{token}}
+X-CSRF: 1
+Content-Type: application/json
+
+{
+  "diagnosisId": "{{diagnosisId}}",
+  "predictedCause": "Power supply unit (PSU) failure",
+  "actualCause": "Power supply unit (PSU) failure",
+  "notes": "Efectivamente era la fuente de poder"
+}
+
+### Feedback de un diagnóstico
+GET {{Backend.API_HostAddress}}/api/feedback/GetByDiagnosis/{{diagnosisId}}
+Authorization: Bearer {{token}}
+
+### Feedback reciente
+GET {{Backend.API_HostAddress}}/api/feedback/GetRecentFeedbacks?take=20
+Authorization: Bearer {{token}}
+
+### Métricas de la IA
+GET {{Backend.API_HostAddress}}/api/feedback/GetMetrics
+Authorization: Bearer {{token}}
