@@ -1,5 +1,6 @@
 import { api } from "./api";
 import type {
+  AssignableUser,
   Assignment,
   CreateAssignmentRequest,
   ReleaseAssignmentRequest,
@@ -20,5 +21,10 @@ export async function releaseAssignment(
   data?: ReleaseAssignmentRequest
 ): Promise<Assignment> {
   const res = await api.patch<Assignment>(`/assignment/ReleaseEquipment/${id}`, data ?? {});
+  return res.data;
+}
+
+export async function getAssignableUsers(): Promise<AssignableUser[]> {
+  const res = await api.get<AssignableUser[]>("/assignment/GetAssignableUsers");
   return res.data;
 }

@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getEquipmentById } from "../services/equipmentServices";
+import { changeEquipmentStatus, getEquipmentById } from "../services/equipmentServices";
+import { useAssignments } from "../hooks/useAssignments";
 import { useEquipmentComponents, useEquipmentIncidents } from "../hooks/useEquipmentDetail";
 import { createComponent, deleteComponent } from "../services/equipmentComponentServices";
 import { createIncident, updateIncident, deleteIncident } from "../services/incidentServices";
-import { EQUIPMENT_STATUS_LABEL } from "../types/equipment";
+import { EQUIPMENT_STATUS_LABEL, type EquipmentStatus } from "../types/equipment";
 import { INCIDENT_STATUS_LABEL, type IncidentStatus } from "../types/incident";
 import { useAuth } from "../context/authContext";
 import MaintenanceSection from "../components/MaintenanceSection";
@@ -17,7 +18,16 @@ export default function EquipoDetailPage() {
   const { role } = useAuth();
   const canManageComponents = role === "Administrador" || role === "Técnico";
   const canManageIncidents = role === "Administrador" || role === "Empleado";
+  const isEmployee = role === "Empleado";
   const queryClient = useQueryClient();
+
+  // Para el Empleado, /assignments devuelve solo las suyas: sirve para saber si el equipo es suyo
+  const { data: myAssignments } = useAssignments(isEmployee);
+  const isAssignedToMe = (myAssignments ?? []).some(
+    (a) => a.equipmentId === equipmentId && a.status === "ACTIVE"
+  );
+  // Administrador reporta en cualquier equipo; Empleado solo en los que tiene asignados
+  const canReportIncident = role === "Administrador" || (isEmployee && isAssignedToMe);
 
   const { data: equipment, isLoading: loadingEquipment } = useQuery({
     queryKey: ["equipment", equipmentId],
@@ -25,6 +35,17 @@ export default function EquipoDetailPage() {
   });
   const { data: components, isLoading: loadingComponents } = useEquipmentComponents(equipmentId);
   const { data: incidents, isLoading: loadingIncidents } = useEquipmentIncidents(equipmentId);
+
+  // --- Cambio de estado (Administrador / Técnico) ---
+  const [newStatus, setNewStatus] = useState<EquipmentStatus | "">("");
+  const statusMutation = useMutation({
+    mutationFn: (status: EquipmentStatus) => changeEquipmentStatus(equipmentId, status),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["equipment"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      setNewStatus("");
+    },
+  });
 
   // --- Formulario de componente ---
   const [compForm, setCompForm] = useState({
@@ -91,12 +112,50 @@ export default function EquipoDetailPage() {
         <Link to="/equipos" className="text-sm text-blue-600">
           ← Volver a equipos
         </Link>
-        <h1 className="text-xl font-semibold mt-2">
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+        <h1 className="text-xl font-semibold">
           {equipment.internalCode} — {equipment.brand} {equipment.model}
         </h1>
+          <div className="flex gap-2 text-sm">
+            <Link
+              to={`/equipos/${equipmentId}/historial`}
+              className="rounded border px-3 py-1.5 text-blue-600"
+            >
+              Historial completo
+            </Link>
+            {canManageComponents && (
+              <Link
+                to={`/equipos/${equipmentId}/editar`}
+                className="rounded bg-blue-600 px-3 py-1.5 text-white"
+              >
+                Editar equipo
+              </Link>
+            )}
+          </div>
+        </div>
         <p className="text-sm text-gray-600">
           {equipment.type} · {equipment.location} · {EQUIPMENT_STATUS_LABEL[equipment.status]}
         </p>
+        <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-1 text-sm sm:grid-cols-3">
+          <div>
+            <dt className="text-xs text-gray-500">Número de serie</dt>
+            <dd>{equipment.serialNumber}</dd>
+          </div>
+          <div>
+            <dt className="text-xs text-gray-500">Fecha de adquisición</dt>
+            <dd>{equipment.acquisitionDate ?? "—"}</dd>
+          </div>
+          <div>
+            <dt className="text-xs text-gray-500">Precio de adquisición</dt>
+            <dd>
+              {equipment.acquisitionPrice != null ? `$${equipment.acquisitionPrice.toFixed(2)}` : "—"}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs text-gray-500">Garantía hasta</dt>
+            <dd>{equipment.warrantyUntil ?? "—"}</dd>
+          </div>
+        </dl>
         {equipment.operatingSystem && (
           <p className="text-sm text-gray-600">
             <span className="font-medium">Sistema operativo:</span>{" "}
@@ -104,6 +163,58 @@ export default function EquipoDetailPage() {
           </p>
         )}
       </div>
+
+      {/* Cambio de estado */}
+      {canManageComponents && (
+        <section className="space-y-2 rounded border p-3 text-sm">
+          <h2 className="font-medium">Estado del equipo</h2>
+          {equipment.status === "UNDER_MAINTENANCE" ? (
+            <p className="text-xs text-gray-600">
+              El equipo está en mantenimiento: su estado cambia al cerrar o cancelar el
+              mantenimiento abierto.
+            </p>
+          ) : (
+            <div className="flex flex-wrap items-center gap-2">
+              <span>
+                Actual: <strong>{EQUIPMENT_STATUS_LABEL[equipment.status]}</strong>
+              </span>
+              <select
+                value={newStatus}
+                onChange={(e) => setNewStatus(e.target.value as EquipmentStatus | "")}
+                className="rounded border px-2 py-1"
+              >
+                <option value="">Cambiar a...</option>
+                {(Object.keys(EQUIPMENT_STATUS_LABEL) as EquipmentStatus[])
+                  // En mantenimiento solo lo pone el flujo de mantenimiento
+                  .filter((st) => st !== "UNDER_MAINTENANCE" && st !== equipment.status)
+                  .map((st) => (
+                    <option key={st} value={st}>
+                      {EQUIPMENT_STATUS_LABEL[st]}
+                    </option>
+                  ))}
+              </select>
+              <button
+                disabled={!newStatus || statusMutation.isPending}
+                onClick={() => {
+                  if (!newStatus) return;
+                  if (
+                    newStatus === "DECOMMISSIONED" &&
+                    !confirm("Dar de baja un equipo es un cambio importante. ¿Continuar?")
+                  )
+                    return;
+                  statusMutation.mutate(newStatus);
+                }}
+                className="rounded bg-blue-600 px-3 py-1 text-white disabled:opacity-50"
+              >
+                {statusMutation.isPending ? "Guardando..." : "Aplicar"}
+              </button>
+            </div>
+          )}
+          {statusMutation.error && (
+            <p className="text-xs text-red-600">{getApiErrorMessage(statusMutation.error)}</p>
+          )}
+        </section>
+      )}
 
       {/* Componentes */}
       <section className="space-y-3">
@@ -175,7 +286,12 @@ export default function EquipoDetailPage() {
       <section className="space-y-3">
         <h2 className="font-medium">Incidentes</h2>
 
-        {canManageIncidents && (
+        {isEmployee && !isAssignedToMe && (
+          <p className="text-sm text-gray-500">
+            Solo puedes reportar fallas de equipos que tienes asignados.
+          </p>
+        )}
+        {canReportIncident && (
           <form onSubmit={handleCreateIncident} className="flex gap-2 text-sm">
             <input
               placeholder="Describe el problema..."

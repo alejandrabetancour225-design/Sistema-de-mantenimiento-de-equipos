@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useAssignments } from "../hooks/useAssignments";
+import { Link } from "react-router-dom";
+import { useAssignableUsers, useAssignments } from "../hooks/useAssignments";
 import { useEquipmentList } from "../hooks/useEquipmentList";
-import { useUsers } from "../hooks/useUsers";
 import { assignEquipment, releaseAssignment } from "../services/assignmentServices";
 import { useAuth } from "../context/authContext";
 import { getApiErrorMessage } from "../lib/errors";
@@ -13,7 +13,7 @@ export default function AssignmentsPage() {
 
   const { data: assignments, isLoading, error } = useAssignments();
   const { data: equipment } = useEquipmentList();
-  const { data: users } = useUsers();
+  const { data: users } = useAssignableUsers(canManage);
   const queryClient = useQueryClient();
 
   const [equipmentId, setEquipmentId] = useState("");
@@ -25,6 +25,7 @@ export default function AssignmentsPage() {
     mutationFn: assignEquipment,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["assignments"] });
+      queryClient.invalidateQueries({ queryKey: ["equipment"] });
       setEquipmentId("");
       setUserId("");
       setObservations("");
@@ -37,7 +38,10 @@ export default function AssignmentsPage() {
 
   const releaseMutation = useMutation({
     mutationFn: (id: string) => releaseAssignment(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["assignments"] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["assignments"] });
+      queryClient.invalidateQueries({ queryKey: ["equipment"] });
+    },
   });
 
   function handleAssign(e: React.FormEvent) {
@@ -50,11 +54,13 @@ export default function AssignmentsPage() {
     assignMutation.mutate({ equipmentId, userId, observations: observations || undefined });
   }
 
-  // Solo equipos sin asignación activa tienen sentido para asignar
+  // Solo equipos Disponibles y sin asignación activa se pueden asignar
   const assignedEquipmentIds = new Set(
     (assignments ?? []).filter((a) => a.status === "ACTIVE").map((a) => a.equipmentId)
   );
-  const availableEquipment = (equipment ?? []).filter((eq) => !assignedEquipmentIds.has(eq.id));
+  const availableEquipment = (equipment ?? []).filter(
+    (eq) => eq.status === "AVAILABLE" && !assignedEquipmentIds.has(eq.id)
+  );
 
   if (isLoading) return <p className="p-8">Cargando asignaciones...</p>;
   if (error) return <p className="p-8 text-red-600">Error al cargar las asignaciones.</p>;
@@ -86,16 +92,16 @@ export default function AssignmentsPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium">Usuario</label>
+            <label className="block text-sm font-medium">Empleado</label>
             <select
               value={userId}
               onChange={(e) => setUserId(e.target.value)}
               className="input"
             >
-              <option value="">Selecciona un usuario</option>
+              <option value="">Selecciona un empleado</option>
               {(users ?? []).map((u) => (
                 <option key={u.id} value={u.id}>
-                  {u.fullName} ({u.role})
+                  {u.fullName}
                 </option>
               ))}
             </select>
@@ -109,6 +115,13 @@ export default function AssignmentsPage() {
               className="input"
             />
           </div>
+
+          {availableEquipment.length === 0 && (
+            <p className="text-xs text-gray-500">No hay equipos disponibles para asignar.</p>
+          )}
+          {users?.length === 0 && (
+            <p className="text-xs text-gray-500">No hay empleados activos. Un Administrador debe asignar el rol Empleado a un usuario.</p>
+          )}
 
           {formError && <p className="text-sm text-red-600">{formError}</p>}
 
@@ -131,7 +144,7 @@ export default function AssignmentsPage() {
             <th>Liberado</th>
             <th>Estado</th>
             <th>Observaciones</th>
-            {canManage && <th></th>}
+            <th></th>
           </tr>
         </thead>
         <tbody>
@@ -155,24 +168,33 @@ export default function AssignmentsPage() {
                 </span>
               </td>
               <td>{a.observations || "—"}</td>
-              {canManage && (
-                <td>
-                  {a.status === "ACTIVE" && (
-                    <button
-                      onClick={() => releaseMutation.mutate(a.id)}
-                      disabled={releaseMutation.isPending}
-                      className="text-red-600"
-                    >
-                      Liberar
-                    </button>
-                  )}
-                </td>
-              )}
+              <td className="space-x-3 text-right">
+                <Link to={`/equipos/${a.equipmentId}/historial`} className="text-blue-600">
+                  Historial
+                </Link>
+                {a.status === "ACTIVE" && !canManage && (
+                  <Link to={`/equipos/${a.equipmentId}`} className="text-orange-600">
+                    Reportar falla
+                  </Link>
+                )}
+                {a.status === "ACTIVE" && canManage && (
+                  <button
+                    onClick={() => {
+                      if (confirm(`¿Liberar ${a.equipmentInternalCode} de ${a.userFullName}?`))
+                        releaseMutation.mutate(a.id);
+                    }}
+                    disabled={releaseMutation.isPending}
+                    className="text-red-600"
+                  >
+                    Liberar
+                  </button>
+                )}
+              </td>
             </tr>
           ))}
           {assignments?.length === 0 && (
             <tr>
-              <td colSpan={canManage ? 7 : 5} className="py-4 text-center text-gray-500">
+              <td colSpan={canManage ? 7 : 6} className="py-4 text-center text-gray-500">
                 No hay asignaciones {canManage ? "" : "para tu usuario"}.
               </td>
             </tr>

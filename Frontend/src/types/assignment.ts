@@ -22,3 +22,8 @@ export interface CreateAssignmentRequest {
 export interface ReleaseAssignmentRequest {
   observations?: string;
 }
+
+export interface AssignableUser {
+  id: string;
+  fullName: string;
+}

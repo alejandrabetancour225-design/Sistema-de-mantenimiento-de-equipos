@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { useAllMaintenances } from "../hooks/useMaintenance";
 import {
   MAINTENANCE_TYPE_LABEL,
@@ -73,6 +74,9 @@ export default function MaintenanceHistoryPage() {
                   {m.laborCost.toFixed(2)} · repuestos ${m.sparePartsCost.toFixed(2)} ·
                   otros ${m.otherCosts.toFixed(2)}
                 </p>
+                <Link to={`/equipos/${m.equipmentId}/historial`} className="text-blue-600">
+                  Ver historial completo del equipo
+                </Link>
                 <p className="font-medium">Repuestos usados</p>
                 <ul className="list-disc pl-5">
                   {m.spareParts.map((sp) => (

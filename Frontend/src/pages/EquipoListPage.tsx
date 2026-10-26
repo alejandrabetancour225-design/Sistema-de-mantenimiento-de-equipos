@@ -89,7 +89,7 @@ export function EquipoListPage() {
             <th>Marca / Modelo</th>
             <th>Ubicación</th>
             <th>Estado</th>
-            {canManage && <th></th>}
+            <th></th>
           </tr>
         </thead>
         <tbody>
@@ -104,21 +104,26 @@ export function EquipoListPage() {
               <td>{eq.brand} {eq.model}</td>
               <td>{eq.location}</td>
               <td>{EQUIPMENT_STATUS_LABEL[eq.status]}</td>
-              {canManage && (
-                <td className="space-x-2 text-right">
-                  <Link to={`/equipos/${eq.id}/editar`} className="text-blue-600">
-                    Editar
-                  </Link>
-                  <button onClick={() => handleDelete(eq.id)} className="text-red-600">
-                    Dar de baja
-                  </button>
-                </td>
-              )}
+              <td className="space-x-2 text-right">
+                <Link to={`/equipos/${eq.id}/historial`} className="text-gray-600">
+                  Historial
+                </Link>
+                {canManage && (
+                  <>
+                    <Link to={`/equipos/${eq.id}/editar`} className="text-blue-600">
+                      Editar
+                    </Link>
+                    <button onClick={() => handleDelete(eq.id)} className="text-red-600">
+                      Dar de baja
+                    </button>
+                  </>
+                )}
+              </td>
             </tr>
           ))}
           {filtered.length === 0 && (
             <tr>
-              <td colSpan={canManage ? 6 : 5} className="py-4 text-center text-gray-500">
+              <td colSpan={6} className="py-4 text-center text-gray-500">
                 No hay equipos que coincidan.
               </td>
             </tr>

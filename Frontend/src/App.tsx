@@ -12,6 +12,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import Sidebar from "./components/Sidebar";
 import DashboardPage from "./pages/DashboardPage";
 import ReportsPage from "./pages/ReportsPage";
+import EquipmentHistoryPage from "./pages/EquipmentHistoryPage";
 import AuditPage from "./pages/AuditPage";
 import ErrorKnowledgePage from "./pages/ErrorKnowledgePage";
 import { useAuth } from "./context/authContext";
@@ -46,6 +47,7 @@ export default function App() {
         {/* Cualquier usuario autenticado, incluido el Cliente */}
         <Route element={<ProtectedRoute />}>
           <Route path="/mantenimientos" element={<MaintenanceHistoryPage />} />
+          <Route path="/equipos/:id/historial" element={<EquipmentHistoryPage />} />
         </Route>
 
         {/* El backend solo expone dashboard y reportes a Administrador y Cliente */}
