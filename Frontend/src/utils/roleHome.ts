@@ -1,7 +1,7 @@
 import type { Role } from "../types/auth";
 
-// Pantalla de inicio según el rol: el Cliente solo puede consultar
-// mantenimientos (ver Roles.cs en el backend); el resto entra por Equipos.
-export function roleHome(role: Role | null): string {
-  return role === "Cliente" ? "/mantenimientos" : "/equipos";
+// Todos los roles inician en el Dashboard; cada rol ve su propia versión.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function roleHome(_role: Role | null): string {
+  return "/dashboard";
 }

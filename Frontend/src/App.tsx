@@ -19,7 +19,7 @@ import { useAuth } from "./context/authContext";
 import { roleHome } from "./utils/roleHome";
 import DiagnosisPage from "./pages/DiagnosisPage";
 import AIMetricsPage from "./pages/AIMetricsPage";
-
+import LandingPage from "./pages/LandingPage";
 function Layout() {
   return (
     <div className="flex min-h-screen">
@@ -34,14 +34,19 @@ function Layout() {
 // "/" muestra el login; si ya hay sesión, manda a la pantalla del rol.
 function Landing() {
   const { isAuthenticated, role } = useAuth();
-  return isAuthenticated ? <Navigate to={roleHome(role)} replace /> : <LoginPage />;
+  return isAuthenticated ? <Navigate to={roleHome(role)} replace /> : <LandingPage />;
 }
 
+function LoginRoute() {
+  const { isAuthenticated, role } = useAuth();
+  return isAuthenticated ? <Navigate to={roleHome(role)} replace /> : <LoginPage />;
+}
 export default function App() {
   return (
     <Routes>
       <Route element={<Layout />}>
         <Route path="/" element={<Landing />} />
+         <Route path="/login" element={<LoginRoute />} />
         <Route path="/register" element={<RegisterPage />} />
 
         {/* Cualquier usuario autenticado, incluido el Cliente */}

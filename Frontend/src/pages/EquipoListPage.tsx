@@ -5,6 +5,7 @@ import { useEquipmentList } from "../hooks/useEquipmentList";
 import { deleteEquipment } from "../services/equipmentServices";
 import { EQUIPMENT_STATUS_LABEL, type EquipmentStatus } from "../types/equipment";
 import { useAuth } from "../context/authContext";
+import EquipmentStatusMenu from "../components/EquipmentStatusMenu";
 
 // Solo Administrador y Técnico pueden crear/editar/dar de baja equipos
 // (mismo criterio que el backend en los endpoints Post/Put/Delete).
@@ -81,6 +82,12 @@ export function EquipoListPage() {
         </select>
       </div>
 
+      {canManage && (
+        <p className="text-xs text-gray-500">
+          Para cambiar el estado de un equipo, haz clic sobre su estado.
+        </p>
+      )}
+
       <table className="w-full border-collapse text-sm">
         <thead>
           <tr className="border-b text-left">
@@ -95,19 +102,14 @@ export function EquipoListPage() {
         <tbody>
           {filtered.map((eq) => (
             <tr key={eq.id} className="border-b">
-              <td className="py-2">
-                <Link to={`/equipos/${eq.id}`} className="text-blue-600 hover:underline">
-                  {eq.internalCode}
-                </Link>
-              </td>
+              <td className="py-2 font-medium">{eq.internalCode}</td>
               <td>{eq.type}</td>
               <td>{eq.brand} {eq.model}</td>
               <td>{eq.location}</td>
-              <td>{EQUIPMENT_STATUS_LABEL[eq.status]}</td>
+              <td>
+                <EquipmentStatusMenu equipment={eq} canChange={canManage} />
+              </td>
               <td className="space-x-2 text-right">
-                <Link to={`/equipos/${eq.id}/historial`} className="text-gray-600">
-                  Historial
-                </Link>
                 {canManage && (
                   <>
                     <Link to={`/equipos/${eq.id}/editar`} className="text-blue-600">

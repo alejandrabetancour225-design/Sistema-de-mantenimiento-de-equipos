@@ -14,10 +14,12 @@ export function useMaintenancesByEquipment(equipmentId: string) {
   });
 }
 
-export function useSpareParts(includeInactive = false) {
+// /sparepart es solo para Administrador y Técnico: los demás roles pasan enabled=false.
+export function useSpareParts(includeInactive = false, enabled = true) {
   return useQuery({
     queryKey: ["spareparts", includeInactive],
     queryFn: () => getSpareParts(includeInactive),
+    enabled,
   });
 }
 

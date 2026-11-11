@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { registerSchema, type RegisterFormData } from "../schemas/authSchemas";
 import { useRegister, getAuthErrorMessage } from "../hooks/useAuthMutations";
 
+
 export default function RegisterPage() {
   const [values, setValues] = useState<RegisterFormData>({
     fullName: "",
@@ -50,7 +51,13 @@ export default function RegisterPage() {
         backgroundImage:
           "radial-gradient(at 50% 50%, hsla(210, 100%, 16%, 0.5), hsl(220, 30%, 5%))",
       }}
-    />
+    />    {/* Volver a la portada */}
+    <Link
+      to="/"
+      className="absolute top-5 left-5 z-10 inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-300 transition hover:bg-white/10 hover:text-white"
+    >
+      ← Volver al inicio
+    </Link>
 
     {/* Contenido */}
     <div className="flex min-h-screen items-center justify-center px-4 py-10">

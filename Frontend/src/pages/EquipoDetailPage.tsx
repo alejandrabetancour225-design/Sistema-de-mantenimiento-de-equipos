@@ -9,7 +9,6 @@ import { createIncident, updateIncident, deleteIncident } from "../services/inci
 import { EQUIPMENT_STATUS_LABEL, type EquipmentStatus } from "../types/equipment";
 import { INCIDENT_STATUS_LABEL, type IncidentStatus } from "../types/incident";
 import { useAuth } from "../context/authContext";
-import MaintenanceSection from "../components/MaintenanceSection";
 import { getApiErrorMessage } from "../lib/errors";
 
 export default function EquipoDetailPage() {
@@ -117,12 +116,6 @@ export default function EquipoDetailPage() {
           {equipment.internalCode} — {equipment.brand} {equipment.model}
         </h1>
           <div className="flex gap-2 text-sm">
-            <Link
-              to={`/equipos/${equipmentId}/historial`}
-              className="rounded border px-3 py-1.5 text-blue-600"
-            >
-              Historial completo
-            </Link>
             {canManageComponents && (
               <Link
                 to={`/equipos/${equipmentId}/editar`}
@@ -366,8 +359,6 @@ export default function EquipoDetailPage() {
         )}
       </section>
 
-      {/* Mantenimientos */}
-      {canManageComponents && <MaintenanceSection equipmentId={equipmentId} />}
     </div>
   );
 }

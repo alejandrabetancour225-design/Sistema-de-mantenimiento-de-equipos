@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useEquipmentHistory } from "../hooks/useMaintenance";
@@ -20,6 +21,7 @@ export default function EquipmentHistoryPage() {
   const equipmentId = id!;
   const { role } = useAuth();
   const isStaff = role !== "Cliente";
+  const [newestFirst, setNewestFirst] = useState(true);
 
   const { data: history, isLoading, error } = useEquipmentHistory(equipmentId);
   // El Cliente no puede consultar equipos: solo el personal interno ve los datos de adquisición
@@ -48,7 +50,10 @@ export default function EquipmentHistoryPage() {
       id: i.id,
       data: i,
     })),
-  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  ].sort((a, b) => {
+    const diff = new Date(b.date).getTime() - new Date(a.date).getTime();
+    return newestFirst ? diff : -diff;
+  });
 
   const completed = history.maintenances.filter((m) => m.status === "COMPLETED").length;
   const price = equipment?.acquisitionPrice ?? null;
@@ -99,7 +104,15 @@ export default function EquipmentHistoryPage() {
       )}
 
       <section className="space-y-2">
-        <h2 className="font-medium">Línea de tiempo</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="font-medium">Línea de tiempo</h2>
+          <button
+            onClick={() => setNewestFirst((v) => !v)}
+            className="text-xs text-blue-600 print:hidden"
+          >
+            Orden: {newestFirst ? "más reciente primero" : "más antiguo primero"}
+          </button>
+        </div>
         <ol className="space-y-2">
           {items.map((it) => (
             <li
@@ -130,9 +143,13 @@ export default function EquipmentHistoryPage() {
                     </p>
                   )}
                   <p className="text-xs">
-                    Costo: {money(it.data.totalCost)}
-                    {it.data.observations && ` · ${it.data.observations}`}
+                    Mano de obra {money(it.data.laborCost)} · Repuestos {money(it.data.sparePartsCost)} ·
+                    Otros {money(it.data.otherCosts)} ·{" "}
+                    <span className="font-medium">Total {money(it.data.totalCost)}</span>
                   </p>
+                  {it.data.observations && (
+                    <p className="text-xs text-gray-600">Observaciones: {it.data.observations}</p>
+                  )}
                 </>
               ) : (
                 <>
