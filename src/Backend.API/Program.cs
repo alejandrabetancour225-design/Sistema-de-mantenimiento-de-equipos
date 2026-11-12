@@ -5,8 +5,12 @@ using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using Backend.API.Data;
 using Backend.API.Infrastructure;
+using Backend.API.Realtime;
 using Backend.API.Services;
+using Hangfire;
+using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
@@ -123,6 +127,15 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             // Acepta el token en la cabecera Authorization o en la cookie httpOnly.
             OnMessageReceived = context =>
             {
+                // SignalR por WebSocket no puede mandar cabeceras: el token llega en ?access_token=.
+                var accessToken = context.Request.Query["access_token"];
+                if (!string.IsNullOrEmpty(accessToken)
+                    && context.HttpContext.Request.Path.StartsWithSegments("/api/hubs"))
+                {
+                    context.Token = accessToken;
+                    return Task.CompletedTask;
+                }
+
                 if (string.IsNullOrEmpty(context.Token)
                     && !context.Request.Headers.ContainsKey(HeaderNames.Authorization)
                     && context.Request.Cookies.TryGetValue(AuthCookie.Name, out var cookieToken)
@@ -310,6 +323,25 @@ builder.Services.AddScoped<IErrorKnowledgeService, ErrorKnowledgeService>();
 builder.Services.AddHttpClient<IAiClient, AiClient>();
 builder.Services.AddScoped<IDiagnosisService, DiagnosisService>();
 builder.Services.AddScoped<IGlossaryService, GlossaryService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<ReminderJob>();
+
+// ---------- Tiempo real (SignalR) ----------
+builder.Services.AddSignalR();
+
+// ---------- Tareas programadas (Hangfire, guardadas en Postgres, esquema "hangfire") ----------
+var jobsEnabled = builder.Configuration.GetValue("Jobs:Enabled", true);
+builder.Services.AddHangfire(config => config
+    .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+    .UseSimpleAssemblyNameTypeSerializer()
+    .UseRecommendedSerializerSettings()
+    .UsePostgreSqlStorage(options => options.UseNpgsqlConnection(connectionString),
+        new PostgreSqlStorageOptions { SchemaName = "hangfire", PrepareSchemaIfNecessary = true }));
+if (jobsEnabled)
+{
+    // Un solo trabajador: las tareas son livianas y así se ahorra RAM en equipos de 8 GB.
+    builder.Services.AddHangfireServer(options => options.WorkerCount = 1);
+}
 builder.Services.AddScoped<IPredictionService, PredictionService>();
 builder.Services.AddScoped<IFeedbackService, FeedbackService>();
 
@@ -466,7 +498,46 @@ app.Use(async (context, next) =>
 
 app.UseAuthorization();
 
+// R3 – Tiempo real: tras cualquier cambio exitoso (POST/PUT/PATCH/DELETE) se avisa a la
+// organización por SignalR para que dashboard, calendario y listas se refresquen solos.
+app.Use(async (context, next) =>
+{
+    await next();
+    var request = context.Request;
+    if (HttpMethods.IsGet(request.Method) || HttpMethods.IsHead(request.Method) || HttpMethods.IsOptions(request.Method)
+        || context.Response.StatusCode >= 400
+        || request.Path.StartsWithSegments("/api/hubs")
+        || request.Path.StartsWithSegments("/api/auth")
+        || request.Path.StartsWithSegments("/api/notifications"))
+    {
+        return;
+    }
+
+    if (Guid.TryParse(context.User.FindFirst(AppClaimsOrg.Organization)?.Value, out var org))
+    {
+        var hub = context.RequestServices.GetRequiredService<IHubContext<NotificationsHub>>();
+        await hub.Clients.Group(NotificationsHub.OrgGroup(org)).SendAsync("datosCambiaron", request.Path.Value);
+    }
+});
+
 app.MapControllers();
+
+app.MapHub<NotificationsHub>(NotificationsHub.Path);
+
+if (jobsEnabled)
+{
+    var recurring = app.Services.GetRequiredService<IRecurringJobManager>();
+    recurring.AddOrUpdate<ReminderJob>("recordatorios-mantenimiento", job => job.RunAsync(), "15 * * * *",
+        new RecurringJobOptions { TimeZone = TimeZoneInfo.FindSystemTimeZoneById("America/Bogota") });
+    // Una pasada al arrancar, para no esperar a la siguiente hora.
+    app.Services.GetRequiredService<IBackgroundJobClient>().Enqueue<ReminderJob>(job => job.RunAsync());
+}
+
+if (app.Environment.IsDevelopment())
+{
+    // Panel de Hangfire (solo desde este equipo y en desarrollo): http://localhost:5255/hangfire
+    app.UseHangfireDashboard("/hangfire");
+}
 
 // Sonda de salud para iniciar.sh / iniciar.ps1 y docker compose (sin autenticación, sin datos).
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok" })).AllowAnonymous();

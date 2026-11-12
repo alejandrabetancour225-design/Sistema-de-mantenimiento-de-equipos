@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { changeEquipmentStatus, deleteEquipment, getEquipmentById } from "../services/equipmentServices";
 import RentedEquipmentPanel from "../components/RentedEquipmentPanel";
+import MaintenancePlansPanel from "../components/MaintenancePlansPanel";
 import { manualStatusActions, statusLockedReason, type StatusAction } from "../lib/equipmentTransitions";
 import { useAssignments } from "../hooks/useAssignments";
 import { useEquipmentComponents, useEquipmentIncidents } from "../hooks/useEquipmentDetail";
@@ -216,6 +217,10 @@ export default function EquipoDetailPage() {
       )}
 
       {equipment.ownership === "RENTED" && <RentedEquipmentPanel equipment={equipment} role={role} />}
+
+      {equipment.status !== "DECOMMISSIONED" && equipment.status !== "RETURNED" && (
+        <MaintenancePlansPanel equipmentId={equipmentId} canManage={canManageComponents} />
+      )}
 
       {/* Componentes */}
       <section className="space-y-3">

@@ -606,6 +606,9 @@ namespace Backend.API.Data.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
 
+                    b.Property<Guid?>("MaintenancePlanId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateOnly?>("NextMaintenanceDate")
                         .HasColumnType("date");
 
@@ -671,6 +674,55 @@ namespace Backend.API.Data.Migrations
                     b.ToTable("Maintenances");
                 });
 
+            modelBuilder.Entity("Backend.API.Models.MaintenancePlan", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("EquipmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("IntervalWeeks")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("LastCompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateOnly>("NextDate")
+                        .HasColumnType("date");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("TechnicianId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EquipmentId");
+
+                    b.HasIndex("TechnicianId");
+
+                    b.HasIndex("Active", "NextDate");
+
+                    b.ToTable("MaintenancePlans");
+                });
+
             modelBuilder.Entity("Backend.API.Models.MaintenanceSparePart", b =>
                 {
                     b.Property<Guid>("Id")
@@ -698,6 +750,58 @@ namespace Backend.API.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("MaintenanceSpareParts");
+                });
+
+            modelBuilder.Entity("Backend.API.Models.Notification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DedupKey")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Link")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ReadAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "DedupKey")
+                        .IsUnique()
+                        .HasFilter("\"DedupKey\" IS NOT NULL");
+
+                    b.HasIndex("UserId", "ReadAt");
+
+                    b.ToTable("Notifications");
                 });
 
             modelBuilder.Entity("Backend.API.Models.Organization", b =>
@@ -1218,6 +1322,24 @@ namespace Backend.API.Data.Migrations
                     b.Navigation("Equipment");
 
                     b.Navigation("Incident");
+
+                    b.Navigation("Technician");
+                });
+
+            modelBuilder.Entity("Backend.API.Models.MaintenancePlan", b =>
+                {
+                    b.HasOne("Backend.API.Models.Equipment", "Equipment")
+                        .WithMany()
+                        .HasForeignKey("EquipmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Backend.API.Models.User", "Technician")
+                        .WithMany()
+                        .HasForeignKey("TechnicianId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Equipment");
 
                     b.Navigation("Technician");
                 });

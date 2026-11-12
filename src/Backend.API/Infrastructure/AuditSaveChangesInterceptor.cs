@@ -19,7 +19,7 @@ public sealed class AuditSaveChangesInterceptor : SaveChangesInterceptor
     private static readonly HashSet<string> EntitiesWithValues = new(StringComparer.Ordinal)
     {
         nameof(Equipment), nameof(EquipmentComponent), nameof(Assignment), nameof(Incident),
-        nameof(Maintenance), nameof(MaintenanceSparePart), nameof(SparePart), nameof(ErrorKnowledge), nameof(SlangTerm), nameof(Lessor), nameof(RentalContract), nameof(RentalRate), nameof(LessorClaim)
+        nameof(Maintenance), nameof(MaintenanceSparePart), nameof(SparePart), nameof(ErrorKnowledge), nameof(SlangTerm), nameof(Lessor), nameof(RentalContract), nameof(RentalRate), nameof(LessorClaim), nameof(MaintenancePlan)
     };
 
     private const int MaxValueLength = 300;
@@ -64,7 +64,7 @@ public sealed class AuditSaveChangesInterceptor : SaveChangesInterceptor
         var now = DateTime.UtcNow;
 
         var entries = context.ChangeTracker.Entries()
-            .Where(e => e.Entity is not AuditLog
+            .Where(e => e.Entity is not AuditLog && e.Entity is not Notification
                 && (e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted))
             .ToList();
 

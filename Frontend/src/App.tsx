@@ -24,6 +24,7 @@ import AIMetricsPage from "./pages/AIMetricsPage";
 import AssistantPage from "./pages/AssistantPage";
 import GlossaryPage from "./pages/GlossaryPage";
 import RentalPage from "./pages/RentalPage";
+import CalendarPage from "./pages/CalendarPage";
 import LandingPage from "./pages/LandingPage";
 function Layout() {
   return (
@@ -72,6 +73,7 @@ export default function App() {
 
         <Route element={<ProtectedRoute allowedRoles={["Administrador", "Técnico", "Empleado", "Gerente"]} />}>
           <Route path="/dashboard" element={<DashboardRoute />} />
+          <Route path="/calendario" element={<CalendarPage />} />
           <Route path="/mantenimientos" element={<MaintenanceHistoryPage />} />
           <Route path="/equipos/:id/historial" element={<EquipmentHistoryPage />} />
         </Route>

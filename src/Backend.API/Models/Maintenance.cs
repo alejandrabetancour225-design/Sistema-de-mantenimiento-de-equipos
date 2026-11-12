@@ -6,6 +6,8 @@ public class Maintenance : IOrganizationScoped
     public Guid Id { get; set; }
     public Guid EquipmentId { get; set; }
     public Guid? IncidentId { get; set; }
+    // Plan preventivo que originó este mantenimiento (si aplica).
+    public Guid? MaintenancePlanId { get; set; }
     public Guid TechnicianId { get; set; }
     public MaintenanceType Type { get; set; }
     public MaintenanceStatus Status { get; set; } = MaintenanceStatus.OPEN;

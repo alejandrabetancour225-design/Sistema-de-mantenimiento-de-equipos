@@ -99,7 +99,11 @@ dotnet tool run dotnet-ef migrations add NombreDeLaMigracion --project src/Backe
 ### Verificación manual
 
 - [verificacion/fase0.sh](verificacion/fase0.sh): 26 comprobaciones de reglas de negocio (fechas, corrección de datos, estados, permisos por rol).
-- [verificacion/fase3.sh](verificacion/fase3.sh): 19 comprobaciones de multiempresa (aislamiento, contraseña temporal, organizaciones inactivas). Necesita `SUPERADMIN_EMAIL` y `SUPERADMIN_PASSWORD`.
+- [verificacion/fase3.sh](verificacion/fase3.sh): 19 comprobaciones de multiempresa (aislamiento, contraseña temporal, organizaciones inactivas).
+- [verificacion/fase4.sh](verificacion/fase4.sh): 19 comprobaciones de alquiler (contratos, tarifas, reclamos, devolución, reemplazo).
+- [verificacion/fase5.sh](verificacion/fase5.sh): 12 comprobaciones de calendario, recordatorios y SignalR (usa Node).
+
+Las fases 3 a 5 necesitan `SUPERADMIN_EMAIL` y `SUPERADMIN_PASSWORD` y crean su propia organización de prueba.
 
 Crean datos con prefijo `QA-S6`. Para borrar los de `fase0.sh`, ejecuta [verificacion/limpiar-qa.sql](verificacion/limpiar-qa.sql) en la consola SQL de Neon.
 
@@ -144,6 +148,19 @@ Todos los cambios de estado pasan por [EquipmentStateMachine](src/Backend.API/Se
 - No hay registro público: el **Administrador** de cada empresa crea sus usuarios con una **contraseña temporal** que deben cambiar al entrar (la API no deja hacer nada más hasta cambiarla).
 - Los datos anteriores al Sprint 6 quedaron en la **"Organización por defecto"** (plan Integraciones).
 - El rol *Cliente* ahora se llama **Gerente**.
+
+### Alquiler de equipos
+
+- **Arrendadores** y **contratos** con tarifa mensual (COP) por tipo de equipo. Un equipo puede ser **propio** o **alquilado**; el alquilado toma como fecha de adquisición el inicio del contrato.
+- Las fallas de un equipo alquilado se reportan al arrendador con un **reclamo** (le llega por correo). El mantenimiento preventivo interno solo si el contrato lo permite.
+- Un alquilado no se da de baja: se **devuelve** (estado terminal), solo o con todo el contrato. El arrendador puede enviar un **equipo de reemplazo**.
+
+### Calendario, recordatorios y tiempo real
+
+- **Planes preventivos** por equipo cada N semanas. Al cerrar un preventivo, la próxima fecha se calcula sola. En el **calendario** se arrastra la fecha o se inicia el mantenimiento.
+- **Recordatorios** 7 días y 1 día antes, y al vencer, para el técnico responsable, los administradores y el empleado que tiene el equipo; además, aviso de contratos de alquiler 30 días antes de vencer. Llegan a la **campana** y por **correo** (si `SMTP_HOST` está configurado; si no, el correo queda en el log de la API).
+- La tarea corre cada hora (minuto 15, Hangfire, guardada en Postgres en el esquema `hangfire`) y al arrancar. El Administrador puede forzarla con `POST /api/notifications/RunReminders`.
+- **Tiempo real (SignalR)**: cuando alguien de la empresa modifica datos, dashboard, calendario y listas se refrescan solos.
 
 ### Roles y permisos (se aplican en la API, no solo en la interfaz)
 

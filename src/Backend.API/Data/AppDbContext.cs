@@ -22,6 +22,8 @@ public class AppDbContext : DbContext
     public DbSet<RentalContract> RentalContracts => Set<RentalContract>();
     public DbSet<RentalRate> RentalRates => Set<RentalRate>();
     public DbSet<LessorClaim> LessorClaims => Set<LessorClaim>();
+    public DbSet<MaintenancePlan> MaintenancePlans => Set<MaintenancePlan>();
+    public DbSet<Notification> Notifications => Set<Notification>();
 
     public DbSet<User> Users => Set<User>();
     public DbSet<Role> Roles => Set<Role>();
@@ -110,6 +112,8 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<AIFeedback>().HasQueryFilter(e => CurrentOrganizationId == null || e.OrganizationId == CurrentOrganizationId);
         modelBuilder.Entity<Lessor>().HasQueryFilter(e => CurrentOrganizationId == null || e.OrganizationId == CurrentOrganizationId);
         modelBuilder.Entity<RentalContract>().HasQueryFilter(e => CurrentOrganizationId == null || e.OrganizationId == CurrentOrganizationId);
+        modelBuilder.Entity<MaintenancePlan>().HasQueryFilter(e => CurrentOrganizationId == null || e.OrganizationId == CurrentOrganizationId);
+        modelBuilder.Entity<Notification>().HasQueryFilter(e => CurrentOrganizationId == null || e.OrganizationId == CurrentOrganizationId);
         modelBuilder.Entity<LessorClaim>().HasQueryFilter(e => CurrentOrganizationId == null || e.OrganizationId == CurrentOrganizationId);
         modelBuilder.Entity<User>().HasQueryFilter(u => CurrentOrganizationId == null || u.OrganizationId == CurrentOrganizationId);
         modelBuilder.Entity<AuditLog>().HasQueryFilter(a => CurrentOrganizationId == null || a.OrganizationId == CurrentOrganizationId);
@@ -290,6 +294,26 @@ public class AppDbContext : DbContext
             entity.HasIndex(c => c.Status);
             entity.HasOne(c => c.Equipment).WithMany().HasForeignKey(c => c.EquipmentId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(c => c.Contract).WithMany().HasForeignKey(c => c.ContractId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<MaintenancePlan>(entity =>
+        {
+            entity.Property(p => p.Description).HasMaxLength(500);
+            entity.HasIndex(p => p.EquipmentId);
+            entity.HasIndex(p => new { p.Active, p.NextDate });
+            entity.HasOne(p => p.Equipment).WithMany().HasForeignKey(p => p.EquipmentId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(p => p.Technician).WithMany().HasForeignKey(p => p.TechnicianId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<Notification>(entity =>
+        {
+            entity.Property(n => n.Title).HasMaxLength(200);
+            entity.Property(n => n.Body).HasMaxLength(1000);
+            entity.Property(n => n.Link).HasMaxLength(300);
+            entity.Property(n => n.Type).HasMaxLength(40);
+            entity.Property(n => n.DedupKey).HasMaxLength(200);
+            entity.HasIndex(n => new { n.UserId, n.ReadAt });
+            entity.HasIndex(n => new { n.UserId, n.DedupKey }).IsUnique().HasFilter("\"DedupKey\" IS NOT NULL");
         });
 
         modelBuilder.Entity<SlangTerm>(entity =>

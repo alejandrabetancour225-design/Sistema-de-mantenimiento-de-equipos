@@ -1,10 +1,13 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/authContext";
+import NotificationBell from "./NotificationBell";
+import { useRealtime } from "../hooks/useRealtime";
 
 export default function Sidebar() {
   const { isAuthenticated, role, fullName, organizationName, plan, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  useRealtime();
 
   if (!isAuthenticated) return null;
 
@@ -54,9 +57,12 @@ export default function Sidebar() {
   return (
     <aside className="w-64 min-h-screen bg-[#0f1729] border-r border-white/10 flex flex-col p-4">
       <div className="mb-6">
-        <span className="inline-block text-xs font-semibold tracking-wide text-blue-400 bg-blue-400/10 px-3 py-1 rounded-full uppercase">
-          {role}
-        </span>
+        <div className="flex items-center justify-between">
+          <span className="inline-block text-xs font-semibold tracking-wide text-blue-400 bg-blue-400/10 px-3 py-1 rounded-full uppercase">
+            {role}
+          </span>
+          <NotificationBell />
+        </div>
         {organizationName && (
           <p className="mt-2 px-1 text-xs text-gray-400">
             {organizationName} · Plan {plan === "INTEGRACIONES" ? "Integraciones" : "Básico"}
@@ -69,6 +75,9 @@ export default function Sidebar() {
           <p className="px-4 text-xs font-semibold text-gray-500 uppercase mb-1">General</p>
           <Link to="/dashboard" className={linkClass("/dashboard")}>
             Dashboard
+          </Link>
+          <Link to="/calendario" className={linkClass("/calendario")}>
+            Calendario
           </Link>
           {canManageEquipment ? (
             <Link to="/ai-metrics" className={linkClass("/ai-metrics")}>

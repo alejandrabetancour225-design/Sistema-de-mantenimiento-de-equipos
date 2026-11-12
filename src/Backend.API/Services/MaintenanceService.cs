@@ -104,6 +104,7 @@ public class MaintenanceService : IMaintenanceService
             Id = Guid.NewGuid(),
             EquipmentId = request.EquipmentId,
             IncidentId = request.IncidentId,
+            MaintenancePlanId = request.MaintenancePlanId,
             TechnicianId = request.TechnicianId,
             Type = request.Type,
             Status = MaintenanceStatus.OPEN,
@@ -297,6 +298,22 @@ public class MaintenanceService : IMaintenanceService
         maintenance.Status = MaintenanceStatus.COMPLETED;
         maintenance.CompletedAt = now;
         maintenance.UpdatedAt = now;
+
+        // Q11: al cerrar un preventivo, el plan del equipo calcula solo su próxima fecha (cada N semanas).
+        if (maintenance.Type == MaintenanceType.PREVENTIVE)
+        {
+            var plan = await _context.MaintenancePlans.FirstOrDefaultAsync(p =>
+                p.Active && (p.Id == maintenance.MaintenancePlanId
+                    || (maintenance.MaintenancePlanId == null && p.EquipmentId == maintenance.EquipmentId)));
+            if (plan is not null)
+            {
+                plan.NextDate = LocalClock.Today.AddDays(plan.IntervalWeeks * 7);
+                plan.LastCompletedAt = now;
+                plan.UpdatedAt = now;
+                maintenance.MaintenancePlanId ??= plan.Id;
+                maintenance.NextMaintenanceDate ??= plan.NextDate;
+            }
+        }
 
         if (maintenance.Incident is not null)
         {
