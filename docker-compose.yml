@@ -1,38 +1,99 @@
+# Sistema de mantenimiento de equipos: todo el stack en contenedores.
+# Lo normal es arrancarlo con ./iniciar.sh (Linux/macOS) o iniciar.ps1 (Windows),
+# que validan el .env, descargan el modelo de IA y abren el navegador.
+# También funciona "docker compose up -d --build" a secas si el .env ya está completo.
+
 services:
-  postgres:
-    image: postgres:16
-    container_name: database-postgres
+  frontend:
+    build: ./Frontend
+    container_name: sm-frontend
+    ports:
+      - "127.0.0.1:${APP_PORT:-8080}:80"
+    depends_on:
+      - backend
+    mem_limit: 64m
+    restart: unless-stopped
+
+  backend:
+    build: ./src/Backend.API
+    container_name: sm-backend
     environment:
-      POSTGRES_DB: database
-      POSTGRES_USER: postgres
-      # Sin contraseña por defecto: defínela en un archivo .env (ignorado por git) junto a este archivo.
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Define POSTGRES_PASSWORD en un archivo .env junto a docker-compose.yml}
+      ASPNETCORE_ENVIRONMENT: Production
+      Http__RedirectToHttps: "false"
+      Database__Host: ${DB_HOST:?Define DB_HOST en el .env}
+      Database__Port: ${DB_PORT:-5432}
+      Database__Name: ${DB_NAME:?Define DB_NAME en el .env}
+      Database__User: ${DB_USER:?Define DB_USER en el .env}
+      Database__Password: ${DB_PASSWORD:?Define DB_PASSWORD en el .env}
+      Database__SslMode: ${DB_SSLMODE:-Require}
+      # Las migraciones solo avanzan (nunca borran); ver README "Base compartida".
+      Database__MigrateOnStartup: "true"
+      Jwt__Key: ${JWT_KEY:?Define JWT_KEY en el .env}
+      Encryption__Key: ${ENCRYPTION_KEY:?Define ENCRYPTION_KEY en el .env}
+      Bootstrap__AdminEmail: ${BOOTSTRAP_ADMIN_EMAIL:-}
+      Bootstrap__AdminPassword: ${BOOTSTRAP_ADMIN_PASSWORD:-}
+      Bootstrap__AdminFullName: ${BOOTSTRAP_ADMIN_FULLNAME:-Administrador}
+      Seed__Demo: ${SEED_DEMO:-false}
+      Email__Host: ${SMTP_HOST:-}
+      Email__Port: ${SMTP_PORT:-587}
+      Email__User: ${SMTP_USER:-}
+      Email__Password: ${SMTP_PASSWORD:-}
+      Email__From: ${SMTP_FROM:-no-reply@sistema-mantenimiento.local}
+      Ai__BaseUrl: http://python-service:8000
+      Ai__TimeoutSeconds: ${AI_TIMEOUT_SECONDS:-190}
+      Logging__LogLevel__Microsoft.EntityFrameworkCore: Warning
     ports:
-      # Solo accesible desde este equipo, no desde la red.
-      - "127.0.0.1:5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+      # Acceso directo a la API (archivos .http, scripts de verificación). Solo desde este equipo.
+      - "127.0.0.1:5255:8080"
+    depends_on:
+      - python-service
+    mem_limit: 600m
+    restart: unless-stopped
 
-  ollama:
-    image: docker.io/ollama/ollama:latest
-    container_name: ollama
-    ports:
-      - "127.0.0.1:11434:11434"
-    volumes:
-      - ./ollama-data:/root/.ollama:Z
-
-  ai-service:
-    build: ./ai-service
-    container_name: ai-service
+  python-service:
+    build: ./python-service
+    container_name: sm-python-service
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.1:8b}
+      OLLAMA_TIMEOUT_SECONDS: ${OLLAMA_TIMEOUT_SECONDS:-170}
     ports:
       # Solo accesible desde este equipo: el servicio no tiene autenticación propia.
       - "127.0.0.1:8000:8000"
-    environment:
-      - OLLAMA_HOST=http://ollama:11434
-      - OLLAMA_MODEL=${OLLAMA_MODEL:-llama3.1:8b}
-      - OLLAMA_TIMEOUT_SECONDS=${OLLAMA_TIMEOUT_SECONDS:-170}
     depends_on:
       - ollama
+    mem_limit: 300m
+    restart: unless-stopped
+
+  ollama:
+    image: docker.io/ollama/ollama:latest
+    container_name: sm-ollama
+    environment:
+      # Un solo pedido a la vez y el modelo sale de la RAM tras 5 minutos sin uso.
+      OLLAMA_NUM_PARALLEL: "1"
+      OLLAMA_MAX_LOADED_MODELS: "1"
+      OLLAMA_KEEP_ALIVE: 5m
+    ports:
+      - "127.0.0.1:11434:11434"
+    volumes:
+      - ${OLLAMA_DATA_DIR:-./ollama-data}:/root/.ollama:Z
+    restart: unless-stopped
+
+  # Postgres local: solo con "iniciar --db-local" (perfil db-local). Por defecto se usa Neon.
+  postgres:
+    image: postgres:16
+    container_name: sm-postgres
+    profiles: ["db-local"]
+    environment:
+      POSTGRES_DB: database
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres-local}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    mem_limit: 256m
+    restart: unless-stopped
 
 volumes:
   postgres_data:

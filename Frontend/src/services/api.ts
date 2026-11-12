@@ -1,7 +1,8 @@
 import axios from "axios";
 
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  // "/api" lo reenvía nginx (contenedores) o el proxy de Vite (modo --dev) a la API.
+  baseURL: import.meta.env.VITE_API_URL || "/api",
 });
 
 // Adjunta el token guardado a cada request (lo usaremos más adelante)

@@ -490,3 +490,6 @@ setup.ps1
 setup.cmd
 
 ollama-data/
+
+# Marca de primer arranque de iniciar.sh / iniciar.ps1
+.iniciado

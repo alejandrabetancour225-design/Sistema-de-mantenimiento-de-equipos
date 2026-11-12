@@ -69,7 +69,9 @@ if (string.IsNullOrWhiteSpace(db["Host"]) || string.IsNullOrWhiteSpace(db["Name"
 
 var sslMode = db["SslMode"];
 var connectionString = $"Host={db["Host"]};Port={db["Port"] ?? "5432"};Database={db["Name"]};Username={db["User"]};Password={db["Password"]}"
-    + (string.IsNullOrEmpty(sslMode) ? "" : $";SslMode={sslMode}");
+    + (string.IsNullOrEmpty(sslMode) ? "" : $";SslMode={sslMode}")
+    // Sin Kerberos/GSSAPI: no se usa y en contenedores falta la librería (evita un error ruidoso).
+    + ";GssEncryptionMode=Disable";
 
 builder.Services.AddSingleton<AuditSaveChangesInterceptor>();
 builder.Services.AddDbContext<AppDbContext>((services, options) =>
@@ -340,6 +342,11 @@ using (var scope = app.Services.CreateScope())
     }
 
     await AdminBootstrapper.EnsureAdministratorAsync(scope.ServiceProvider, app.Configuration, app.Logger);
+
+    if (app.Configuration.GetValue("Seed:Demo", false))
+    {
+        await DemoDataSeeder.SeedAsync(scope.ServiceProvider, app.Logger);
+    }
 }
 
 // ---------- Pipeline HTTP ----------
@@ -350,7 +357,11 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-app.UseHttpsRedirection();
+// En contenedores la API va detrás de nginx por HTTP; ahí se desactiva con Http__RedirectToHttps=false.
+if (app.Configuration.GetValue("Http:RedirectToHttps", true))
+{
+    app.UseHttpsRedirection();
+}
 
 // Cabeceras de seguridad. La API solo devuelve JSON: no debe poder incrustarse ni ejecutar contenido.
 app.Use(async (context, next) =>
@@ -408,5 +419,8 @@ app.Use(async (context, next) =>
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Sonda de salud para iniciar.sh / iniciar.ps1 y docker compose (sin autenticación, sin datos).
+app.MapGet("/api/health", () => Results.Ok(new { status = "ok" })).AllowAnonymous();
 
 app.Run();
