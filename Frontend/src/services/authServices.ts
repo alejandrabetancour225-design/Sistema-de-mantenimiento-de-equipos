@@ -1,13 +1,13 @@
 import { api } from "./api";
-import type { LoginRequest, RegisterRequest, AuthResponse } from "../types/auth";
+import type { LoginRequest, AuthResponse } from "../types/auth";
 
 export async function login(data: LoginRequest): Promise<AuthResponse> {
   const res = await api.post<AuthResponse>("/auth/login", data);
   return res.data;
 }
 
-export async function register(data: RegisterRequest): Promise<AuthResponse> {
-  const res = await api.post<AuthResponse>("/auth/register", data);
+export async function changePassword(currentPassword: string, newPassword: string): Promise<AuthResponse> {
+  const res = await api.post<AuthResponse>("/auth/change-password", { currentPassword, newPassword });
   return res.data;
 }
 

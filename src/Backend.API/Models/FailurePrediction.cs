@@ -1,7 +1,8 @@
 namespace Backend.API.Models;
 
-public class FailurePrediction
+public class FailurePrediction : IOrganizationScoped
 {
+    public Guid OrganizationId { get; set; }
     public Guid Id { get; set; }
     public Guid EquipmentId { get; set; }
 

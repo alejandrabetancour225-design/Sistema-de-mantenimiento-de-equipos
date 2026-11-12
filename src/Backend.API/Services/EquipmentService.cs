@@ -275,11 +275,11 @@ public class EquipmentService : IEquipmentService
             await _context.SaveChangesAsync();
             return null;
         }
-        catch (DbUpdateException ex) when (DbErrors.IsUniqueViolation(ex, "IX_Equipments_InternalCode"))
+        catch (DbUpdateException ex) when (DbErrors.IsUniqueViolation(ex, "IX_Equipments_OrganizationId_InternalCode"))
         {
             return EquipmentActionStatus.DuplicateInternalCode;
         }
-        catch (DbUpdateException ex) when (DbErrors.IsUniqueViolation(ex, "IX_Equipments_SerialNumber"))
+        catch (DbUpdateException ex) when (DbErrors.IsUniqueViolation(ex, "IX_Equipments_OrganizationId_SerialNumber"))
         {
             return EquipmentActionStatus.DuplicateSerialNumber;
         }

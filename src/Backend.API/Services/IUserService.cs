@@ -5,6 +5,7 @@ namespace Backend.API.Services;
 public interface IUserService
 {
     Task<List<UserResponse>> GetUsersAsync();
+    Task<UpdateUserResult> CreateUserAsync(CreateUserRequest request, Guid organizationId);
     Task<UpdateUserResult> UpdateUserAsync(Guid userId, UpdateUserRequest request, Guid currentUserId);
     Task<UpdateUserResult> AssignRoleAsync(Guid userId, string role, Guid currentUserId);
     Task<UpdateUserResult> ResetPasswordAsync(Guid userId, string newPassword);

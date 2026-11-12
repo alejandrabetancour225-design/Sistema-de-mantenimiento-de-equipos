@@ -42,6 +42,57 @@ public class UserService : IUserService
         return users.Select(Map).ToList();
     }
 
+    public async Task<UpdateUserResult> CreateUserAsync(CreateUserRequest request, Guid organizationId)
+    {
+        if (!Roles.OrganizationRoles.Contains(request.Role))
+        {
+            return new UpdateUserResult(UpdateUserStatus.RoleNotFound, null);
+        }
+
+        var email = _encryption.Normalize(request.Email);
+        var candidates = _encryption.ComputeLookupCandidates(email);
+        // El correo es único en toda la plataforma (se ignora el filtro por organización).
+        if (await _context.Users.IgnoreQueryFilters().AnyAsync(u => candidates.Contains(u.EmailHash)))
+        {
+            return new UpdateUserResult(UpdateUserStatus.EmailInUse, null);
+        }
+
+        var role = await _context.Roles.FirstAsync(r => r.Name == request.Role);
+        var now = DateTime.UtcNow;
+        var userId = Guid.NewGuid();
+        var user = new User
+        {
+            Id = userId,
+            OrganizationId = organizationId,
+            Email = _encryption.Encrypt(email, EncryptionContexts.UserEmail(userId)),
+            EmailHash = _encryption.ComputeLookup(email),
+            PasswordHash = _passwordHasher.Hash(request.TemporaryPassword),
+            MustChangePassword = true,
+            FullName = request.FullName.Trim(),
+            Phone = string.IsNullOrWhiteSpace(request.Phone)
+                ? string.Empty
+                : _encryption.Encrypt(request.Phone.Trim(), EncryptionContexts.UserPhone(userId)),
+            Active = true,
+            SecurityStamp = Guid.NewGuid(),
+            CreatedAt = now,
+            UpdatedAt = now,
+            RoleId = role.Id,
+            Role = role
+        };
+
+        _context.Users.Add(user);
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex) when (DbErrors.IsUniqueViolation(ex))
+        {
+            return new UpdateUserResult(UpdateUserStatus.EmailInUse, null);
+        }
+
+        return new UpdateUserResult(UpdateUserStatus.Success, Map(user));
+    }
+
     public Task<UpdateUserResult> AssignRoleAsync(Guid userId, string role, Guid currentUserId)
     {
         return UpdateUserAsync(userId, new UpdateUserRequest { Role = role }, currentUserId);
@@ -61,7 +112,8 @@ public class UserService : IUserService
         Role? newRole = null;
         if (request.Role is not null)
         {
-            newRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == request.Role);
+            // El rol SuperAdmin no se asigna desde una organización.
+            newRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == request.Role && r.Name != Roles.SuperAdmin);
             if (newRole is null)
             {
                 return new UpdateUserResult(UpdateUserStatus.RoleNotFound, null);
@@ -163,6 +215,8 @@ public class UserService : IUserService
         }
 
         user.PasswordHash = _passwordHasher.Hash(newPassword);
+        // La contraseña que pone el Administrador es temporal: el usuario la cambia al entrar.
+        user.MustChangePassword = true;
         user.FailedAttempts = 0;
         user.LockoutEnd = null;
         user.SecurityStamp = Guid.NewGuid();
@@ -186,6 +240,7 @@ public class UserService : IUserService
                 : SafeDecrypt(user.Phone, EncryptionContexts.UserPhone(user.Id), user.Id) ?? UnreadableValue,
             Active = user.Active,
             Role = user.Role?.Name,
+            MustChangePassword = user.MustChangePassword,
             FailedAttempts = user.FailedAttempts,
             LockoutEnd = user.LockoutEnd,
             CreatedAt = user.CreatedAt,

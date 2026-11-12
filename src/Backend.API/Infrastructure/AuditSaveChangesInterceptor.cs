@@ -102,6 +102,9 @@ public sealed class AuditSaveChangesInterceptor : SaveChangesInterceptor
                 },
                 EntityType = entry.Metadata.ClrType.Name,
                 EntityId = GetKey(entry),
+                OrganizationId = entry.Entity is IOrganizationScoped scoped ? scoped.OrganizationId
+                    : entry.Entity is User user ? user.OrganizationId
+                    : (context as Backend.API.Data.AppDbContext)?.CurrentOrganizationId is { } org && org != Guid.Empty ? org : null,
                 Details = details,
                 IpAddress = ipAddress
             });

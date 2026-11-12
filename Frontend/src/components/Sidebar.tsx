@@ -2,7 +2,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/authContext";
 
 export default function Sidebar() {
-  const { isAuthenticated, role, fullName, logout } = useAuth();
+  const { isAuthenticated, role, fullName, organizationName, plan, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -21,11 +21,35 @@ export default function Sidebar() {
         : "text-gray-300 hover:bg-white/5 hover:text-white"
     }`;
 
-  // Personal interno = todos los roles menos Cliente (Roles.Staff en el backend)
-  const isStaff = role !== "Cliente";
-  // Reportes: Administrador y Cliente (mismos roles que el backend). El dashboard lo ven todos.
-  const canSeeDashboard = role === "Administrador" || role === "Cliente";
+  // Personal interno = todos los roles menos Gerente (Roles.Staff en el backend)
+  const isStaff = role !== "Gerente";
+  // Reportes: Administrador y Gerente (mismos roles que el backend). El dashboard lo ven todos.
+  const canSeeDashboard = role === "Administrador" || role === "Gerente";
   const canManageEquipment = role === "Administrador" || role === "Técnico";
+
+  if (role === "SuperAdmin") {
+    return (
+      <aside className="w-64 min-h-screen bg-[#0f1729] border-r border-white/10 flex flex-col p-4">
+        <span className="mb-6 inline-block w-fit text-xs font-semibold tracking-wide text-blue-400 bg-blue-400/10 px-3 py-1 rounded-full uppercase">
+          Plataforma
+        </span>
+        <nav className="flex-1">
+          <Link to="/organizaciones" className={linkClass("/organizaciones")}>
+            Organizaciones
+          </Link>
+          <Link to="/cambiar-contrasena" className={linkClass("/cambiar-contrasena")}>
+            Cambiar contraseña
+          </Link>
+        </nav>
+        <div className="border-t border-white/10 pt-4 mt-4">
+          <p className="px-4 text-sm text-gray-300 mb-2 truncate">{fullName}</p>
+          <button onClick={handleLogout} className="w-full text-left px-4 py-2 rounded-lg text-sm text-gray-300 hover:bg-white/5 hover:text-white">
+            Cerrar sesión
+          </button>
+        </div>
+      </aside>
+    );
+  }
 
   return (
     <aside className="w-64 min-h-screen bg-[#0f1729] border-r border-white/10 flex flex-col p-4">
@@ -33,6 +57,11 @@ export default function Sidebar() {
         <span className="inline-block text-xs font-semibold tracking-wide text-blue-400 bg-blue-400/10 px-3 py-1 rounded-full uppercase">
           {role}
         </span>
+        {organizationName && (
+          <p className="mt-2 px-1 text-xs text-gray-400">
+            {organizationName} · Plan {plan === "INTEGRACIONES" ? "Integraciones" : "Básico"}
+          </p>
+        )}
       </div>
 
       <nav className="flex-1 space-y-6">
@@ -108,6 +137,9 @@ export default function Sidebar() {
 
       <div className="border-t border-white/10 pt-4 mt-4">
         <p className="px-4 text-sm text-gray-300 mb-2 truncate">{fullName}</p>
+        <Link to="/cambiar-contrasena" className={linkClass("/cambiar-contrasena")}>
+          Cambiar contraseña
+        </Link>
         <button
           onClick={handleLogout}
           className="w-full text-left px-4 py-2 rounded-lg text-sm text-gray-300 hover:bg-white/5 hover:text-white"

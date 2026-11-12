@@ -73,6 +73,7 @@ var connectionString = $"Host={db["Host"]};Port={db["Port"] ?? "5432"};Database=
     // Sin Kerberos/GSSAPI: no se usa y en contenedores falta la librería (evita un error ruidoso).
     + ";GssEncryptionMode=Disable";
 
+builder.Services.AddScoped<ITenantContext, HttpTenantContext>();
 builder.Services.AddSingleton<AuditSaveChangesInterceptor>();
 builder.Services.AddDbContext<AppDbContext>((services, options) =>
     options.UseNpgsql(connectionString)
@@ -155,6 +156,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                     {
                         u.Active,
                         u.SecurityStamp,
+                        u.OrganizationId,
+                        u.MustChangePassword,
+                        OrganizationActive = u.OrganizationId == null
+                            || dbContext.Organizations.Any(o => o.Id == u.OrganizationId && o.Active),
                         RoleName = u.Role != null ? u.Role.Name : null
                     })
                     .SingleOrDefaultAsync(context.HttpContext.RequestAborted);
@@ -177,6 +182,17 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                     context.Fail("La sesión ya no es válida. Inicia sesión de nuevo.");
                     return;
                 }
+
+                // Multiempresa: el token debe ser de la organización actual del usuario y esta debe estar activa.
+                var orgClaim = principal?.FindFirstValue(AppClaimsOrg.Organization);
+                var tokenOrg = Guid.TryParse(orgClaim, out var parsedOrg) ? parsedOrg : (Guid?)null;
+                if (tokenOrg != user.OrganizationId || !user.OrganizationActive)
+                {
+                    context.Fail("La organización del usuario cambió o está inactiva.");
+                    return;
+                }
+
+                context.HttpContext.Items[MustChangePasswordItem] = user.MustChangePassword;
 
                 var roleClaim = principal?.FindFirstValue(ClaimTypes.Role);
                 if (!string.Equals(roleClaim, user.RoleName, StringComparison.Ordinal))
@@ -343,6 +359,7 @@ using (var scope = app.Services.CreateScope())
     }
 
     await AdminBootstrapper.EnsureAdministratorAsync(scope.ServiceProvider, app.Configuration, app.Logger);
+    await AdminBootstrapper.EnsureSuperAdminAsync(scope.ServiceProvider, app.Configuration, app.Logger);
     try
     {
         await GlossaryService.SeedBaseAsync(dbContext, app.Logger);
@@ -425,6 +442,28 @@ app.Use(async (context, next) =>
     await next();
 });
 
+// Contraseña temporal: hasta cambiarla, la cuenta solo puede consultar su sesión, cambiar la
+// contraseña o cerrar sesión (la interfaz también lo exige, pero la regla vive aquí).
+app.Use(async (context, next) =>
+{
+    if (context.Items.TryGetValue(MustChangePasswordItem, out var flag) && flag is true)
+    {
+        var path = context.Request.Path;
+        var allowed = path.StartsWithSegments("/api/auth/change-password", StringComparison.OrdinalIgnoreCase)
+            || path.StartsWithSegments("/api/auth/me", StringComparison.OrdinalIgnoreCase)
+            || path.StartsWithSegments("/api/auth/logout", StringComparison.OrdinalIgnoreCase)
+            || path.StartsWithSegments("/api/organizations/current", StringComparison.OrdinalIgnoreCase);
+        if (!allowed)
+        {
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            await context.Response.WriteAsJsonAsync(new { message = "Debes cambiar tu contraseña temporal antes de continuar." });
+            return;
+        }
+    }
+
+    await next();
+});
+
 app.UseAuthorization();
 
 app.MapControllers();
@@ -433,3 +472,8 @@ app.MapControllers();
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok" })).AllowAnonymous();
 
 app.Run();
+
+public partial class Program
+{
+    private const string MustChangePasswordItem = "MustChangePassword";
+}

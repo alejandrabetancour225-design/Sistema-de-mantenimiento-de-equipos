@@ -33,6 +33,8 @@ services:
       Bootstrap__AdminEmail: ${BOOTSTRAP_ADMIN_EMAIL:-}
       Bootstrap__AdminPassword: ${BOOTSTRAP_ADMIN_PASSWORD:-}
       Bootstrap__AdminFullName: ${BOOTSTRAP_ADMIN_FULLNAME:-Administrador}
+      Bootstrap__SuperAdminEmail: ${BOOTSTRAP_SUPERADMIN_EMAIL:-}
+      Bootstrap__SuperAdminPassword: ${BOOTSTRAP_SUPERADMIN_PASSWORD:-}
       Seed__Demo: ${SEED_DEMO:-false}
       Email__Host: ${SMTP_HOST:-}
       Email__Port: ${SMTP_PORT:-587}

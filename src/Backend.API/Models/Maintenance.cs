@@ -1,7 +1,8 @@
 namespace Backend.API.Models;
 
-public class Maintenance
+public class Maintenance : IOrganizationScoped
 {
+    public Guid OrganizationId { get; set; }
     public Guid Id { get; set; }
     public Guid EquipmentId { get; set; }
     public Guid? IncidentId { get; set; }

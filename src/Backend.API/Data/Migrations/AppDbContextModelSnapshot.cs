@@ -51,6 +51,9 @@ namespace Backend.API.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("RankedCausesJson")
                         .IsRequired()
                         .HasColumnType("jsonb");
@@ -107,6 +110,9 @@ namespace Backend.API.Data.Migrations
                     b.Property<string>("Notes")
                         .HasColumnType("text");
 
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("PredictedCause")
                         .IsRequired()
                         .HasColumnType("text");
@@ -142,6 +148,9 @@ namespace Backend.API.Data.Migrations
                     b.Property<string>("Observations")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime?>("ReleasedAt")
                         .HasColumnType("timestamp with time zone");
@@ -187,6 +196,9 @@ namespace Backend.API.Data.Migrations
 
                     b.Property<string>("IpAddress")
                         .HasColumnType("text");
+
+                    b.Property<Guid?>("OrganizationId")
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("Timestamp")
                         .HasColumnType("timestamp with time zone");
@@ -240,6 +252,9 @@ namespace Backend.API.Data.Migrations
                     b.Property<string>("OperatingSystem")
                         .HasColumnType("text");
 
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("SerialNumber")
                         .IsRequired()
                         .HasColumnType("text");
@@ -259,10 +274,10 @@ namespace Backend.API.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("InternalCode")
+                    b.HasIndex("OrganizationId", "InternalCode")
                         .IsUnique();
 
-                    b.HasIndex("SerialNumber")
+                    b.HasIndex("OrganizationId", "SerialNumber")
                         .IsUnique();
 
                     b.ToTable("Equipments");
@@ -291,6 +306,9 @@ namespace Backend.API.Data.Migrations
                     b.Property<string>("Model")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("SerialNumber")
                         .IsRequired()
@@ -326,6 +344,9 @@ namespace Backend.API.Data.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("OrganizationId")
                         .HasColumnType("uuid");
 
                     b.Property<string>("PossibleCauses")
@@ -379,6 +400,9 @@ namespace Backend.API.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTime>("PredictedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -417,6 +441,9 @@ namespace Backend.API.Data.Migrations
                         .HasColumnType("text");
 
                     b.Property<Guid>("EquipmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("OrganizationId")
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("ReportedAt")
@@ -469,6 +496,9 @@ namespace Backend.API.Data.Migrations
                     b.Property<string>("Observations")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
 
                     b.Property<decimal>("OtherCosts")
                         .HasPrecision(18, 2)
@@ -554,6 +584,48 @@ namespace Backend.API.Data.Migrations
                     b.ToTable("MaintenanceSpareParts");
                 });
 
+            modelBuilder.Entity("Backend.API.Models.Organization", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<int>("Plan")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("Organizations");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("0e000000-0000-0000-0000-000000000001"),
+                            Active = true,
+                            CreatedAt = new DateTime(2026, 11, 12, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Name = "Organización por defecto",
+                            Plan = 1,
+                            UpdatedAt = new DateTime(2026, 11, 12, 0, 0, 0, 0, DateTimeKind.Utc)
+                        });
+                });
+
             modelBuilder.Entity("Backend.API.Models.PasswordResetCode", b =>
                 {
                     b.Property<Guid>("Id")
@@ -621,7 +693,12 @@ namespace Backend.API.Data.Migrations
                         new
                         {
                             Id = new Guid("a0000000-0000-0000-0000-000000000004"),
-                            Name = "Cliente"
+                            Name = "Gerente"
+                        },
+                        new
+                        {
+                            Id = new Guid("a0000000-0000-0000-0000-000000000005"),
+                            Name = "SuperAdmin"
                         });
                 });
 
@@ -658,12 +735,15 @@ namespace Backend.API.Data.Migrations
                         .HasMaxLength(400)
                         .HasColumnType("character varying(400)");
 
+                    b.Property<Guid?>("OrganizationId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Expression")
+                    b.HasIndex("OrganizationId", "Expression")
                         .IsUnique();
 
                     b.ToTable("SlangTerms");
@@ -688,6 +768,9 @@ namespace Backend.API.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
                     b.Property<decimal>("UnitCost")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
@@ -697,7 +780,7 @@ namespace Backend.API.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Name")
+                    b.HasIndex("OrganizationId", "Name")
                         .IsUnique();
 
                     b.ToTable("SpareParts");
@@ -733,6 +816,12 @@ namespace Backend.API.Data.Migrations
                     b.Property<DateTime?>("LockoutEnd")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<bool>("MustChangePassword")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("OrganizationId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasColumnType("text");
@@ -754,6 +843,8 @@ namespace Backend.API.Data.Migrations
 
                     b.HasIndex("EmailHash")
                         .IsUnique();
+
+                    b.HasIndex("OrganizationId");
 
                     b.HasIndex("RoleId");
 
@@ -822,6 +913,15 @@ namespace Backend.API.Data.Migrations
                     b.Navigation("Equipment");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Backend.API.Models.Equipment", b =>
+                {
+                    b.HasOne("Backend.API.Models.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Backend.API.Models.EquipmentComponent", b =>
@@ -933,6 +1033,11 @@ namespace Backend.API.Data.Migrations
 
             modelBuilder.Entity("Backend.API.Models.User", b =>
                 {
+                    b.HasOne("Backend.API.Models.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Backend.API.Models.Role", "Role")
                         .WithMany("Users")
                         .HasForeignKey("RoleId")

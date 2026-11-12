@@ -1,7 +1,8 @@
 namespace Backend.API.Models;
 
-public class AIFeedback
+public class AIFeedback : IOrganizationScoped
 {
+    public Guid OrganizationId { get; set; }
     public Guid Id { get; set; }
     public Guid DiagnosisId { get; set; }
     public Guid TechnicianId { get; set; }

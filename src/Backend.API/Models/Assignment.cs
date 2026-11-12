@@ -1,7 +1,8 @@
 namespace Backend.API.Models;
 
-public class Assignment
+public class Assignment : IOrganizationScoped
 {
+    public Guid OrganizationId { get; set; }
     public Guid Id { get; set; }
     public Guid EquipmentId { get; set; }
     public Guid UserId { get; set; }

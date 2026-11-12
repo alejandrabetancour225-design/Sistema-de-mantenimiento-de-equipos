@@ -18,7 +18,7 @@ export default function DashboardPage() {
   const summary = useEquipmentSummary();
   const incidents = useOpenIncidents();
   const maintenances = useUpcomingMaintenances();
-  // Las predicciones solo las ven Administrador y Técnico (el Cliente recibiría 403).
+  // Las predicciones solo las ven Administrador y Técnico (el Gerente recibiría 403).
   const highRisk = useHighRiskPredictions(10, role === "Administrador" || role === "Técnico");
   const refresh = useRefreshPredictions();
   const [preventiveFor, setPreventiveFor] = useState<FailurePrediction | null>(null);

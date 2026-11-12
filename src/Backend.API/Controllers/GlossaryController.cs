@@ -61,6 +61,7 @@ public class GlossaryController : ControllerBase
             Category = string.IsNullOrWhiteSpace(request.Category) ? "general" : request.Category.Trim().ToLowerInvariant(),
             Active = request.Active,
             CreatedByUserId = User.Id(),
+            OrganizationId = Guid.Parse(User.FindFirst(AppClaimsOrg.Organization)!.Value),
             CreatedAt = now,
             UpdatedAt = now
         };
@@ -79,6 +80,13 @@ public class GlossaryController : ControllerBase
             return NotFound(new { message = "La expresión no existe." });
         }
 
+        // Las expresiones base son compartidas por todas las organizaciones: no se modifican desde una.
+        if (term.OrganizationId is null)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden,
+                new { message = "Las expresiones base son compartidas y no se modifican. Agrega una expresión propia." });
+        }
+
         var expression = request.Expression.Trim().ToLowerInvariant();
         if (await ExistsAsync(expression, id))
         {
@@ -94,7 +102,7 @@ public class GlossaryController : ControllerBase
         return Ok(term);
     }
 
-    // Las expresiones base no se borran (se desactivan); las agregadas por el equipo sí.
+    // Solo se borran las expresiones propias de la organización.
     [Authorize(Roles = Roles.AdminOrTechnician)]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
@@ -105,15 +113,14 @@ public class GlossaryController : ControllerBase
             return NotFound(new { message = "La expresión no existe." });
         }
 
-        if (term.IsBase)
+        // Las expresiones base son compartidas por todas las organizaciones: no se modifican desde una.
+        if (term.OrganizationId is null)
         {
-            term.Active = false;
-            term.UpdatedAt = DateTime.UtcNow;
+            return StatusCode(StatusCodes.Status403Forbidden,
+                new { message = "Las expresiones base son compartidas y no se modifican. Agrega una expresión propia." });
         }
-        else
-        {
-            _context.SlangTerms.Remove(term);
-        }
+
+        _context.SlangTerms.Remove(term);
 
         await _context.SaveChangesAsync();
         return NoContent();

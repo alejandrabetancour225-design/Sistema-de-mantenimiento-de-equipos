@@ -145,6 +145,7 @@ export Database__Host="$DB_HOST" Database__Port="${DB_PORT:-5432}" Database__Nam
   Database__User="$DB_USER" Database__Password="$DB_PASSWORD" Database__SslMode="${DB_SSLMODE:-Require}" \
   Database__MigrateOnStartup=true Jwt__Key="$JWT_KEY" Encryption__Key="$ENCRYPTION_KEY" \
   Bootstrap__AdminEmail="${BOOTSTRAP_ADMIN_EMAIL:-}" Bootstrap__AdminPassword="${BOOTSTRAP_ADMIN_PASSWORD:-}" \
+  Bootstrap__SuperAdminEmail="${BOOTSTRAP_SUPERADMIN_EMAIL:-}" Bootstrap__SuperAdminPassword="${BOOTSTRAP_SUPERADMIN_PASSWORD:-}" \
   Seed__Demo="${SEED_DEMO:-false}" Email__Host="${SMTP_HOST:-}" Email__Port="${SMTP_PORT:-587}" \
   Email__User="${SMTP_USER:-}" Email__Password="${SMTP_PASSWORD:-}" Ai__BaseUrl=http://localhost:8000 \
   Ai__TimeoutSeconds="${AI_TIMEOUT_SECONDS:-190}" VITE_API_URL=/api DOTNET_WATCH_RESTART_ON_RUDE_EDIT=true

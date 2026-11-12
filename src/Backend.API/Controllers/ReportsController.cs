@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Backend.API.Controllers;
 
 // HU-15: Reportes gerenciales para Administrador y Cliente (Gerente).
-[Authorize(Roles = Roles.Administrador + "," + Roles.Cliente)]
+[Authorize(Roles = Roles.AdminOrManager)]
 [ApiController]
 [Route("api/[controller]")]
 public class ReportsController : ControllerBase

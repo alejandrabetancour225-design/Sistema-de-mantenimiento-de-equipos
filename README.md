@@ -55,7 +55,7 @@ El script:
 | `./iniciar.sh --demo` | `iniciar.cmd -Demo` | Carga los datos de demostración (no los duplica si ya existen). |
 | `./iniciar.sh --detener` | `iniciar.cmd -Detener` | Detiene todos los contenedores. |
 
-**Usuarios de demostración** (con `--demo`): `empleado1@demo.local`, `empleado2@demo.local`, `tecnico1@demo.local`, `gerente1@demo.local`, todos con la contraseña `DemoSprint6x2026`.
+**Usuarios de demostración** (con `--demo`, en la "Organización por defecto"): `empleado1@demo.local`, `empleado2@demo.local`, `tecnico1@demo.local`, `gerente1@demo.local`, todos con la contraseña `DemoSprint6x2026`.
 
 ### Antes de arrancar: `git pull`
 
@@ -98,7 +98,10 @@ dotnet tool run dotnet-ef migrations add NombreDeLaMigracion --project src/Backe
 
 ### Verificación manual
 
-[verificacion/fase0.sh](verificacion/fase0.sh) ejecuta 26 comprobaciones de las reglas de negocio contra la API en marcha (fechas, corrección de datos, estados, permisos por rol). Crea datos con prefijo `QA-S6`. Para borrarlos después, ejecuta [verificacion/limpiar-qa.sql](verificacion/limpiar-qa.sql) en la consola SQL de Neon.
+- [verificacion/fase0.sh](verificacion/fase0.sh): 26 comprobaciones de reglas de negocio (fechas, corrección de datos, estados, permisos por rol).
+- [verificacion/fase3.sh](verificacion/fase3.sh): 19 comprobaciones de multiempresa (aislamiento, contraseña temporal, organizaciones inactivas). Necesita `SUPERADMIN_EMAIL` y `SUPERADMIN_PASSWORD`.
+
+Crean datos con prefijo `QA-S6`. Para borrar los de `fase0.sh`, ejecuta [verificacion/limpiar-qa.sql](verificacion/limpiar-qa.sql) en la consola SQL de Neon.
 
 ```bash
 ADMIN_EMAIL=... ADMIN_PASSWORD=... ./verificacion/fase0.sh
@@ -133,9 +136,18 @@ Todos los cambios de estado pasan por [EquipmentStateMachine](src/Backend.API/Se
 - Un mantenimiento cerrado no se edita. Si tiene errores, el **Administrador lo anula** (queda en el historial con el motivo, fuera de costos y reportes) y se registra uno nuevo.
 - Solo uno abierto por equipo. Completar exige el trabajo realizado.
 
+### Multiempresa y planes
+
+- Cada **organización** (empresa) ve solo sus propios datos; el filtro lo aplica la base de datos en cada consulta.
+- El **SuperAdmin** de la plataforma crea organizaciones, les asigna plan y crea su primer Administrador. No ve los datos de las empresas. Se crea al arrancar con `BOOTSTRAP_SUPERADMIN_EMAIL` / `BOOTSTRAP_SUPERADMIN_PASSWORD` del `.env`.
+- **Planes** (asignados a mano, sin cobros): **Básico** (todo lo operativo + diagnóstico con IA) e **Integraciones** (además: bases de datos de terceros, minería de datos, reportes generados por IA e información de mercado).
+- No hay registro público: el **Administrador** de cada empresa crea sus usuarios con una **contraseña temporal** que deben cambiar al entrar (la API no deja hacer nada más hasta cambiarla).
+- Los datos anteriores al Sprint 6 quedaron en la **"Organización por defecto"** (plan Integraciones).
+- El rol *Cliente* ahora se llama **Gerente**.
+
 ### Roles y permisos (se aplican en la API, no solo en la interfaz)
 
-| Módulo | Administrador | Técnico | Empleado | Cliente/Gerente |
+| Módulo | Administrador | Técnico | Empleado | Gerente |
 | --- | --- | --- | --- | --- |
 | Usuarios, auditoría | Todo | — | — | — |
 | Equipos | Todo | Crear, editar, cambiar estado | Solo los que tiene asignados | — |

@@ -25,6 +25,15 @@ public class UsersController : ControllerBase
         return Ok(await _userService.GetUsersAsync());
     }
 
+    // Crea un usuario en la organización del Administrador con contraseña temporal.
+    [HttpPost]
+    public async Task<ActionResult<UserResponse>> CreateUser(CreateUserRequest request)
+    {
+        var organizationId = Guid.Parse(User.FindFirstValue(Backend.API.Infrastructure.AppClaimsOrg.Organization)!);
+        var result = await _userService.CreateUserAsync(request, organizationId);
+        return ToActionResult(result);
+    }
+
     [HttpPut("{id:guid}")]
     public async Task<ActionResult<UserResponse>> UpdateUser(Guid id, UpdateUserRequest request)
     {

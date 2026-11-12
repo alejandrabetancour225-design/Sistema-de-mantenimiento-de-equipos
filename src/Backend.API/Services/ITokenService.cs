@@ -2,7 +2,7 @@
 
 public interface ITokenService
 {
-    string GenerateToken(Guid userId, string email, string? role, Guid securityStamp);
+    string GenerateToken(Guid userId, string email, string? role, Guid securityStamp, Guid? organizationId);
     int ExpiresInMinutes { get; }
 }
 

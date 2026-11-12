@@ -5,6 +5,8 @@ namespace Backend.API.Models;
 // Las entradas base vienen de Data/Seed/glosario_colombia.json; Técnicos y Administradores agregan más.
 public class SlangTerm
 {
+    // null = expresión base compartida por todas las organizaciones.
+    public Guid? OrganizationId { get; set; }
     public Guid Id { get; set; }
     public string Expression { get; set; } = string.Empty;
     public string Meaning { get; set; } = string.Empty;

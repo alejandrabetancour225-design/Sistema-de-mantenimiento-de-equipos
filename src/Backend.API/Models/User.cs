@@ -2,6 +2,8 @@
 
 public class User
 {
+    // Organización a la que pertenece (null solo para el SuperAdmin de la plataforma).
+    public Guid? OrganizationId { get; set; }
     public Guid Id { get; set; }
     public string Email { get; set; } = string.Empty;
     public string EmailHash { get; set; } = string.Empty;
@@ -16,6 +18,8 @@ public class User
 
     // Cambia cuando se modifica el rol, el estado o la contraseña; invalida los tokens emitidos antes.
     public Guid SecurityStamp { get; set; } = Guid.NewGuid();
+    // Usuario creado por un Administrador con contraseña temporal: debe cambiarla al entrar.
+    public bool MustChangePassword { get; set; }
 
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }

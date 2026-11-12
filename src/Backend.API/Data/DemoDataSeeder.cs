@@ -18,13 +18,13 @@ public static class DemoDataSeeder
         ("empleado1@demo.local", "Laura Gómez (demo)", Roles.Empleado),
         ("empleado2@demo.local", "Andrés Rojas (demo)", Roles.Empleado),
         ("tecnico1@demo.local", "Camilo Herrera (demo)", Roles.Tecnico),
-        ("gerente1@demo.local", "Paola Martínez (demo)", Roles.Cliente)
+        ("gerente1@demo.local", "Paola Martínez (demo)", Roles.Gerente)
     };
 
     public static async Task SeedAsync(IServiceProvider services, ILogger logger, CancellationToken ct = default)
     {
         var context = services.GetRequiredService<AppDbContext>();
-        if (await context.Equipments.AnyAsync(e => e.InternalCode == "DEMO-001", ct))
+        if (await context.Equipments.AnyAsync(e => e.InternalCode == "DEMO-001" && e.OrganizationId == Organization.DefaultId, ct))
         {
             logger.LogInformation("Datos de demostración ya presentes: no se vuelven a crear.");
             return;
@@ -35,6 +35,8 @@ public static class DemoDataSeeder
         var roles = await context.Roles.ToDictionaryAsync(r => r.Name, r => r.Id, ct);
         var now = DateTime.UtcNow;
         var today = LocalClock.Today;
+        // Los datos de demostración van a la organización por defecto (no hay usuario en el arranque).
+        var org = Organization.DefaultId;
 
         // --- Usuarios ---
         var users = new Dictionary<string, Guid>();
@@ -53,6 +55,7 @@ public static class DemoDataSeeder
             context.Users.Add(new User
             {
                 Id = id,
+                OrganizationId = org,
                 Email = encryption.Encrypt(normalized, EncryptionContexts.UserEmail(id)),
                 EmailHash = encryption.ComputeLookup(normalized),
                 PasswordHash = hasher.Hash(DemoPassword),
@@ -71,7 +74,7 @@ public static class DemoDataSeeder
         Equipment NewEquipment(string code, string type, string brand, string model, string location,
             int ageDays, decimal price, EquipmentStatus status = EquipmentStatus.AVAILABLE) => new()
         {
-            Id = Guid.NewGuid(),
+            Id = Guid.NewGuid(), OrganizationId = org,
             InternalCode = code,
             SerialNumber = $"SN-{code}",
             Type = type,
@@ -108,7 +111,7 @@ public static class DemoDataSeeder
         {
             context.Assignments.Add(new Assignment
             {
-                Id = Guid.NewGuid(),
+                Id = Guid.NewGuid(), OrganizationId = org,
                 EquipmentId = equipment.Id,
                 UserId = users[email],
                 AssignedAt = now.AddDays(-30),
@@ -126,12 +129,12 @@ public static class DemoDataSeeder
         context.Incidents.AddRange(
             new Incident
             {
-                Id = Guid.NewGuid(), EquipmentId = eq[1].Id, ReportedBy = users["empleado1@demo.local"],
+                Id = Guid.NewGuid(), OrganizationId = org, EquipmentId = eq[1].Id, ReportedBy = users["empleado1@demo.local"],
                 Description = "El portátil se pega a cada rato y se pone muy caliente", ReportedAt = now.AddDays(-5)
             },
             new Incident
             {
-                Id = Guid.NewGuid(), EquipmentId = eq[6].Id, ReportedBy = users["empleado2@demo.local"],
+                Id = Guid.NewGuid(), OrganizationId = org, EquipmentId = eq[6].Id, ReportedBy = users["empleado2@demo.local"],
                 Description = "La pantalla parpadea cuando lo muevo", ReportedAt = now.AddHours(-6)
             });
 
@@ -141,7 +144,7 @@ public static class DemoDataSeeder
         {
             ram = new SparePart
             {
-                Id = Guid.NewGuid(), Name = "Memoria RAM DDR4 16 GB", Description = "Kingston KVR32S22S8/16",
+                Id = Guid.NewGuid(), OrganizationId = org, Name = "Memoria RAM DDR4 16 GB", Description = "Kingston KVR32S22S8/16",
                 UnitCost = 180_000m, CreatedAt = now, UpdatedAt = now
             };
             context.SpareParts.Add(ram);
@@ -151,7 +154,7 @@ public static class DemoDataSeeder
         {
             context.SpareParts.Add(new SparePart
             {
-                Id = Guid.NewGuid(), Name = "Disco SSD 512 GB", Description = "Samsung 870 EVO",
+                Id = Guid.NewGuid(), OrganizationId = org, Name = "Disco SSD 512 GB", Description = "Samsung 870 EVO",
                 UnitCost = 260_000m, CreatedAt = now, UpdatedAt = now
             });
         }
@@ -160,7 +163,7 @@ public static class DemoDataSeeder
         Maintenance Completed(Equipment equipment, MaintenanceType type, int daysAgo, int nextInDays, string work)
             => new()
             {
-                Id = Guid.NewGuid(),
+                Id = Guid.NewGuid(), OrganizationId = org,
                 EquipmentId = equipment.Id,
                 TechnicianId = users["tecnico1@demo.local"],
                 Type = type,

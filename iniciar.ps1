@@ -145,6 +145,7 @@ $map = @{
     "Database__MigrateOnStartup" = "true"
     "Jwt__Key" = (Get-Setting "JWT_KEY"); "Encryption__Key" = (Get-Setting "ENCRYPTION_KEY")
     "Bootstrap__AdminEmail" = (Get-Setting "BOOTSTRAP_ADMIN_EMAIL"); "Bootstrap__AdminPassword" = (Get-Setting "BOOTSTRAP_ADMIN_PASSWORD")
+    "Bootstrap__SuperAdminEmail" = (Get-Setting "BOOTSTRAP_SUPERADMIN_EMAIL"); "Bootstrap__SuperAdminPassword" = (Get-Setting "BOOTSTRAP_SUPERADMIN_PASSWORD")
     "Seed__Demo" = (Get-Setting "SEED_DEMO" "false")
     "Email__Host" = (Get-Setting "SMTP_HOST"); "Email__Port" = (Get-Setting "SMTP_PORT" "587")
     "Email__User" = (Get-Setting "SMTP_USER"); "Email__Password" = (Get-Setting "SMTP_PASSWORD")

@@ -11,4 +11,8 @@ public class AuthResponse
     public string? Role { get; set; }
     public bool Active { get; set; }
     public DateTime ExpiresAt { get; set; }
+    public Guid? OrganizationId { get; set; }
+    public string? OrganizationName { get; set; }
+    public string? Plan { get; set; }
+    public bool MustChangePassword { get; set; }
 }

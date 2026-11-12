@@ -6,6 +6,9 @@ interface AuthState {
   userId: string | null;
   fullName: string | null;
   role: Role | null;
+  organizationName: string | null;
+  plan: "BASICO" | "INTEGRACIONES" | null;
+  mustChangePassword: boolean;
   isAuthenticated: boolean;
   setSession: (data: AuthResponse) => void;
   logout: () => void;
@@ -37,6 +40,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [fullName, setFullName] = useState<string | null>(
     () => localStorage.getItem("fullName")
   );
+  const [organizationName, setOrganizationName] = useState<string | null>(
+    () => localStorage.getItem("organizationName")
+  );
+  const [plan, setPlan] = useState<AuthState["plan"]>(
+    () => (localStorage.getItem("plan") as AuthState["plan"]) ?? null
+  );
+  const [mustChangePassword, setMustChangePassword] = useState<boolean>(
+    () => localStorage.getItem("mustChangePassword") === "true"
+  );
 
   function setSession(data: AuthResponse) {
     localStorage.setItem("token", data.token);
@@ -46,12 +58,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUserId(decodeUserId(data.token));
     setRole(data.role ?? null);
     setFullName(data.fullName);
+    localStorage.setItem("organizationName", data.organizationName ?? "");
+    localStorage.setItem("plan", data.plan ?? "");
+    localStorage.setItem("mustChangePassword", String(!!data.mustChangePassword));
+    setOrganizationName(data.organizationName ?? null);
+    setPlan(data.plan ?? null);
+    setMustChangePassword(!!data.mustChangePassword);
   }
 
   function logout() {
     localStorage.removeItem("token");
     localStorage.removeItem("role");
     localStorage.removeItem("fullName");
+    localStorage.removeItem("organizationName");
+    localStorage.removeItem("plan");
+    localStorage.removeItem("mustChangePassword");
+    setOrganizationName(null);
+    setPlan(null);
+    setMustChangePassword(false);
     setToken(null);
     setUserId(null);
     setRole(null);
@@ -60,7 +84,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ token, userId, role, fullName, isAuthenticated: !!token, setSession, logout }}
+      value={{
+        token,
+        userId,
+        role,
+        fullName,
+        organizationName,
+        plan,
+        mustChangePassword,
+        isAuthenticated: !!token,
+        setSession,
+        logout,
+      }}
     >
       {children}
     </AuthContext.Provider>

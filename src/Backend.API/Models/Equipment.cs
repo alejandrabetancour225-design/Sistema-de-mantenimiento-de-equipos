@@ -1,7 +1,8 @@
 namespace Backend.API.Models;
 
-public class Equipment
+public class Equipment : IOrganizationScoped
 {
+    public Guid OrganizationId { get; set; }
     public Guid Id { get; set; }
     public string InternalCode { get; set; } = string.Empty;
     public string SerialNumber { get; set; } = string.Empty;

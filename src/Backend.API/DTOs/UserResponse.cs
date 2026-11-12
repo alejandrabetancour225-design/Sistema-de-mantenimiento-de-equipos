@@ -8,6 +8,7 @@ public class UserResponse
     public string? Phone { get; set; }
     public bool Active { get; set; }
     public string? Role { get; set; }
+    public bool MustChangePassword { get; set; }
     public int FailedAttempts { get; set; }
     public DateTime? LockoutEnd { get; set; }
     public DateTime CreatedAt { get; set; }

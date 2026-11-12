@@ -5,6 +5,7 @@ namespace Backend.API.Models;
 // En entidades con datos personales (usuarios) solo guarda los nombres de los campos modificados.
 public class AuditLog
 {
+    public Guid? OrganizationId { get; set; }
     public Guid Id { get; set; }
     public DateTime Timestamp { get; set; }
     public Guid? UserId { get; set; }

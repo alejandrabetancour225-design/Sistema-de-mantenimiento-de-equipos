@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate, Outlet } from "react-router-dom";
 import LoginPage from "./pages/LoginPage";
-import RegisterPage from "./pages/RegisterPage";
+import OrganizationsPage from "./pages/OrganizationsPage";
+import ChangePasswordPage from "./pages/ChangePasswordPage";
 import { EquipoListPage } from "./pages/EquipoListPage";
 import { EquipoFormPage } from "./pages/EquipoFormPage";
 import EquipoDetailPage from "./pages/EquipoDetailPage";
@@ -40,11 +41,11 @@ function Landing() {
   return isAuthenticated ? <Navigate to={roleHome(role)} replace /> : <LandingPage />;
 }
 
-// Cada rol ve su propio dashboard: Administrador y Cliente el gerencial (endpoints /dashboard),
+// Cada rol ve su propio dashboard: Administrador y Gerente el gerencial (endpoints /dashboard),
 // Técnico y Empleado uno armado con los datos que sí pueden consultar.
 function DashboardRoute() {
   const { role } = useAuth();
-  return role === "Administrador" || role === "Cliente" ? <DashboardPage /> : <StaffDashboardPage />;
+  return role === "Administrador" || role === "Gerente" ? <DashboardPage /> : <StaffDashboardPage />;
 }
 
 function LoginRoute() {
@@ -57,21 +58,29 @@ export default function App() {
       <Route element={<Layout />}>
         <Route path="/" element={<Landing />} />
          <Route path="/login" element={<LoginRoute />} />
-        <Route path="/register" element={<RegisterPage />} />
 
-        {/* Cualquier usuario autenticado, incluido el Cliente */}
+        {/* Cualquier usuario autenticado, incluido el Gerente */}
         <Route element={<ProtectedRoute />}>
+          <Route path="/cambiar-contrasena" element={<ChangePasswordPage />} />
+        </Route>
+
+        {/* Plataforma: organizaciones y planes */}
+        <Route element={<ProtectedRoute allowedRoles={["SuperAdmin"]} />}>
+          <Route path="/organizaciones" element={<OrganizationsPage />} />
+        </Route>
+
+        <Route element={<ProtectedRoute allowedRoles={["Administrador", "Técnico", "Empleado", "Gerente"]} />}>
           <Route path="/dashboard" element={<DashboardRoute />} />
           <Route path="/mantenimientos" element={<MaintenanceHistoryPage />} />
           <Route path="/equipos/:id/historial" element={<EquipmentHistoryPage />} />
         </Route>
 
-        {/* El backend solo expone reportes a Administrador y Cliente */}
-        <Route element={<ProtectedRoute allowedRoles={["Administrador", "Cliente"]} />}>
+        {/* El backend solo expone reportes a Administrador y Gerente */}
+        <Route element={<ProtectedRoute allowedRoles={["Administrador", "Gerente"]} />}>
           <Route path="/reportes" element={<ReportsPage />} />
         </Route>
 
-        {/* Personal interno: Administrador, Técnico y Empleado (no Cliente) */}
+        {/* Personal interno: Administrador, Técnico y Empleado (no Gerente) */}
         <Route element={<ProtectedRoute allowedRoles={["Administrador", "Técnico", "Empleado"]} />}>
           <Route path="/equipos" element={<EquipoListPage />} />
           <Route path="/equipos/:id" element={<EquipoDetailPage />} />

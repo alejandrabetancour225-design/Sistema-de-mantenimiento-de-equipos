@@ -40,54 +40,6 @@ public class AuthService : IAuthService
         _logger = logger;
     }
 
-    public async Task<AuthResponse?> RegisterAsync(RegisterRequest request)
-    {
-        var email = _encryption.Normalize(request.Email);
-        var emailCandidates = _encryption.ComputeLookupCandidates(email);
-        if (await _context.Users.AnyAsync(u => emailCandidates.Contains(u.EmailHash)))
-        {
-            return null;
-        }
-
-        // El registro público SIEMPRE crea Clientes. El primer Administrador se crea
-        // desde la configuración al arrancar (ver AdminBootstrapper).
-        var role = await _context.Roles.FirstAsync(r => r.Name == Roles.Cliente);
-
-        var now = DateTime.UtcNow;
-        var userId = Guid.NewGuid();
-        var user = new User
-        {
-            Id = userId,
-            Email = _encryption.Encrypt(email, EncryptionContexts.UserEmail(userId)),
-            EmailHash = _encryption.ComputeLookup(email),
-            PasswordHash = _passwordHasher.Hash(request.Password),
-            FullName = request.FullName.Trim(),
-            Phone = string.IsNullOrWhiteSpace(request.Phone)
-                ? string.Empty
-                : _encryption.Encrypt(request.Phone.Trim(), EncryptionContexts.UserPhone(userId)),
-            Active = true,
-            FailedAttempts = 0,
-            SecurityStamp = Guid.NewGuid(),
-            CreatedAt = now,
-            UpdatedAt = now,
-            RoleId = role.Id,
-            Role = role
-        };
-
-        _context.Users.Add(user);
-        try
-        {
-            await _context.SaveChangesAsync();
-        }
-        catch (DbUpdateException ex) when (DbErrors.IsUniqueViolation(ex))
-        {
-            // Dos registros simultáneos con el mismo correo.
-            return null;
-        }
-
-        return BuildAuthResponse(user, email, role.Name);
-    }
-
     public async Task<AuthResponse?> LoginAsync(LoginRequest request)
     {
         var emailCandidates = _encryption.ComputeLookupCandidates(request.Email);
@@ -139,6 +91,15 @@ public class AuthService : IAuthService
         if (!user.Active)
         {
             _audit.Record(AuditActions.LoginFailed, nameof(User), userKey, "Cuenta inactiva", user.Id);
+            await _context.SaveChangesAsync();
+            return null;
+        }
+
+        // Multiempresa: una organización desactivada por el SuperAdmin no puede entrar.
+        if (user.OrganizationId is { } orgId
+            && !await _context.Organizations.AnyAsync(o => o.Id == orgId && o.Active))
+        {
+            _audit.Record(AuditActions.LoginFailed, nameof(User), userKey, "Organización inactiva", user.Id);
             await _context.SaveChangesAsync();
             return null;
         }
@@ -224,6 +185,7 @@ public class AuthService : IAuthService
         }
 
         user.PasswordHash = _passwordHasher.Hash(request.NewPassword);
+        user.MustChangePassword = false;
         user.FailedAttempts = 0;
         user.LockoutEnd = null;
         user.SecurityStamp = Guid.NewGuid();
@@ -268,9 +230,17 @@ public class AuthService : IAuthService
 
     private AuthResponse BuildAuthResponse(User user, string email, string? role)
     {
+        var organization = user.OrganizationId is { } orgId
+            ? _context.Organizations.AsNoTracking().FirstOrDefault(o => o.Id == orgId)
+            : null;
+
         return new AuthResponse
         {
-            Token = _tokenService.GenerateToken(user.Id, email, role, user.SecurityStamp),
+            OrganizationId = organization?.Id,
+            OrganizationName = organization?.Name,
+            Plan = organization?.Plan.ToString(),
+            MustChangePassword = user.MustChangePassword,
+            Token = _tokenService.GenerateToken(user.Id, email, role, user.SecurityStamp, user.OrganizationId),
             UserId = user.Id,
             FullName = user.FullName,
             Email = email,
