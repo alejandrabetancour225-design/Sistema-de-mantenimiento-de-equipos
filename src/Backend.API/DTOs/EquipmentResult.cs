@@ -22,7 +22,9 @@ public enum EquipmentActionStatus
     // Contrato de alquiler inexistente, terminado o sin tarifa para el tipo de equipo.
     InvalidRentalContract,
     // Un equipo alquilado se devuelve al arrendador, no se da de baja.
-    RentedCannotBeDecommissioned
+    RentedCannotBeDecommissioned,
+    // Se intentó cambiar un campo que se sincroniza desde una base de terceros.
+    ExternalFieldLocked
 }
 
 public record EquipmentResult(EquipmentActionStatus Status, EquipmentResponse? Equipment);

@@ -25,6 +25,12 @@ public class Equipment : IOrganizationScoped
     // Equipo de reemplazo enviado por el arrendador: apunta al equipo que reemplaza.
     public Guid? ReplacesEquipmentId { get; set; }
     public DateTime? ReturnedAt { get; set; }
+
+    // Equipo importado de una base de terceros (Q27): sus campos mapeados se actualizan desde la
+    // fuente y no se editan aquí. Las columnas sin equivalente se guardan en ExternalAttributes (JSONB).
+    public Guid? ExternalSourceId { get; set; }
+    public string? ExternalId { get; set; }
+    public string? ExternalAttributes { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 

@@ -132,6 +132,11 @@ export default function Sidebar() {
             </Link>
           )}
           {role === "Administrador" && (
+            <Link to="/integraciones" className={linkClass("/integraciones")}>
+              Integraciones {plan !== "INTEGRACIONES" && <span className="text-[10px] text-gray-500">(plan)</span>}
+            </Link>
+          )}
+          {role === "Administrador" && (
             <Link to="/auditoria" className={linkClass("/auditoria")}>
               Auditoría
             </Link>

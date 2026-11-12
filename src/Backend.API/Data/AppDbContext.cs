@@ -24,6 +24,7 @@ public class AppDbContext : DbContext
     public DbSet<LessorClaim> LessorClaims => Set<LessorClaim>();
     public DbSet<MaintenancePlan> MaintenancePlans => Set<MaintenancePlan>();
     public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<ExternalSource> ExternalSources => Set<ExternalSource>();
 
     public DbSet<User> Users => Set<User>();
     public DbSet<Role> Roles => Set<Role>();
@@ -113,6 +114,7 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Lessor>().HasQueryFilter(e => CurrentOrganizationId == null || e.OrganizationId == CurrentOrganizationId);
         modelBuilder.Entity<RentalContract>().HasQueryFilter(e => CurrentOrganizationId == null || e.OrganizationId == CurrentOrganizationId);
         modelBuilder.Entity<MaintenancePlan>().HasQueryFilter(e => CurrentOrganizationId == null || e.OrganizationId == CurrentOrganizationId);
+        modelBuilder.Entity<ExternalSource>().HasQueryFilter(e => CurrentOrganizationId == null || e.OrganizationId == CurrentOrganizationId);
         modelBuilder.Entity<Notification>().HasQueryFilter(e => CurrentOrganizationId == null || e.OrganizationId == CurrentOrganizationId);
         modelBuilder.Entity<LessorClaim>().HasQueryFilter(e => CurrentOrganizationId == null || e.OrganizationId == CurrentOrganizationId);
         modelBuilder.Entity<User>().HasQueryFilter(u => CurrentOrganizationId == null || u.OrganizationId == CurrentOrganizationId);
@@ -139,6 +141,10 @@ public class AppDbContext : DbContext
             entity.HasOne<Organization>().WithMany().HasForeignKey(e => e.OrganizationId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(e => e.RentalContract).WithMany(c => c.Equipment!).HasForeignKey(e => e.RentalContractId).OnDelete(DeleteBehavior.Restrict);
             entity.HasIndex(e => e.RentalContractId);
+            entity.Property(e => e.ExternalAttributes).HasColumnType("jsonb");
+            entity.Property(e => e.ExternalId).HasMaxLength(200);
+            // Un registro externo se importa una sola vez por fuente (se actualiza en las siguientes).
+            entity.HasIndex(e => new { e.ExternalSourceId, e.ExternalId }).IsUnique().HasFilter("\"ExternalSourceId\" IS NOT NULL");
             entity.Property(e => e.Characteristics).HasColumnType("jsonb");
         });
 
@@ -294,6 +300,16 @@ public class AppDbContext : DbContext
             entity.HasIndex(c => c.Status);
             entity.HasOne(c => c.Equipment).WithMany().HasForeignKey(c => c.EquipmentId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(c => c.Contract).WithMany().HasForeignKey(c => c.ContractId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<ExternalSource>(entity =>
+        {
+            entity.Property(s => s.Name).HasMaxLength(150);
+            entity.Property(s => s.Kind).HasMaxLength(20);
+            entity.Property(s => s.TableName).HasMaxLength(130);
+            entity.Property(s => s.MappingJson).HasColumnType("jsonb");
+            entity.Property(s => s.LastSyncSummary).HasColumnType("jsonb");
+            entity.HasIndex(s => new { s.OrganizationId, s.Name }).IsUnique();
         });
 
         modelBuilder.Entity<MaintenancePlan>(entity =>

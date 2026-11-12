@@ -4,3 +4,8 @@
 .input {
   @apply mt-1 w-full rounded border px-3 py-2;
 }
+/* Campos bloqueados (p. ej. sincronizados desde una base de terceros) */
+.input:read-only {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

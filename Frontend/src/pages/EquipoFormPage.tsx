@@ -41,6 +41,8 @@ export function EquipoFormPage() {
   const { role } = useAuth();
   // Código interno y serie solo los corrige un Administrador (la API lo exige igual).
   const canEditIdentity = !isEdit || role === "Administrador";
+  // Campos sincronizados desde una base de terceros: se corrigen en la fuente (Q27).
+  const isLocked = (field: string) => !!existing?.lockedFields?.includes(field);
 
   const { data: existing } = useQuery({
     queryKey: ["equipment", id],
@@ -138,13 +140,18 @@ export function EquipoFormPage() {
           Cada corrección queda registrada en la auditoría con el valor anterior y el nuevo.
         </p>
       )}
+      {!!existing?.lockedFields?.length && (
+        <p className="rounded bg-blue-500/10 p-2 text-xs text-blue-300">
+          Este equipo se sincroniza desde la base de datos de la empresa: los campos bloqueados se corrigen allá.
+        </p>
+      )}
 
       <div className="grid grid-cols-2 gap-4">
         <Field label="Código interno" error={errors.internalCode?.message}>
           <input
             {...register("internalCode")}
             className="input uppercase"
-            disabled={!canEditIdentity}
+            readOnly={!canEditIdentity || isLocked("internalCode")}
             title={canEditIdentity ? undefined : "Solo un Administrador puede corregirlo"}
           />
         </Field>
@@ -152,22 +159,22 @@ export function EquipoFormPage() {
           <input
             {...register("serialNumber")}
             className="input uppercase"
-            disabled={!canEditIdentity}
+            readOnly={!canEditIdentity || isLocked("serialNumber")}
             title={canEditIdentity ? undefined : "Solo un Administrador puede corregirlo"}
           />
         </Field>
       </div>
 
       <Field label="Tipo" error={errors.type?.message}>
-        <input {...register("type")} className="input" placeholder="Laptop, monitor..." />
+        <input {...register("type")} className="input" readOnly={isLocked("type")} placeholder="Laptop, monitor..." />
       </Field>
 
       <div className="grid grid-cols-2 gap-4">
         <Field label="Marca" error={errors.brand?.message}>
-          <input {...register("brand")} className="input" />
+          <input {...register("brand")} className="input" readOnly={isLocked("brand")} />
         </Field>
         <Field label="Modelo" error={errors.model?.message}>
-          <input {...register("model")} className="input" />
+          <input {...register("model")} className="input" readOnly={isLocked("model")} />
         </Field>
       </div>
 
@@ -175,12 +182,13 @@ export function EquipoFormPage() {
         <input
           {...register("operatingSystem")}
           className="input"
+          readOnly={isLocked("operatingSystem")}
           placeholder="Ej: Windows 11, Ubuntu 24.04"
         />
       </Field>
 
       <Field label="Ubicación" error={errors.location?.message}>
-        <input {...register("location")} className="input" />
+        <input {...register("location")} className="input" readOnly={isLocked("location")} />
       </Field>
 
       <div className="grid grid-cols-2 gap-4">
@@ -215,10 +223,10 @@ export function EquipoFormPage() {
       <>
       <div className="grid grid-cols-2 gap-4">
         <Field label="Fecha de adquisición" error={errors.acquisitionDate?.message}>
-          <input type="date" max={today} {...register("acquisitionDate")} className="input" />
+          <input type="date" max={today} {...register("acquisitionDate")} className="input" readOnly={isLocked("acquisitionDate")} />
         </Field>
         <Field label="Precio de adquisición" error={errors.acquisitionPrice?.message}>
-          <input type="number" step="0.01" min="0" {...register("acquisitionPrice")} className="input" />
+          <input type="number" step="0.01" min="0" {...register("acquisitionPrice")} className="input" readOnly={isLocked("acquisitionPrice")} />
         </Field>
       </div>
 

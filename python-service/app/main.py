@@ -150,3 +150,58 @@ def triage(request: TriageRequest):
         model=ollama_cliente.MODEL_NAME,
         detected_expressions=[e["expresion"] for e in aplicar_glosario(texto_empleado, glosario)],
     )
+
+
+# ---------- Integraciones con bases de terceros (solo lectura) ----------
+from . import integraciones  # noqa: E402
+
+
+class ConnectionInfo(BaseModel):
+    host: str | None = None
+    port: int | None = None
+    database: str | None = None
+    user: str | None = None
+    password: str | None = None
+    sslmode: str | None = None
+    uri: str | None = None  # MongoDB
+
+
+class SourceSpec(BaseModel):
+    kind: Literal["file", "postgres", "mysql", "sqlserver", "mongodb"]
+    file_name: str | None = None
+    file_base64: str | None = None
+    connection: ConnectionInfo | None = None
+    table: str | None = None
+
+
+def _leer(spec: SourceSpec, limite: int):
+    fuente = spec.model_dump()
+    fuente["connection"] = (spec.connection.model_dump() if spec.connection else {})
+    try:
+        return integraciones.leer_registros(fuente, limite)
+    except integraciones.ErrorDeFuente as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
+
+@app.post("/api/v1/integrations/profile")
+def profile_source(spec: SourceSpec):
+    """Lee una muestra, perfila las columnas y propone el mapeo hacia el modelo de equipo."""
+    registros = _leer(spec, integraciones.MAX_FILAS_PERFIL)
+    if not registros:
+        raise HTTPException(status_code=400, detail="La fuente no tiene registros.")
+    perfil = integraciones.perfilar(registros)
+    sugerencia = integraciones.sugerir_mapeo(perfil)
+    return {
+        "rows_read": len(registros),
+        "columns": perfil,
+        "suggestion": sugerencia,
+        "duplicate_keys": integraciones.duplicados(registros, sugerencia["key_column"]),
+        "preview": integraciones.a_json(registros[:5]),
+    }
+
+
+@app.post("/api/v1/integrations/extract")
+def extract_source(spec: SourceSpec):
+    """Devuelve los registros de la fuente (máximo 5000) para sincronizarlos en la API."""
+    registros = _leer(spec, integraciones.MAX_FILAS)
+    return {"rows": integraciones.a_json(registros), "truncated": len(registros) >= integraciones.MAX_FILAS}

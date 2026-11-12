@@ -25,6 +25,7 @@ import AssistantPage from "./pages/AssistantPage";
 import GlossaryPage from "./pages/GlossaryPage";
 import RentalPage from "./pages/RentalPage";
 import CalendarPage from "./pages/CalendarPage";
+import IntegrationsPage from "./pages/IntegrationsPage";
 import LandingPage from "./pages/LandingPage";
 function Layout() {
   return (
@@ -112,6 +113,7 @@ export default function App() {
 
         <Route element={<ProtectedRoute allowedRoles={["Administrador"]} />}>
           <Route path="/usuarios" element={<UsersPage />} />
+          <Route path="/integraciones" element={<IntegrationsPage />} />
           <Route path="/auditoria" element={<AuditPage />} />
         </Route>
 

@@ -237,6 +237,16 @@ namespace Backend.API.Data.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("ExternalAttributes")
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("ExternalId")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid?>("ExternalSourceId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("InternalCode")
                         .IsRequired()
                         .HasColumnType("text");
@@ -287,6 +297,10 @@ namespace Backend.API.Data.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("RentalContractId");
+
+                    b.HasIndex("ExternalSourceId", "ExternalId")
+                        .IsUnique()
+                        .HasFilter("\"ExternalSourceId\" IS NOT NULL");
 
                     b.HasIndex("OrganizationId", "InternalCode")
                         .IsUnique();
@@ -396,6 +410,72 @@ namespace Backend.API.Data.Migrations
                     b.HasIndex("Symptom");
 
                     b.ToTable("ErrorKnowledges");
+                });
+
+            modelBuilder.Entity("Backend.API.Models.ExternalSource", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("EncryptedConnection")
+                        .HasColumnType("text");
+
+                    b.Property<byte[]>("FileContent")
+                        .HasColumnType("bytea");
+
+                    b.Property<string>("FileName")
+                        .HasColumnType("text");
+
+                    b.Property<string>("KeyColumn")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime?>("LastSyncAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("LastSyncSummary")
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("MappingJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("SyncIntervalHours")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TableName")
+                        .HasMaxLength(130)
+                        .HasColumnType("character varying(130)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrganizationId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("ExternalSources");
                 });
 
             modelBuilder.Entity("Backend.API.Models.FailurePrediction", b =>

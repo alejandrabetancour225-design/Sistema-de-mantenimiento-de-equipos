@@ -325,6 +325,8 @@ builder.Services.AddScoped<IDiagnosisService, DiagnosisService>();
 builder.Services.AddScoped<IGlossaryService, GlossaryService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<ReminderJob>();
+builder.Services.AddHttpClient<IIntegrationService, IntegrationService>();
+builder.Services.AddScoped<IntegrationSyncJob>();
 
 // ---------- Tiempo real (SignalR) ----------
 builder.Services.AddSignalR();
@@ -528,6 +530,8 @@ if (jobsEnabled)
 {
     var recurring = app.Services.GetRequiredService<IRecurringJobManager>();
     recurring.AddOrUpdate<ReminderJob>("recordatorios-mantenimiento", job => job.RunAsync(), "15 * * * *",
+        new RecurringJobOptions { TimeZone = TimeZoneInfo.FindSystemTimeZoneById("America/Bogota") });
+    recurring.AddOrUpdate<IntegrationSyncJob>("sincronizar-integraciones", job => job.RunAsync(), "40 * * * *",
         new RecurringJobOptions { TimeZone = TimeZoneInfo.FindSystemTimeZoneById("America/Bogota") });
     // Una pasada al arrancar, para no esperar a la siguiente hora.
     app.Services.GetRequiredService<IBackgroundJobClient>().Enqueue<ReminderJob>(job => job.RunAsync());

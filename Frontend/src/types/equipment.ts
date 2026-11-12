@@ -40,6 +40,10 @@ export interface Equipment {
   allowsInternalPreventive?: boolean;
   replacesEquipmentId?: string | null;
   returnedAt?: string | null;
+  externalSourceId?: string | null;
+  externalId?: string | null;
+  externalAttributes?: Record<string, unknown> | null;
+  lockedFields?: string[];
 }
 
 export interface CreateEquipmentRequest {

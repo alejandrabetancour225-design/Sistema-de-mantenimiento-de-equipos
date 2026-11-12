@@ -218,6 +218,25 @@ export default function EquipoDetailPage() {
 
       {equipment.ownership === "RENTED" && <RentedEquipmentPanel equipment={equipment} role={role} />}
 
+      {equipment.externalSourceId && (
+        <section className="space-y-1 rounded border border-white/10 p-3 text-sm">
+          <h2 className="font-medium">Importado de la base de datos de la empresa</h2>
+          <p className="text-xs text-gray-400">
+            Registro externo {equipment.externalId}. Los datos sincronizados se corrigen en la fuente.
+          </p>
+          {equipment.externalAttributes && Object.keys(equipment.externalAttributes).length > 0 && (
+            <dl className="grid grid-cols-2 gap-x-4 text-xs md:grid-cols-3">
+              {Object.entries(equipment.externalAttributes).map(([k, v]) => (
+                <div key={k}>
+                  <dt className="text-gray-400">{k}</dt>
+                  <dd>{typeof v === "string" ? v : JSON.stringify(v)}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
+        </section>
+      )}
+
       {equipment.status !== "DECOMMISSIONED" && equipment.status !== "RETURNED" && (
         <MaintenancePlansPanel equipmentId={equipmentId} canManage={canManageComponents} />
       )}

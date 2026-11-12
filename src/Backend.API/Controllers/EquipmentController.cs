@@ -30,7 +30,7 @@ public class EquipmentController : ControllerBase
     [HttpGet("GetEquipmentById/{id:guid}")]
     public async Task<ActionResult<EquipmentResponse>> GetEquipmentById(Guid id)
     {
-        var equipment = await _equipmentService.GetByIdAsync(id, User.Id(), User.Role());
+        var equipment = await _equipmentService.GetByIdWithSourceAsync(id, User.Id(), User.Role());
         return equipment is null ? NotFound() : Ok(equipment);
     }
 
@@ -98,6 +98,8 @@ public class EquipmentController : ControllerBase
                 new { message = "Ya existe un equipo con ese número de serie." }),
             EquipmentActionStatus.InvalidDates => BadRequest(
                 new { message = "La fecha de fin de garantía no puede ser anterior a la fecha de compra." }),
+            EquipmentActionStatus.ExternalFieldLocked => Conflict(
+                new { message = "Ese dato se sincroniza desde la base de datos de la empresa: corrígelo en la fuente y sincroniza." }),
             EquipmentActionStatus.InvalidRentalContract => BadRequest(
                 new { message = "Para un equipo alquilado elige un contrato activo que tenga tarifa para ese tipo de equipo." }),
             EquipmentActionStatus.FutureAcquisitionDate => BadRequest(

@@ -162,6 +162,15 @@ Todos los cambios de estado pasan por [EquipmentStateMachine](src/Backend.API/Se
 - La tarea corre cada hora (minuto 15, Hangfire, guardada en Postgres en el esquema `hangfire`) y al arrancar. El Administrador puede forzarla con `POST /api/notifications/RunReminders`.
 - **Tiempo real (SignalR)**: cuando alguien de la empresa modifica datos, dashboard, calendario y listas se refrescan solos.
 
+### Integraciones con bases de datos de terceros (plan Integraciones)
+
+- Fuentes: **archivo** (CSV, Excel .xlsx o JSON, hasta 5 MB) o **conexión en vivo** a PostgreSQL, MySQL/MariaDB, SQL Server o MongoDB.
+- **Solo lectura**: las sesiones SQL se abren en modo de solo lectura, solo se ejecuta un `SELECT` sobre una tabla con nombre validado y se recomienda a la empresa crear un usuario de solo lectura. Nunca se escribe en la fuente.
+- `python-service` **perfila** los datos (tipos, vacíos, unicidad, ejemplos) y **propone el mapeo** hacia el modelo de equipo según el nombre y el contenido de cada columna (entiende formatos colombianos: fechas dd/mm/aaaa y precios 1.234.567). El Administrador lo confirma.
+- Los equipos importados quedan ligados a su fuente: los campos mapeados **no se editan** en la app (se corrigen en la fuente) y las columnas sin equivalente se guardan en **JSONB** (`ExternalAttributes`). Sincronización manual o cada N horas; una segunda sincronización actualiza, no duplica.
+- Decisión de diseño (Q4): la opción (a), JSONB dentro del mismo PostgreSQL, resolvió el caso; no hizo falta MongoDB ni crear tablas dinámicas.
+- Probado con CSV, Excel, JSON y PostgreSQL ([verificacion/fase6.sh](verificacion/fase6.sh), base de prueba en [verificacion/base-externa.sql](verificacion/base-externa.sql)). Los conectores de MySQL, SQL Server y MongoDB están instalados pero **no se probaron contra un servidor real**.
+
 ### Roles y permisos (se aplican en la API, no solo en la interfaz)
 
 | Módulo | Administrador | Técnico | Empleado | Gerente |

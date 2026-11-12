@@ -25,6 +25,11 @@ public class EquipmentResponse
     public bool AllowsInternalPreventive { get; set; }
     public Guid? ReplacesEquipmentId { get; set; }
     public DateTime? ReturnedAt { get; set; }
+    // Importado de una base de terceros: nombre de la fuente, campos bloqueados y columnas extra.
+    public Guid? ExternalSourceId { get; set; }
+    public string? ExternalId { get; set; }
+    public JsonElement? ExternalAttributes { get; set; }
+    public List<string> LockedFields { get; set; } = new();
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }

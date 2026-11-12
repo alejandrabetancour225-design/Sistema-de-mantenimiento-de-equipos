@@ -148,6 +148,26 @@ public class EquipmentService : IEquipmentService
         var internalCode = NormalizeIdentifier(request.InternalCode);
         var serialNumber = NormalizeIdentifier(request.SerialNumber);
 
+        // Q27: los campos mapeados desde una base de terceros se actualizan desde la fuente, no aquí.
+        var locked = await GetLockedFieldsAsync(equipment);
+        bool Changed(string field) => field switch
+        {
+            "internalCode" => internalCode != equipment.InternalCode,
+            "serialNumber" => serialNumber != equipment.SerialNumber,
+            "type" => request.Type.Trim() != equipment.Type,
+            "brand" => request.Brand.Trim() != equipment.Brand,
+            "model" => request.Model.Trim() != equipment.Model,
+            "location" => request.Location.Trim() != equipment.Location,
+            "acquisitionDate" => request.AcquisitionDate != equipment.AcquisitionDate,
+            "acquisitionPrice" => request.AcquisitionPrice != equipment.AcquisitionPrice,
+            "operatingSystem" => EmptyToNull(request.OperatingSystem) != equipment.OperatingSystem,
+            _ => false
+        };
+        if (locked.Any(Changed))
+        {
+            return new EquipmentResult(EquipmentActionStatus.ExternalFieldLocked, null);
+        }
+
         // Los campos de identidad solo los corrige un Administrador.
         var identityChanged = internalCode != equipment.InternalCode || serialNumber != equipment.SerialNumber;
         if (identityChanged && !isAdmin)
@@ -275,6 +295,35 @@ public class EquipmentService : IEquipmentService
         return EquipmentActionStatus.Success;
     }
 
+    private async Task<List<string>> GetLockedFieldsAsync(Equipment equipment)
+    {
+        if (equipment.ExternalSourceId is not { } sourceId)
+        {
+            return new List<string>();
+        }
+
+        var mapping = await _context.ExternalSources.AsNoTracking()
+            .Where(s => s.Id == sourceId && s.Active).Select(s => s.MappingJson).FirstOrDefaultAsync();
+        return mapping is null
+            ? new List<string>()
+            : (JsonSerializer.Deserialize<Dictionary<string, string>>(mapping) ?? new()).Keys.ToList();
+    }
+
+    public async Task<EquipmentResponse?> GetByIdWithSourceAsync(Guid id, Guid currentUserId, string? role)
+    {
+        var response = await GetByIdAsync(id, currentUserId, role);
+        if (response?.ExternalSourceId is { } sourceId)
+        {
+            var mapping = await _context.ExternalSources.AsNoTracking()
+                .Where(s => s.Id == sourceId && s.Active).Select(s => s.MappingJson).FirstOrDefaultAsync();
+            response.LockedFields = mapping is null
+                ? new List<string>()
+                : (JsonSerializer.Deserialize<Dictionary<string, string>>(mapping) ?? new()).Keys.ToList();
+        }
+
+        return response;
+    }
+
     private sealed record RentalResolution(RentalContract? Contract, EquipmentActionStatus? Error);
 
     // Valida el contrato de un equipo alquilado: debe existir (en la organización), estar activo
@@ -374,6 +423,9 @@ public class EquipmentService : IEquipmentService
             AllowsInternalPreventive = equipment.RentalContract?.AllowsInternalPreventive ?? false,
             ReplacesEquipmentId = equipment.ReplacesEquipmentId,
             ReturnedAt = equipment.ReturnedAt,
+            ExternalSourceId = equipment.ExternalSourceId,
+            ExternalId = equipment.ExternalId,
+            ExternalAttributes = ParseCharacteristics(equipment.ExternalAttributes),
             CreatedAt = equipment.CreatedAt,
             UpdatedAt = equipment.UpdatedAt
         };
