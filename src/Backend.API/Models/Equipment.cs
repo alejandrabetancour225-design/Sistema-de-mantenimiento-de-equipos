@@ -16,6 +16,15 @@ public class Equipment : IOrganizationScoped
     public DateOnly? WarrantyUntil { get; set; }
     public string Location { get; set; } = string.Empty;
     public EquipmentStatus Status { get; set; } = EquipmentStatus.AVAILABLE;
+
+    // Propio o alquilado. Si es alquilado pertenece a un contrato y su "fecha de adquisición"
+    // es el inicio del contrato (Q9).
+    public EquipmentOwnership Ownership { get; set; } = EquipmentOwnership.OWNED;
+    public Guid? RentalContractId { get; set; }
+    public RentalContract? RentalContract { get; set; }
+    // Equipo de reemplazo enviado por el arrendador: apunta al equipo que reemplaza.
+    public Guid? ReplacesEquipmentId { get; set; }
+    public DateTime? ReturnedAt { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 

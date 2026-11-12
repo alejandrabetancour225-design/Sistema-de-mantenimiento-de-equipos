@@ -18,7 +18,11 @@ public enum EquipmentActionStatus
     HasRelatedRecords,
     AlreadyDecommissioned,
     HasActiveAssignment,
-    HasOpenMaintenance
+    HasOpenMaintenance,
+    // Contrato de alquiler inexistente, terminado o sin tarifa para el tipo de equipo.
+    InvalidRentalContract,
+    // Un equipo alquilado se devuelve al arrendador, no se da de baja.
+    RentedCannotBeDecommissioned
 }
 
 public record EquipmentResult(EquipmentActionStatus Status, EquipmentResponse? Equipment);

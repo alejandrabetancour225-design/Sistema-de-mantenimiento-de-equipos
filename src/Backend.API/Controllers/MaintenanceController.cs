@@ -161,6 +161,8 @@ public class MaintenanceController : ControllerBase
             MaintenanceActionStatus.IncidentNotFound => NotFound(new { message = "La incidencia no existe." }),
             MaintenanceActionStatus.IncidentAlreadyLinked => Conflict(new { message = "La incidencia ya tiene un mantenimiento asociado." }),
             MaintenanceActionStatus.InvalidStatusTransition => BadRequest(new { message = "No se puede modificar un mantenimiento cerrado, cancelado o anulado. Si un mantenimiento cerrado tiene errores, anúlalo y registra uno nuevo." }),
+            MaintenanceActionStatus.RentedCorrectiveGoesToLessor => BadRequest(new { message = "Es un equipo alquilado: las fallas se reportan al arrendador con un reclamo (Alquiler → Reclamos)." }),
+            MaintenanceActionStatus.RentedPreventiveNotAllowed => BadRequest(new { message = "El contrato de alquiler de este equipo no permite mantenimiento preventivo interno." }),
             MaintenanceActionStatus.OnlyCompletedCanBeVoided => BadRequest(new { message = "Solo se puede anular un mantenimiento completado. Uno abierto se cancela." }),
             MaintenanceActionStatus.SparePartNotFound => NotFound(new { message = "El repuesto no existe." }),
             MaintenanceActionStatus.SparePartInactive => BadRequest(new { message = "El repuesto está inactivo." }),

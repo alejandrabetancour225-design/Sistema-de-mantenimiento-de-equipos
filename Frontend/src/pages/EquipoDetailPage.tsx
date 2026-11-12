@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { changeEquipmentStatus, deleteEquipment, getEquipmentById } from "../services/equipmentServices";
+import RentedEquipmentPanel from "../components/RentedEquipmentPanel";
 import { manualStatusActions, statusLockedReason, type StatusAction } from "../lib/equipmentTransitions";
 import { useAssignments } from "../hooks/useAssignments";
 import { useEquipmentComponents, useEquipmentIncidents } from "../hooks/useEquipmentDetail";
@@ -165,7 +166,7 @@ export default function EquipoDetailPage() {
       {canManageComponents && (
         <section className="space-y-2 rounded border p-3 text-sm">
           <h2 className="font-medium">Estado del equipo</h2>
-          {manualStatusActions(equipment.status, role).length === 0 ? (
+          {manualStatusActions(equipment.status, role, equipment.ownership).length === 0 ? (
             <p className="text-xs text-gray-600">
               Actual: <strong>{EQUIPMENT_STATUS_LABEL[equipment.status]}</strong>.{" "}
               {statusLockedReason(equipment.status)}
@@ -182,7 +183,7 @@ export default function EquipoDetailPage() {
               >
                 <option value="">Cambiar a...</option>
                 {/* R4: solo los cambios manuales que permite la regla maestra */}
-                {manualStatusActions(equipment.status, role).map((action) => (
+                {manualStatusActions(equipment.status, role, equipment.ownership).map((action) => (
                   <option key={action.target} value={action.target}>
                     {action.label}
                   </option>
@@ -191,7 +192,7 @@ export default function EquipoDetailPage() {
               <button
                 disabled={!newStatus || statusMutation.isPending}
                 onClick={() => {
-                  const action = manualStatusActions(equipment.status, role).find(
+                  const action = manualStatusActions(equipment.status, role, equipment.ownership).find(
                     (a) => a.target === newStatus
                   );
                   if (!action) return;
@@ -213,6 +214,8 @@ export default function EquipoDetailPage() {
           )}
         </section>
       )}
+
+      {equipment.ownership === "RENTED" && <RentedEquipmentPanel equipment={equipment} role={role} />}
 
       {/* Componentes */}
       <section className="space-y-3">

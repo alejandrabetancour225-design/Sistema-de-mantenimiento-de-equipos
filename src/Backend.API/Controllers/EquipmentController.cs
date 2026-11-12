@@ -80,6 +80,8 @@ public class EquipmentController : ControllerBase
                 new { message = "El equipo tiene un mantenimiento abierto. Ciérralo o cancélalo antes de darlo de baja." }),
             EquipmentActionStatus.InvalidStatusChange => Conflict(
                 new { message = "En su estado actual el equipo no se puede dar de baja." }),
+            EquipmentActionStatus.RentedCannotBeDecommissioned => Conflict(
+                new { message = "Un equipo alquilado no se da de baja: devuélvelo al arrendador." }),
             _ => StatusCode(StatusCodes.Status500InternalServerError)
         };
     }
@@ -96,6 +98,8 @@ public class EquipmentController : ControllerBase
                 new { message = "Ya existe un equipo con ese número de serie." }),
             EquipmentActionStatus.InvalidDates => BadRequest(
                 new { message = "La fecha de fin de garantía no puede ser anterior a la fecha de compra." }),
+            EquipmentActionStatus.InvalidRentalContract => BadRequest(
+                new { message = "Para un equipo alquilado elige un contrato activo que tenga tarifa para ese tipo de equipo." }),
             EquipmentActionStatus.FutureAcquisitionDate => BadRequest(
                 new { message = "La fecha de adquisición no puede ser posterior a hoy." }),
             EquipmentActionStatus.IdentityChangeForbidden => StatusCode(StatusCodes.Status403Forbidden,

@@ -48,8 +48,15 @@ export const equipmentSchema = z
     characteristics: z
       .array(z.object({ key: z.string().trim(), value: z.string().trim() }))
       .default([]),
+    // Alquilado: pertenece a un contrato; la fecha de adquisición es el inicio del contrato.
+    ownership: z.enum(["OWNED", "RENTED"]).default("OWNED"),
+    rentalContractId: z.string().optional(),
   })
   .superRefine((data, ctx) => {
+    if (data.ownership === "RENTED" && !data.rentalContractId) {
+      ctx.addIssue({ code: "custom", path: ["rentalContractId"], message: "Elige el contrato de alquiler." });
+    }
+    if (data.ownership === "RENTED") return; // fechas y precio los define el contrato
     if (data.acquisitionDate && data.acquisitionDate > todayInBogota()) {
       ctx.addIssue({
         code: "custom",

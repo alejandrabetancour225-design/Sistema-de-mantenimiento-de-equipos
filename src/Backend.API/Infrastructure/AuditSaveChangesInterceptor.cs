@@ -19,7 +19,7 @@ public sealed class AuditSaveChangesInterceptor : SaveChangesInterceptor
     private static readonly HashSet<string> EntitiesWithValues = new(StringComparer.Ordinal)
     {
         nameof(Equipment), nameof(EquipmentComponent), nameof(Assignment), nameof(Incident),
-        nameof(Maintenance), nameof(MaintenanceSparePart), nameof(SparePart), nameof(ErrorKnowledge), nameof(SlangTerm)
+        nameof(Maintenance), nameof(MaintenanceSparePart), nameof(SparePart), nameof(ErrorKnowledge), nameof(SlangTerm), nameof(Lessor), nameof(RentalContract), nameof(RentalRate), nameof(LessorClaim)
     };
 
     private const int MaxValueLength = 300;

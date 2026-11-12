@@ -18,6 +18,7 @@ import {
   type EquipmentFormValues,
 } from "../schemas/equipmentSchemas";
 import type { Equipment } from "../types/equipment";
+import { getContracts } from "../services/rentalServices";
 
 function toCharacteristicRows(characteristics: Equipment["characteristics"]) {
   if (!characteristics) return [];
@@ -52,13 +53,20 @@ export function EquipoFormPage() {
     handleSubmit,
     reset,
     control,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<EquipmentFormInput, unknown, EquipmentFormValues>({
     resolver: zodResolver(equipmentSchema),
-    defaultValues: { characteristics: [] },
+    defaultValues: { characteristics: [], ownership: "OWNED" },
   });
 
   const characteristics = useFieldArray({ control, name: "characteristics" });
+  const ownership = watch("ownership") ?? "OWNED";
+  const { data: contracts } = useQuery({ queryKey: ["rental-contracts"], queryFn: getContracts });
+  const activeContracts = (contracts ?? []).filter(
+    (c) => c.status === "ACTIVE" || c.id === existing?.rentalContractId
+  );
+  const selectedContract = activeContracts.find((c) => c.id === watch("rentalContractId"));
 
   useEffect(() => {
     if (existing) {
@@ -74,6 +82,8 @@ export function EquipoFormPage() {
         acquisitionPrice: existing.acquisitionPrice ?? "",
         warrantyUntil: existing.warrantyUntil ?? "",
         characteristics: toCharacteristicRows(existing.characteristics),
+        ownership: existing.ownership ?? "OWNED",
+        rentalContractId: existing.rentalContractId ?? "",
       });
     }
   }, [existing, reset]);
@@ -92,6 +102,8 @@ export function EquipoFormPage() {
         acquisitionPrice: values.acquisitionPrice ?? null,
         warrantyUntil: values.warrantyUntil ?? null,
         characteristics: toCharacteristicObject(values.characteristics),
+        ownership: values.ownership,
+        rentalContractId: values.ownership === "RENTED" ? values.rentalContractId ?? null : null,
       };
       return isEdit
         ? updateEquipment(id as string, payload)
@@ -102,6 +114,7 @@ export function EquipoFormPage() {
             acquisitionPrice: payload.acquisitionPrice ?? undefined,
             warrantyUntil: payload.warrantyUntil ?? undefined,
             characteristics: payload.characteristics ?? undefined,
+            rentalContractId: payload.rentalContractId ?? undefined,
           });
     },
     onSuccess: () => {
@@ -171,6 +184,36 @@ export function EquipoFormPage() {
       </Field>
 
       <div className="grid grid-cols-2 gap-4">
+        <Field label="Modalidad">
+          <select {...register("ownership")} className="input">
+            <option value="OWNED">Propio</option>
+            <option value="RENTED">Alquilado</option>
+          </select>
+        </Field>
+        {ownership === "RENTED" && (
+          <Field label="Contrato de alquiler" error={errors.rentalContractId?.message}>
+            <select {...register("rentalContractId")} className="input">
+              <option value="">Elige el contrato</option>
+              {activeContracts.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.contractNumber} · {c.lessorName}
+                </option>
+              ))}
+            </select>
+          </Field>
+        )}
+      </div>
+
+      {ownership === "RENTED" ? (
+        <p className="rounded bg-blue-500/10 p-2 text-xs text-blue-300">
+          En un equipo alquilado la fecha de adquisición es el inicio del contrato
+          {selectedContract ? ` (${selectedContract.startDate})` : ""} y no hay precio de compra ni garantía propia.
+          El tipo de equipo debe tener tarifa en el contrato
+          {selectedContract ? `: ${selectedContract.rates.map((r) => r.equipmentType).join(", ")}` : ""}.
+        </p>
+      ) : (
+      <>
+      <div className="grid grid-cols-2 gap-4">
         <Field label="Fecha de adquisición" error={errors.acquisitionDate?.message}>
           <input type="date" max={today} {...register("acquisitionDate")} className="input" />
         </Field>
@@ -182,6 +225,8 @@ export function EquipoFormPage() {
       <Field label="Garantía hasta" error={errors.warrantyUntil?.message}>
         <input type="date" {...register("warrantyUntil")} className="input" />
       </Field>
+      </>
+      )}
 
       <div>
         <div className="flex items-center justify-between">

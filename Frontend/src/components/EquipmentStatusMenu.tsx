@@ -35,7 +35,7 @@ export default function EquipmentStatusMenu({
   if (!canChange) return <StatusBadge status={equipment.status} />;
 
   // R4: solo se ofrecen los cambios manuales que la regla maestra permite.
-  const options = manualStatusActions(equipment.status, role);
+  const options = manualStatusActions(equipment.status, role, equipment.ownership);
   if (options.length === 0) {
     return (
       <span title={statusLockedReason(equipment.status) ?? undefined}>

@@ -156,7 +156,7 @@ export function EquipoListPage() {
                     <Link to={`/equipos/${eq.id}/editar`} className="text-blue-600">
                       Editar
                     </Link>
-                    {manualStatusActions(eq.status, role).some((a) => a.kind === "decommission") && (
+                    {manualStatusActions(eq.status, role, eq.ownership).some((a) => a.kind === "decommission") && (
                       <button onClick={() => handleDelete(eq.id)} className="text-red-600">
                         Dar de baja
                       </button>

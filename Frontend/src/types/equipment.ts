@@ -3,7 +3,10 @@ export type EquipmentStatus =
   | "IN_USE"
   | "UNDER_MAINTENANCE"
   | "OUT_OF_SERVICE"
-  | "DECOMMISSIONED";
+  | "DECOMMISSIONED"
+  | "RETURNED";
+
+export type EquipmentOwnership = "OWNED" | "RENTED";
 
 export const EQUIPMENT_STATUS_LABEL: Record<EquipmentStatus, string> = {
   AVAILABLE: "Disponible",
@@ -11,6 +14,7 @@ export const EQUIPMENT_STATUS_LABEL: Record<EquipmentStatus, string> = {
   UNDER_MAINTENANCE: "En mantenimiento",
   OUT_OF_SERVICE: "Fuera de servicio",
   DECOMMISSIONED: "Dado de baja",
+  RETURNED: "Devuelto al arrendador",
 };
 
 export interface Equipment {
@@ -29,6 +33,13 @@ export interface Equipment {
   createdAt: string;
   updatedAt: string;
   operatingSystem?: string | null;
+  ownership: EquipmentOwnership;
+  rentalContractId?: string | null;
+  contractNumber?: string | null;
+  lessorName?: string | null;
+  allowsInternalPreventive?: boolean;
+  replacesEquipmentId?: string | null;
+  returnedAt?: string | null;
 }
 
 export interface CreateEquipmentRequest {
@@ -44,6 +55,8 @@ export interface CreateEquipmentRequest {
   location: string;
   status?: EquipmentStatus;
   operatingSystem?: string;
+  ownership?: EquipmentOwnership;
+  rentalContractId?: string;
 }
 
 // PUT = reemplazo completo: los campos opcionales en null se vacían. El estado no se cambia aquí.
@@ -59,4 +72,6 @@ export interface UpdateEquipmentRequest {
   warrantyUntil: string | null;
   location: string;
   operatingSystem: string | null;
+  ownership: EquipmentOwnership;
+  rentalContractId: string | null;
 }

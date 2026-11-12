@@ -255,6 +255,18 @@ namespace Backend.API.Data.Migrations
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uuid");
 
+                    b.Property<int>("Ownership")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("RentalContractId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ReplacesEquipmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ReturnedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("SerialNumber")
                         .IsRequired()
                         .HasColumnType("text");
@@ -273,6 +285,8 @@ namespace Backend.API.Data.Migrations
                         .HasColumnType("date");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("RentalContractId");
 
                     b.HasIndex("OrganizationId", "InternalCode")
                         .IsUnique();
@@ -468,6 +482,108 @@ namespace Backend.API.Data.Migrations
                     b.ToTable("Incidents");
                 });
 
+            modelBuilder.Entity("Backend.API.Models.Lessor", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("ContactEmail")
+                        .IsRequired()
+                        .HasMaxLength(254)
+                        .HasColumnType("character varying(254)");
+
+                    b.Property<string>("ContactName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ContactPhone")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("TaxId")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrganizationId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("Lessors");
+                });
+
+            modelBuilder.Entity("Backend.API.Models.LessorClaim", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ContractId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<Guid>("EquipmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("IncidentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("LessorResponse")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTime?>("NotifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ContractId");
+
+                    b.HasIndex("EquipmentId");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("LessorClaims");
+                });
+
             modelBuilder.Entity("Backend.API.Models.Maintenance", b =>
                 {
                     b.Property<Guid>("Id")
@@ -658,6 +774,85 @@ namespace Backend.API.Data.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("PasswordResetCodes");
+                });
+
+            modelBuilder.Entity("Backend.API.Models.RentalContract", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("AllowsInternalPreventive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("ContractNumber")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateOnly>("EndDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime?>("ExpiryNotifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("LessorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly>("StartDate")
+                        .HasColumnType("date");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EndDate");
+
+                    b.HasIndex("LessorId");
+
+                    b.HasIndex("OrganizationId", "ContractNumber")
+                        .IsUnique();
+
+                    b.ToTable("RentalContracts");
+                });
+
+            modelBuilder.Entity("Backend.API.Models.RentalRate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ContractId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("EquipmentType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<decimal>("MonthlyRate")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ContractId", "EquipmentType")
+                        .IsUnique();
+
+                    b.ToTable("RentalRates");
                 });
 
             modelBuilder.Entity("Backend.API.Models.Role", b =>
@@ -922,6 +1117,13 @@ namespace Backend.API.Data.Migrations
                         .HasForeignKey("OrganizationId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("Backend.API.Models.RentalContract", "RentalContract")
+                        .WithMany("Equipment")
+                        .HasForeignKey("RentalContractId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("RentalContract");
                 });
 
             modelBuilder.Entity("Backend.API.Models.EquipmentComponent", b =>
@@ -973,6 +1175,25 @@ namespace Backend.API.Data.Migrations
                     b.Navigation("Equipment");
 
                     b.Navigation("Reporter");
+                });
+
+            modelBuilder.Entity("Backend.API.Models.LessorClaim", b =>
+                {
+                    b.HasOne("Backend.API.Models.RentalContract", "Contract")
+                        .WithMany()
+                        .HasForeignKey("ContractId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Backend.API.Models.Equipment", "Equipment")
+                        .WithMany()
+                        .HasForeignKey("EquipmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Contract");
+
+                    b.Navigation("Equipment");
                 });
 
             modelBuilder.Entity("Backend.API.Models.Maintenance", b =>
@@ -1031,6 +1252,28 @@ namespace Backend.API.Data.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Backend.API.Models.RentalContract", b =>
+                {
+                    b.HasOne("Backend.API.Models.Lessor", "Lessor")
+                        .WithMany("Contracts")
+                        .HasForeignKey("LessorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Lessor");
+                });
+
+            modelBuilder.Entity("Backend.API.Models.RentalRate", b =>
+                {
+                    b.HasOne("Backend.API.Models.RentalContract", "Contract")
+                        .WithMany("Rates")
+                        .HasForeignKey("ContractId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Contract");
+                });
+
             modelBuilder.Entity("Backend.API.Models.User", b =>
                 {
                     b.HasOne("Backend.API.Models.Organization", null)
@@ -1062,9 +1305,21 @@ namespace Backend.API.Data.Migrations
                     b.Navigation("Maintenance");
                 });
 
+            modelBuilder.Entity("Backend.API.Models.Lessor", b =>
+                {
+                    b.Navigation("Contracts");
+                });
+
             modelBuilder.Entity("Backend.API.Models.Maintenance", b =>
                 {
                     b.Navigation("SpareParts");
+                });
+
+            modelBuilder.Entity("Backend.API.Models.RentalContract", b =>
+                {
+                    b.Navigation("Equipment");
+
+                    b.Navigation("Rates");
                 });
 
             modelBuilder.Entity("Backend.API.Models.Role", b =>

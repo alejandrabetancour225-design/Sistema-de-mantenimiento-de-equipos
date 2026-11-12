@@ -92,7 +92,7 @@ public class MaintenanceService : IMaintenanceService
             return new MaintenanceResult(MaintenanceActionStatus.InvalidDates, null);
         }
 
-        var preconditionError = await ValidateCanOpenMaintenanceAsync(equipment, incident);
+        var preconditionError = await ValidateCanOpenMaintenanceAsync(equipment, incident, request.Type);
         if (preconditionError is not null)
         {
             return new MaintenanceResult(preconditionError.Value, null);
@@ -143,7 +143,7 @@ public class MaintenanceService : IMaintenanceService
             return technicianResult;
         }
 
-        var preconditionError = await ValidateCanOpenMaintenanceAsync(incident.Equipment, incident);
+        var preconditionError = await ValidateCanOpenMaintenanceAsync(incident.Equipment, incident, MaintenanceType.CORRECTIVE);
         if (preconditionError is not null)
         {
             return new MaintenanceResult(preconditionError.Value, null);
@@ -534,11 +534,18 @@ public class MaintenanceService : IMaintenanceService
 
     // Reglas para abrir un mantenimiento: equipo no dado de baja, sin otro mantenimiento abierto,
     // e incidencia (si hay) abierta y sin mantenimiento previo.
-    private async Task<MaintenanceActionStatus?> ValidateCanOpenMaintenanceAsync(Equipment equipment, Incident? incident)
+    private async Task<MaintenanceActionStatus?> ValidateCanOpenMaintenanceAsync(Equipment equipment, Incident? incident,
+        MaintenanceType type)
     {
-        if (equipment.Status == EquipmentStatus.DECOMMISSIONED)
+        if (equipment.Status is EquipmentStatus.DECOMMISSIONED or EquipmentStatus.RETURNED)
         {
             return MaintenanceActionStatus.EquipmentDecommissioned;
+        }
+
+        var rentalError = await ValidateRentedMaintenanceAsync(equipment, type);
+        if (rentalError is not null)
+        {
+            return rentalError;
         }
 
         if (incident is not null)
@@ -559,6 +566,25 @@ public class MaintenanceService : IMaintenanceService
             && (m.Status == MaintenanceStatus.OPEN || m.Status == MaintenanceStatus.IN_PROGRESS));
 
         return hasOpenMaintenance ? MaintenanceActionStatus.EquipmentHasOpenMaintenance : null;
+    }
+
+    // Equipo alquilado (Q31): las fallas (correctivo) se comunican al arrendador con un reclamo;
+    // el preventivo interno solo si el contrato lo permite.
+    private async Task<MaintenanceActionStatus?> ValidateRentedMaintenanceAsync(Equipment equipment, MaintenanceType type)
+    {
+        if (equipment.Ownership != EquipmentOwnership.RENTED)
+        {
+            return null;
+        }
+
+        if (type == MaintenanceType.CORRECTIVE)
+        {
+            return MaintenanceActionStatus.RentedCorrectiveGoesToLessor;
+        }
+
+        var allowsPreventive = await _context.RentalContracts
+            .AnyAsync(c => c.Id == equipment.RentalContractId && c.AllowsInternalPreventive);
+        return allowsPreventive ? null : MaintenanceActionStatus.RentedPreventiveNotAllowed;
     }
 
     // Guarda el mantenimiento nuevo, pone el equipo en mantenimiento y la incidencia en progreso.
@@ -706,6 +732,10 @@ public class MaintenanceService : IMaintenanceService
 
         if (equipment.Status == EquipmentStatus.DECOMMISSIONED)
             return new MaintenanceResult(MaintenanceActionStatus.InvalidStatusTransition, null);
+
+        var rentalError = await ValidateRentedMaintenanceAsync(equipment, MaintenanceType.PREVENTIVE);
+        if (rentalError is not null)
+            return new MaintenanceResult(rentalError.Value, null);
 
         // 2. Verificar que no haya mantenimiento abierto
         var hasOpen = await _context.Maintenances.AnyAsync(m =>

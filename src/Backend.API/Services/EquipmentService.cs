@@ -27,7 +27,8 @@ public class EquipmentService : IEquipmentService
                 a.UserId == currentUserId && a.Status == AssignmentStatus.ACTIVE));
         }
 
-        var equipments = await query.OrderBy(e => e.InternalCode).ToListAsync();
+        var equipments = await query.Include(e => e.RentalContract).ThenInclude(c => c!.Lessor)
+            .OrderBy(e => e.InternalCode).ToListAsync();
         return equipments.Select(Map).ToList();
     }
 
@@ -40,6 +41,7 @@ public class EquipmentService : IEquipmentService
 
         var equipment = await _context.Equipments
             .AsNoTracking()
+            .Include(e => e.RentalContract).ThenInclude(c => c!.Lessor)
             .FirstOrDefaultAsync(e => e.Id == id);
 
         return equipment is null ? null : Map(equipment);
@@ -68,7 +70,18 @@ public class EquipmentService : IEquipmentService
         var internalCode = NormalizeIdentifier(request.InternalCode);
         var serialNumber = NormalizeIdentifier(request.SerialNumber);
 
-        var dateError = ValidateDates(request.AcquisitionDate, request.WarrantyUntil);
+        var rental = await ResolveRentalAsync(request.Ownership, request.RentalContractId, request.Type);
+        if (rental.Error is not null)
+        {
+            return new EquipmentResult(rental.Error.Value, null);
+        }
+
+        // Alquilado: la "compra" es el inicio del contrato; no hay precio ni garantía propios.
+        var acquisitionDate = rental.Contract?.StartDate ?? request.AcquisitionDate;
+        var acquisitionPrice = rental.Contract is null ? request.AcquisitionPrice : null;
+        var warrantyUntil = rental.Contract is null ? request.WarrantyUntil : null;
+
+        var dateError = rental.Contract is null ? ValidateDates(acquisitionDate, warrantyUntil) : null;
         if (dateError is not null)
         {
             return new EquipmentResult(dateError.Value, null);
@@ -102,11 +115,13 @@ public class EquipmentService : IEquipmentService
             Model = request.Model.Trim(),
             Characteristics = HasJsonValue(request.Characteristics) ? request.Characteristics!.Value.GetRawText() : null,
             OperatingSystem = EmptyToNull(request.OperatingSystem),
-            AcquisitionDate = request.AcquisitionDate,
-            AcquisitionPrice = request.AcquisitionPrice,
-            WarrantyUntil = request.WarrantyUntil,
+            AcquisitionDate = acquisitionDate,
+            AcquisitionPrice = acquisitionPrice,
+            WarrantyUntil = warrantyUntil,
             Location = request.Location.Trim(),
             Status = initialStatus,
+            Ownership = request.Ownership,
+            RentalContractId = rental.Contract?.Id,
             CreatedAt = now,
             UpdatedAt = now
         };
@@ -140,7 +155,15 @@ public class EquipmentService : IEquipmentService
             return new EquipmentResult(EquipmentActionStatus.IdentityChangeForbidden, null);
         }
 
-        var dateError = ValidateDates(request.AcquisitionDate, request.WarrantyUntil);
+        var rental = await ResolveRentalAsync(request.Ownership, request.RentalContractId, request.Type,
+            keepContractId: equipment.RentalContractId);
+        if (rental.Error is not null)
+        {
+            return new EquipmentResult(rental.Error.Value, null);
+        }
+
+        var acquisitionDate = rental.Contract?.StartDate ?? request.AcquisitionDate;
+        var dateError = rental.Contract is null ? ValidateDates(acquisitionDate, request.WarrantyUntil) : null;
         if (dateError is not null)
         {
             return new EquipmentResult(dateError.Value, null);
@@ -165,9 +188,11 @@ public class EquipmentService : IEquipmentService
         equipment.Model = request.Model.Trim();
         equipment.Characteristics = HasJsonValue(request.Characteristics) ? request.Characteristics!.Value.GetRawText() : null;
         equipment.OperatingSystem = EmptyToNull(request.OperatingSystem);
-        equipment.AcquisitionDate = request.AcquisitionDate;
-        equipment.AcquisitionPrice = request.AcquisitionPrice;
-        equipment.WarrantyUntil = request.WarrantyUntil;
+        equipment.AcquisitionDate = acquisitionDate;
+        equipment.AcquisitionPrice = rental.Contract is null ? request.AcquisitionPrice : null;
+        equipment.WarrantyUntil = rental.Contract is null ? request.WarrantyUntil : null;
+        equipment.Ownership = request.Ownership;
+        equipment.RentalContractId = rental.Contract?.Id;
         equipment.Location = request.Location.Trim();
         equipment.UpdatedAt = DateTime.UtcNow;
 
@@ -220,6 +245,11 @@ public class EquipmentService : IEquipmentService
             return EquipmentActionStatus.AlreadyDecommissioned;
         }
 
+        if (equipment.Ownership == EquipmentOwnership.RENTED)
+        {
+            return EquipmentActionStatus.RentedCannotBeDecommissioned;
+        }
+
         // No se puede dar de baja un equipo que está en manos de alguien.
         var hasActiveAssignment = equipment.Assignments?
             .Any(a => a.Status == AssignmentStatus.ACTIVE) == true;
@@ -243,6 +273,35 @@ public class EquipmentService : IEquipmentService
 
         await _context.SaveChangesAsync();
         return EquipmentActionStatus.Success;
+    }
+
+    private sealed record RentalResolution(RentalContract? Contract, EquipmentActionStatus? Error);
+
+    // Valida el contrato de un equipo alquilado: debe existir (en la organización), estar activo
+    // y tener tarifa para el tipo de equipo. Al editar se acepta el contrato actual aunque ya haya terminado.
+    private async Task<RentalResolution> ResolveRentalAsync(EquipmentOwnership ownership, Guid? contractId, string type,
+        Guid? keepContractId = null)
+    {
+        if (ownership == EquipmentOwnership.OWNED)
+        {
+            return new RentalResolution(null, null);
+        }
+
+        if (contractId is null)
+        {
+            return new RentalResolution(null, EquipmentActionStatus.InvalidRentalContract);
+        }
+
+        var contract = await _context.RentalContracts.Include(c => c.Rates).Include(c => c.Lessor)
+            .FirstOrDefaultAsync(c => c.Id == contractId);
+        var typeHasRate = contract?.Rates?.Any(r => string.Equals(r.EquipmentType, type.Trim(), StringComparison.OrdinalIgnoreCase)) == true;
+        var usable = contract is not null
+            && (contract.Status == RentalContractStatus.ACTIVE || contract.Id == keepContractId)
+            && typeHasRate;
+
+        return usable
+            ? new RentalResolution(contract, null)
+            : new RentalResolution(null, EquipmentActionStatus.InvalidRentalContract);
     }
 
     private static EquipmentActionStatus? ValidateDates(DateOnly? acquisitionDate, DateOnly? warrantyUntil)
@@ -308,6 +367,13 @@ public class EquipmentService : IEquipmentService
             WarrantyUntil = equipment.WarrantyUntil,
             Location = equipment.Location,
             Status = equipment.Status,
+            Ownership = equipment.Ownership,
+            RentalContractId = equipment.RentalContractId,
+            ContractNumber = equipment.RentalContract?.ContractNumber,
+            LessorName = equipment.RentalContract?.Lessor?.Name,
+            AllowsInternalPreventive = equipment.RentalContract?.AllowsInternalPreventive ?? false,
+            ReplacesEquipmentId = equipment.ReplacesEquipmentId,
+            ReturnedAt = equipment.ReturnedAt,
             CreatedAt = equipment.CreatedAt,
             UpdatedAt = equipment.UpdatedAt
         };

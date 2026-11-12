@@ -13,7 +13,8 @@ public enum EquipmentTransition
     CloseMaintenance,
     CancelMaintenance,
     Manual,
-    Decommission
+    Decommission,
+    Return
 }
 
 // R4 – Regla maestra de transiciones de estado (HU-06).
@@ -26,14 +27,15 @@ public enum EquipmentTransition
 //   Cancelar/eliminar     UNDER_MAINTENANCE                 -> estado de reposo
 //   Manual                AVAILABLE | IN_USE                -> OUT_OF_SERVICE
 //                         OUT_OF_SERVICE                    -> estado de reposo
-//   Dar de baja (Admin)   AVAILABLE | OUT_OF_SERVICE        -> DECOMMISSIONED (terminal)
+//   Dar de baja (Admin)   AVAILABLE | OUT_OF_SERVICE        -> DECOMMISSIONED (terminal, solo propios)
+//   Devolver (alquilado)  AVAILABLE | OUT_OF_SERVICE        -> RETURNED (terminal)
 //
 // "Estado de reposo" = IN_USE si el equipo tiene una asignación activa, AVAILABLE si no.
 public static class EquipmentStateMachine
 {
     public static bool IsAllowed(EquipmentStatus from, EquipmentStatus to, EquipmentTransition trigger)
     {
-        if (from == EquipmentStatus.DECOMMISSIONED)
+        if (from is EquipmentStatus.DECOMMISSIONED or EquipmentStatus.RETURNED)
         {
             return false;
         }
@@ -65,6 +67,10 @@ public static class EquipmentStateMachine
             EquipmentTransition.Decommission =>
                 from is EquipmentStatus.AVAILABLE or EquipmentStatus.OUT_OF_SERVICE
                 && to == EquipmentStatus.DECOMMISSIONED,
+
+            EquipmentTransition.Return =>
+                from is EquipmentStatus.AVAILABLE or EquipmentStatus.OUT_OF_SERVICE
+                && to == EquipmentStatus.RETURNED,
 
             _ => false
         };

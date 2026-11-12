@@ -10,7 +10,11 @@ export interface StatusAction {
   kind: "status" | "decommission";
 }
 
-export function manualStatusActions(status: EquipmentStatus, role: Role | null): StatusAction[] {
+export function manualStatusActions(
+  status: EquipmentStatus,
+  role: Role | null,
+  ownership: "OWNED" | "RENTED" = "OWNED"
+): StatusAction[] {
   const isAdmin = role === "Administrador";
   const actions: StatusAction[] = [];
 
@@ -21,7 +25,8 @@ export function manualStatusActions(status: EquipmentStatus, role: Role | null):
     // La API decide si vuelve a Disponible o En uso según la asignación activa.
     actions.push({ target: "AVAILABLE", label: "Devolver a servicio", kind: "status" });
   }
-  if (isAdmin && (status === "AVAILABLE" || status === "OUT_OF_SERVICE")) {
+  // Un equipo alquilado no se da de baja: se devuelve al arrendador (página Alquiler / detalle).
+  if (isAdmin && ownership === "OWNED" && (status === "AVAILABLE" || status === "OUT_OF_SERVICE")) {
     actions.push({ target: "DECOMMISSIONED", label: "Dar de baja", kind: "decommission" });
   }
   return actions;
@@ -33,6 +38,8 @@ export function statusLockedReason(status: EquipmentStatus): string | null {
       return "Cambia solo al cerrar o cancelar el mantenimiento abierto.";
     case "DECOMMISSIONED":
       return "Un equipo dado de baja no vuelve a servicio.";
+    case "RETURNED":
+      return "Equipo devuelto al arrendador.";
     case "IN_USE":
       return "Para dejarlo Disponible, libera su asignación.";
     default:

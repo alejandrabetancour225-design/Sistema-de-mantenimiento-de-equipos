@@ -18,6 +18,10 @@ public class AppDbContext : DbContext
     public Guid? CurrentOrganizationId => _tenant?.OrganizationId;
 
     public DbSet<Organization> Organizations => Set<Organization>();
+    public DbSet<Lessor> Lessors => Set<Lessor>();
+    public DbSet<RentalContract> RentalContracts => Set<RentalContract>();
+    public DbSet<RentalRate> RentalRates => Set<RentalRate>();
+    public DbSet<LessorClaim> LessorClaims => Set<LessorClaim>();
 
     public DbSet<User> Users => Set<User>();
     public DbSet<Role> Roles => Set<Role>();
@@ -104,6 +108,9 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<AIDiagnosis>().HasQueryFilter(e => CurrentOrganizationId == null || e.OrganizationId == CurrentOrganizationId);
         modelBuilder.Entity<FailurePrediction>().HasQueryFilter(e => CurrentOrganizationId == null || e.OrganizationId == CurrentOrganizationId);
         modelBuilder.Entity<AIFeedback>().HasQueryFilter(e => CurrentOrganizationId == null || e.OrganizationId == CurrentOrganizationId);
+        modelBuilder.Entity<Lessor>().HasQueryFilter(e => CurrentOrganizationId == null || e.OrganizationId == CurrentOrganizationId);
+        modelBuilder.Entity<RentalContract>().HasQueryFilter(e => CurrentOrganizationId == null || e.OrganizationId == CurrentOrganizationId);
+        modelBuilder.Entity<LessorClaim>().HasQueryFilter(e => CurrentOrganizationId == null || e.OrganizationId == CurrentOrganizationId);
         modelBuilder.Entity<User>().HasQueryFilter(u => CurrentOrganizationId == null || u.OrganizationId == CurrentOrganizationId);
         modelBuilder.Entity<AuditLog>().HasQueryFilter(a => CurrentOrganizationId == null || a.OrganizationId == CurrentOrganizationId);
         // Glosario: las expresiones base (sin organización) las ven todas las empresas.
@@ -126,6 +133,8 @@ public class AppDbContext : DbContext
             entity.HasIndex(e => new { e.OrganizationId, e.InternalCode }).IsUnique();
             entity.HasIndex(e => new { e.OrganizationId, e.SerialNumber }).IsUnique();
             entity.HasOne<Organization>().WithMany().HasForeignKey(e => e.OrganizationId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(e => e.RentalContract).WithMany(c => c.Equipment!).HasForeignKey(e => e.RentalContractId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(e => e.RentalContractId);
             entity.Property(e => e.Characteristics).HasColumnType("jsonb");
         });
 
@@ -248,6 +257,39 @@ public class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade);
             entity.HasIndex(c => c.UserId);
             entity.HasIndex(c => c.ExpiresAt);
+        });
+
+        modelBuilder.Entity<Lessor>(entity =>
+        {
+            entity.Property(l => l.Name).HasMaxLength(150);
+            entity.Property(l => l.ContactEmail).HasMaxLength(254);
+            entity.HasIndex(l => new { l.OrganizationId, l.Name }).IsUnique();
+        });
+
+        modelBuilder.Entity<RentalContract>(entity =>
+        {
+            entity.Property(c => c.ContractNumber).HasMaxLength(60);
+            entity.HasIndex(c => new { c.OrganizationId, c.ContractNumber }).IsUnique();
+            entity.HasIndex(c => c.EndDate);
+            entity.HasOne(c => c.Lessor).WithMany(l => l.Contracts!).HasForeignKey(c => c.LessorId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<RentalRate>(entity =>
+        {
+            entity.Property(r => r.EquipmentType).HasMaxLength(100);
+            entity.Property(r => r.MonthlyRate).HasPrecision(18, 2);
+            entity.HasIndex(r => new { r.ContractId, r.EquipmentType }).IsUnique();
+            entity.HasOne(r => r.Contract).WithMany(c => c.Rates!).HasForeignKey(r => r.ContractId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<LessorClaim>(entity =>
+        {
+            entity.Property(c => c.Description).HasMaxLength(2000);
+            entity.Property(c => c.LessorResponse).HasMaxLength(2000);
+            entity.HasIndex(c => c.EquipmentId);
+            entity.HasIndex(c => c.Status);
+            entity.HasOne(c => c.Equipment).WithMany().HasForeignKey(c => c.EquipmentId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(c => c.Contract).WithMany().HasForeignKey(c => c.ContractId).OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<SlangTerm>(entity =>

@@ -112,6 +112,11 @@ export default function Sidebar() {
               Usuarios
             </Link>
           )}
+          {(canManageEquipment || role === "Gerente") && (
+            <Link to="/alquiler" className={linkClass("/alquiler")}>
+              Alquiler
+            </Link>
+          )}
           {canSeeDashboard && (
             <Link to="/reportes" className={linkClass("/reportes")}>
               Reportes

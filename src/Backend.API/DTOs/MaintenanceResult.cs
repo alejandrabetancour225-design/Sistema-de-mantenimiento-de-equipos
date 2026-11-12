@@ -31,7 +31,11 @@ public enum MaintenanceActionStatus
     // Un mantenimiento completado forma parte del historial y no se borra.
     CannotDeleteCompleted,
     // Solo un mantenimiento completado se puede anular.
-    OnlyCompletedCanBeVoided
+    OnlyCompletedCanBeVoided,
+    // Equipo alquilado: una falla se reporta al arrendador (reclamo), no se repara internamente.
+    RentedCorrectiveGoesToLessor,
+    // Equipo alquilado cuyo contrato no permite mantenimiento preventivo interno.
+    RentedPreventiveNotAllowed
 }
 
 public record MaintenanceResult(MaintenanceActionStatus Status, MaintenanceResponse? Maintenance);

@@ -46,4 +46,11 @@ public class CreateEquipmentRequest
 
     [EnumDataType(typeof(EquipmentStatus))]
     public EquipmentStatus? Status { get; set; }
+
+    // Propio (OWNED) o alquilado (RENTED). Si es alquilado, RentalContractId es obligatorio, el tipo
+    // debe tener tarifa en el contrato y la fecha de adquisición pasa a ser el inicio del contrato.
+    [EnumDataType(typeof(EquipmentOwnership))]
+    public EquipmentOwnership Ownership { get; set; } = EquipmentOwnership.OWNED;
+
+    public Guid? RentalContractId { get; set; }
 }
