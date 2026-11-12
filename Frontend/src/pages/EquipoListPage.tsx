@@ -6,6 +6,8 @@ import { deleteEquipment } from "../services/equipmentServices";
 import { EQUIPMENT_STATUS_LABEL, type EquipmentStatus } from "../types/equipment";
 import { useAuth } from "../context/authContext";
 import EquipmentStatusMenu from "../components/EquipmentStatusMenu";
+import { getApiErrorMessage } from "../lib/errors";
+import { manualStatusActions } from "../lib/equipmentTransitions";
 
 // Solo Administrador y Técnico pueden crear/editar/dar de baja equipos
 // (mismo criterio que el backend en los endpoints Post/Put/Delete).
@@ -18,6 +20,13 @@ export function EquipoListPage() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<EquipmentStatus | "">("");
+  const [typeFilter, setTypeFilter] = useState("");
+  const [locationFilter, setLocationFilter] = useState("");
+
+  const distinct = (values: string[]) =>
+    [...new Set(values.filter(Boolean))].sort((a, b) => a.localeCompare(b, "es"));
+  const types = useMemo(() => distinct((data ?? []).map((e) => e.type)), [data]);
+  const locations = useMemo(() => distinct((data ?? []).map((e) => e.location)), [data]);
 
   const deleteMutation = useMutation({
     mutationFn: deleteEquipment,
@@ -28,19 +37,23 @@ export function EquipoListPage() {
   // así que se filtra en cliente mientras se agregan en el backend.
   const filtered = useMemo(() => {
     if (!data) return [];
+    const q = search.trim().toLowerCase();
     return data.filter((eq) => {
       const matchesSearch =
-        !search ||
-        eq.internalCode.toLowerCase().includes(search.toLowerCase()) ||
-        eq.serialNumber.toLowerCase().includes(search.toLowerCase()) ||
-        eq.brand.toLowerCase().includes(search.toLowerCase());
+        !q ||
+        eq.internalCode.toLowerCase().includes(q) ||
+        eq.serialNumber.toLowerCase().includes(q) ||
+        eq.brand.toLowerCase().includes(q) ||
+        eq.model.toLowerCase().includes(q);
       const matchesStatus = !statusFilter || eq.status === statusFilter;
-      return matchesSearch && matchesStatus;
+      const matchesType = !typeFilter || eq.type === typeFilter;
+      const matchesLocation = !locationFilter || eq.location === locationFilter;
+      return matchesSearch && matchesStatus && matchesType && matchesLocation;
     });
-  }, [data, search, statusFilter]);
+  }, [data, search, statusFilter, typeFilter, locationFilter]);
 
   function handleDelete(id: string) {
-    if (!confirm("¿Dar de baja este equipo?")) return;
+    if (!confirm("Dar de baja un equipo es definitivo: no podrá volver a servicio. ¿Continuar?")) return;
     deleteMutation.mutate(id);
   }
 
@@ -61,9 +74,9 @@ export function EquipoListPage() {
           </Link>
         )}
        </div>
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <input
-          placeholder="Buscar por código, serie o marca..."
+          placeholder="Buscar por código, serie, marca o modelo..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="rounded border px-3 py-2"
@@ -80,7 +93,35 @@ export function EquipoListPage() {
             </option>
           ))}
         </select>
+        <select
+          value={typeFilter}
+          onChange={(e) => setTypeFilter(e.target.value)}
+          className="rounded border px-3 py-2"
+        >
+          <option value="">Todos los tipos</option>
+          {types.map((t) => (
+            <option key={t} value={t}>
+              {t}
+            </option>
+          ))}
+        </select>
+        <select
+          value={locationFilter}
+          onChange={(e) => setLocationFilter(e.target.value)}
+          className="rounded border px-3 py-2"
+        >
+          <option value="">Todas las ubicaciones</option>
+          {locations.map((l) => (
+            <option key={l} value={l}>
+              {l}
+            </option>
+          ))}
+        </select>
       </div>
+
+      {deleteMutation.error && (
+        <p className="text-sm text-red-600">{getApiErrorMessage(deleteMutation.error)}</p>
+      )}
 
       {canManage && (
         <p className="text-xs text-gray-500">
@@ -115,9 +156,11 @@ export function EquipoListPage() {
                     <Link to={`/equipos/${eq.id}/editar`} className="text-blue-600">
                       Editar
                     </Link>
-                    <button onClick={() => handleDelete(eq.id)} className="text-red-600">
-                      Dar de baja
-                    </button>
+                    {manualStatusActions(eq.status, role).some((a) => a.kind === "decommission") && (
+                      <button onClick={() => handleDelete(eq.id)} className="text-red-600">
+                        Dar de baja
+                      </button>
+                    )}
                   </>
                 )}
               </td>

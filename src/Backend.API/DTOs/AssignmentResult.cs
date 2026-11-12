@@ -10,7 +10,9 @@ public enum AssignmentActionStatus
     NotActive,
     // Equipo en mantenimiento, fuera de servicio o dado de baja.
     EquipmentNotAssignable,
-    UserInactive
+    UserInactive,
+    // El destinatario es Cliente/Gerente: solo se asigna a personal interno.
+    UserNotAssignable
 }
 
 public record AssignmentResult(AssignmentActionStatus Status, AssignmentResponse? Assignment);

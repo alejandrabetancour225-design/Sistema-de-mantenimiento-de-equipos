@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { changeEquipmentStatus, getEquipmentById } from "../services/equipmentServices";
+import { changeEquipmentStatus, deleteEquipment, getEquipmentById } from "../services/equipmentServices";
+import { manualStatusActions, statusLockedReason, type StatusAction } from "../lib/equipmentTransitions";
 import { useAssignments } from "../hooks/useAssignments";
 import { useEquipmentComponents, useEquipmentIncidents } from "../hooks/useEquipmentDetail";
 import { createComponent, deleteComponent } from "../services/equipmentComponentServices";
@@ -38,7 +39,10 @@ export default function EquipoDetailPage() {
   // --- Cambio de estado (Administrador / Técnico) ---
   const [newStatus, setNewStatus] = useState<EquipmentStatus | "">("");
   const statusMutation = useMutation({
-    mutationFn: (status: EquipmentStatus) => changeEquipmentStatus(equipmentId, status),
+    mutationFn: async (action: StatusAction): Promise<void> => {
+      if (action.kind === "decommission") await deleteEquipment(equipmentId);
+      else await changeEquipmentStatus(equipmentId, action.target);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["equipment"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
@@ -161,10 +165,10 @@ export default function EquipoDetailPage() {
       {canManageComponents && (
         <section className="space-y-2 rounded border p-3 text-sm">
           <h2 className="font-medium">Estado del equipo</h2>
-          {equipment.status === "UNDER_MAINTENANCE" ? (
+          {manualStatusActions(equipment.status, role).length === 0 ? (
             <p className="text-xs text-gray-600">
-              El equipo está en mantenimiento: su estado cambia al cerrar o cancelar el
-              mantenimiento abierto.
+              Actual: <strong>{EQUIPMENT_STATUS_LABEL[equipment.status]}</strong>.{" "}
+              {statusLockedReason(equipment.status)}
             </p>
           ) : (
             <div className="flex flex-wrap items-center gap-2">
@@ -177,25 +181,26 @@ export default function EquipoDetailPage() {
                 className="rounded border px-2 py-1"
               >
                 <option value="">Cambiar a...</option>
-                {(Object.keys(EQUIPMENT_STATUS_LABEL) as EquipmentStatus[])
-                  // En mantenimiento solo lo pone el flujo de mantenimiento
-                  .filter((st) => st !== "UNDER_MAINTENANCE" && st !== equipment.status)
-                  .map((st) => (
-                    <option key={st} value={st}>
-                      {EQUIPMENT_STATUS_LABEL[st]}
-                    </option>
-                  ))}
+                {/* R4: solo los cambios manuales que permite la regla maestra */}
+                {manualStatusActions(equipment.status, role).map((action) => (
+                  <option key={action.target} value={action.target}>
+                    {action.label}
+                  </option>
+                ))}
               </select>
               <button
                 disabled={!newStatus || statusMutation.isPending}
                 onClick={() => {
-                  if (!newStatus) return;
+                  const action = manualStatusActions(equipment.status, role).find(
+                    (a) => a.target === newStatus
+                  );
+                  if (!action) return;
                   if (
-                    newStatus === "DECOMMISSIONED" &&
-                    !confirm("Dar de baja un equipo es un cambio importante. ¿Continuar?")
+                    action.kind === "decommission" &&
+                    !confirm("Dar de baja un equipo es definitivo: no podrá volver a servicio. ¿Continuar?")
                   )
                     return;
-                  statusMutation.mutate(newStatus);
+                  statusMutation.mutate(action);
                 }}
                 className="rounded bg-blue-600 px-3 py-1 text-white disabled:opacity-50"
               >

@@ -25,9 +25,12 @@ services:
     build: ./ai-service
     container_name: ai-service
     ports:
-      - "8000:8000"
+      # Solo accesible desde este equipo: el servicio no tiene autenticación propia.
+      - "127.0.0.1:8000:8000"
     environment:
       - OLLAMA_HOST=http://ollama:11434
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-llama3.1:8b}
+      - OLLAMA_TIMEOUT_SECONDS=${OLLAMA_TIMEOUT_SECONDS:-170}
     depends_on:
       - ollama
 

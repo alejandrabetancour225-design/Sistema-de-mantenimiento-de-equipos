@@ -45,14 +45,9 @@ public class AssignmentService : IAssignmentService
             return new AssignmentResult(AssignmentActionStatus.EquipmentNotFound, null);
         }
 
-        if (equipment.Status is EquipmentStatus.UNDER_MAINTENANCE
-            or EquipmentStatus.OUT_OF_SERVICE
-            or EquipmentStatus.DECOMMISSIONED)
-        {
-            return new AssignmentResult(AssignmentActionStatus.EquipmentNotAssignable, null);
-        }
-
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == request.UserId);
+        var user = await _context.Users
+            .Include(u => u.Role)
+            .FirstOrDefaultAsync(u => u.Id == request.UserId);
         if (user is null)
         {
             return new AssignmentResult(AssignmentActionStatus.UserNotFound, null);
@@ -61,6 +56,12 @@ public class AssignmentService : IAssignmentService
         if (!user.Active)
         {
             return new AssignmentResult(AssignmentActionStatus.UserInactive, null);
+        }
+
+        // Los equipos se asignan a personal interno, nunca a un Cliente/Gerente.
+        if (user.Role?.Name is not (Roles.Empleado or Roles.Tecnico or Roles.Administrador))
+        {
+            return new AssignmentResult(AssignmentActionStatus.UserNotAssignable, null);
         }
 
         var alreadyAssigned = await _context.Assignments
@@ -80,6 +81,12 @@ public class AssignmentService : IAssignmentService
             Status = AssignmentStatus.ACTIVE,
             Observations = request.Observations?.Trim() ?? string.Empty
         };
+
+        // R4: solo un equipo Disponible se puede asignar, y pasa a En uso.
+        if (!EquipmentStateMachine.TryApply(equipment, EquipmentStatus.IN_USE, EquipmentTransition.Assign))
+        {
+            return new AssignmentResult(AssignmentActionStatus.EquipmentNotAssignable, null);
+        }
 
         _context.Assignments.Add(assignment);
         try
@@ -117,6 +124,13 @@ public class AssignmentService : IAssignmentService
 
         assignment.Status = AssignmentStatus.RELEASED;
         assignment.ReleasedAt = DateTime.UtcNow;
+
+        // R4: si estaba En uso vuelve a Disponible. En mantenimiento o fuera de servicio no cambia:
+        // al salir de esos estados el equipo vuelve a su estado de reposo (ya sin asignación).
+        if (assignment.Equipment is { Status: EquipmentStatus.IN_USE })
+        {
+            EquipmentStateMachine.TryApply(assignment.Equipment, EquipmentStatus.AVAILABLE, EquipmentTransition.Release);
+        }
         if (!string.IsNullOrWhiteSpace(observations))
         {
             assignment.Observations = observations.Trim();

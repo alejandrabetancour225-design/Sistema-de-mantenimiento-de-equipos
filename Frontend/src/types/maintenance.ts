@@ -2,7 +2,7 @@ import type { EquipmentStatus } from "./equipment";
 import type { Incident, IncidentStatus } from "./incident";
 
 export type MaintenanceType = "PREVENTIVE" | "CORRECTIVE";
-export type MaintenanceStatus = "OPEN" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
+export type MaintenanceStatus = "OPEN" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" | "VOIDED";
 
 export const MAINTENANCE_TYPE_LABEL: Record<MaintenanceType, string> = {
   PREVENTIVE: "Preventivo",
@@ -14,6 +14,7 @@ export const MAINTENANCE_STATUS_LABEL: Record<MaintenanceStatus, string> = {
   IN_PROGRESS: "En progreso",
   COMPLETED: "Completado",
   CANCELLED: "Cancelado",
+  VOIDED: "Anulado",
 };
 
 export interface MaintenanceSparePart {
@@ -44,6 +45,9 @@ export interface Maintenance {
   observations: string;
   startedAt: string;
   completedAt?: string | null;
+  // Anulación de un mantenimiento cerrado con errores (se corrige registrando uno nuevo).
+  voidReason?: string | null;
+  voidedAt?: string | null;
   createdAt: string;
   updatedAt: string;
   spareParts: MaintenanceSparePart[];

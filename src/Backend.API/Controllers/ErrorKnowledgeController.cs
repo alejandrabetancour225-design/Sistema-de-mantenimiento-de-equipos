@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Backend.API.Controllers;
 
-[Authorize]
+[Authorize(Roles = Roles.Staff)]
 [ApiController]
 [Route("api/[controller]")]
 public class ErrorKnowledgeController : ControllerBase

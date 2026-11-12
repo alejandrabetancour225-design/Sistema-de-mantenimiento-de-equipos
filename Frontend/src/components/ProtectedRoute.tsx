@@ -15,6 +15,7 @@ export default function ProtectedRoute({ allowedRoles }: Props) {
   if (!isAuthenticated) return <Navigate to="/" replace />;
 
   if (allowedRoles && (!role || !allowedRoles.includes(role))) {
+    // roleHome (/dashboard) está abierto a todos los roles, así que esto nunca entra en bucle.
     return <Navigate to={roleHome(role)} replace />;
   }
 

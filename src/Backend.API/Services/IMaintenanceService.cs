@@ -4,7 +4,7 @@ namespace Backend.API.Services;
 
 public interface IMaintenanceService
 {
-    Task<List<MaintenanceResponse>> GetAllAsync();
+    Task<List<MaintenanceResponse>> GetAllAsync(Guid? onlyEquipmentAssignedTo = null);
     Task<MaintenanceResponse?> GetByIdAsync(Guid id);
     Task<List<MaintenanceResponse>> GetByEquipmentAsync(Guid equipmentId);
     Task<MaintenanceResult> CreateAsync(CreateMaintenanceRequest request);
@@ -14,6 +14,7 @@ public interface IMaintenanceService
     Task<MaintenanceResult> AddSparePartAsync(Guid maintenanceId, AddSparePartToMaintenanceRequest request);
     Task<MaintenanceActionStatus> RemoveSparePartAsync(Guid maintenanceId, Guid maintenanceSparePartId);
     Task<MaintenanceActionStatus> DeleteAsync(Guid id);
+    Task<MaintenanceResult> VoidAsync(Guid id, string reason, Guid currentUserId);
     Task<EquipmentHistoryResponse?> GetHistoryByEquipmentAsync(Guid equipmentId);
     Task<MaintenanceResult> CreatePreventiveFromPredictionAsync(
       Guid equipmentId,

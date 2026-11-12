@@ -74,6 +74,11 @@ export async function removeSparePart(
   );
 }
 
+export async function voidMaintenance(id: string, reason: string): Promise<Maintenance> {
+  const res = await api.post<Maintenance>(`/maintenance/VoidMaintenance/${id}`, { reason });
+  return res.data;
+}
+
 export async function deleteMaintenance(id: string): Promise<void> {
   await api.delete(`/maintenance/DeleteMaintenance/${id}`);
 }

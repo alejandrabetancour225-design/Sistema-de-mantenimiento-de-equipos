@@ -103,7 +103,7 @@ public class DiagnosisService : IDiagnosisService
             RankedCausesJson = JsonSerializer.Serialize(aiResponse.RankedCauses),
             RequiresTechnician = aiResponse.RequiresTechnician,
             Reasoning = aiResponse.Reasoning,
-            ModelVersion = "llama3.1:8b",
+            ModelVersion = aiResponse.Model ?? "desconocido",
             Confidence = aiResponse.RankedCauses.Max(c => c.Probability),
             Status = "PENDING",
             CreatedAt = DateTime.UtcNow,

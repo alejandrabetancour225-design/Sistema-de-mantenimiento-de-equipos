@@ -16,18 +16,28 @@ public class EquipmentService : IEquipmentService
         _context = context;
     }
 
-    public async Task<List<EquipmentResponse>> GetAllAsync()
+    public async Task<List<EquipmentResponse>> GetAllAsync(Guid currentUserId, string? role)
     {
-        var equipments = await _context.Equipments
-            .AsNoTracking()
-            .OrderBy(e => e.InternalCode)
-            .ToListAsync();
+        var query = _context.Equipments.AsNoTracking();
 
+        // R2: el Empleado solo ve los equipos que tiene asignados.
+        if (role == Roles.Empleado)
+        {
+            query = query.Where(e => e.Assignments!.Any(a =>
+                a.UserId == currentUserId && a.Status == AssignmentStatus.ACTIVE));
+        }
+
+        var equipments = await query.OrderBy(e => e.InternalCode).ToListAsync();
         return equipments.Select(Map).ToList();
     }
 
-    public async Task<EquipmentResponse?> GetByIdAsync(Guid id)
+    public async Task<EquipmentResponse?> GetByIdAsync(Guid id, Guid currentUserId, string? role)
     {
+        if (!await CanViewAsync(id, currentUserId, role))
+        {
+            return null;
+        }
+
         var equipment = await _context.Equipments
             .AsNoTracking()
             .FirstOrDefaultAsync(e => e.Id == id);
@@ -35,18 +45,38 @@ public class EquipmentService : IEquipmentService
         return equipment is null ? null : Map(equipment);
     }
 
-    public async Task<EquipmentResult> CreateAsync(CreateEquipmentRequest request)
+    public async Task<bool> CanViewAsync(Guid equipmentId, Guid currentUserId, string? role)
     {
-        var internalCode = request.InternalCode.Trim();
-        var serialNumber = request.SerialNumber.Trim();
-
-        if (!DatesAreConsistent(request.AcquisitionDate, request.WarrantyUntil))
+        if (role is Roles.Administrador or Roles.Tecnico)
         {
-            return new EquipmentResult(EquipmentActionStatus.InvalidDates, null);
+            return true;
         }
 
-        // Un equipo nuevo no puede nacer "en mantenimiento": ese estado lo pone el flujo de mantenimiento.
-        if (request.Status == EquipmentStatus.UNDER_MAINTENANCE)
+        if (role == Roles.Empleado)
+        {
+            return await _context.Assignments.AnyAsync(a =>
+                a.EquipmentId == equipmentId
+                && a.UserId == currentUserId
+                && a.Status == AssignmentStatus.ACTIVE);
+        }
+
+        return false;
+    }
+
+    public async Task<EquipmentResult> CreateAsync(CreateEquipmentRequest request)
+    {
+        var internalCode = NormalizeIdentifier(request.InternalCode);
+        var serialNumber = NormalizeIdentifier(request.SerialNumber);
+
+        var dateError = ValidateDates(request.AcquisitionDate, request.WarrantyUntil);
+        if (dateError is not null)
+        {
+            return new EquipmentResult(dateError.Value, null);
+        }
+
+        // Un equipo nuevo solo nace Disponible o Fuera de servicio (R4): no tiene asignación ni mantenimiento.
+        var initialStatus = request.Status ?? EquipmentStatus.AVAILABLE;
+        if (!EquipmentStateMachine.IsValidInitialStatus(initialStatus))
         {
             return new EquipmentResult(EquipmentActionStatus.InvalidStatusChange, null);
         }
@@ -71,12 +101,12 @@ public class EquipmentService : IEquipmentService
             Brand = request.Brand.Trim(),
             Model = request.Model.Trim(),
             Characteristics = HasJsonValue(request.Characteristics) ? request.Characteristics!.Value.GetRawText() : null,
-            OperatingSystem = string.IsNullOrWhiteSpace(request.OperatingSystem) ? null : request.OperatingSystem.Trim(),
+            OperatingSystem = EmptyToNull(request.OperatingSystem),
             AcquisitionDate = request.AcquisitionDate,
             AcquisitionPrice = request.AcquisitionPrice,
             WarrantyUntil = request.WarrantyUntil,
             Location = request.Location.Trim(),
-            Status = request.Status ?? EquipmentStatus.AVAILABLE,
+            Status = initialStatus,
             CreatedAt = now,
             UpdatedAt = now
         };
@@ -91,7 +121,8 @@ public class EquipmentService : IEquipmentService
         return new EquipmentResult(EquipmentActionStatus.Success, Map(equipment));
     }
 
-    public async Task<EquipmentResult> UpdateAsync(Guid id, UpdateEquipmentRequest request)
+    // Corrección de datos (reemplazo completo). Cada cambio queda auditado con valor anterior y nuevo (R1).
+    public async Task<EquipmentResult> UpdateAsync(Guid id, UpdateEquipmentRequest request, bool isAdmin)
     {
         var equipment = await _context.Equipments.FirstOrDefaultAsync(e => e.Id == id);
         if (equipment is null)
@@ -99,62 +130,47 @@ public class EquipmentService : IEquipmentService
             return new EquipmentResult(EquipmentActionStatus.NotFound, null);
         }
 
-        if (request.InternalCode is not null)
-        {
-            var internalCode = request.InternalCode.Trim();
-            if (await _context.Equipments.AnyAsync(e => e.InternalCode == internalCode && e.Id != id))
-            {
-                return new EquipmentResult(EquipmentActionStatus.DuplicateInternalCode, null);
-            }
+        var internalCode = NormalizeIdentifier(request.InternalCode);
+        var serialNumber = NormalizeIdentifier(request.SerialNumber);
 
-            equipment.InternalCode = internalCode;
+        // Los campos de identidad solo los corrige un Administrador.
+        var identityChanged = internalCode != equipment.InternalCode || serialNumber != equipment.SerialNumber;
+        if (identityChanged && !isAdmin)
+        {
+            return new EquipmentResult(EquipmentActionStatus.IdentityChangeForbidden, null);
         }
 
-        if (request.SerialNumber is not null)
+        var dateError = ValidateDates(request.AcquisitionDate, request.WarrantyUntil);
+        if (dateError is not null)
         {
-            var serialNumber = request.SerialNumber.Trim();
-            if (await _context.Equipments.AnyAsync(e => e.SerialNumber == serialNumber && e.Id != id))
-            {
-                return new EquipmentResult(EquipmentActionStatus.DuplicateSerialNumber, null);
-            }
-
-            equipment.SerialNumber = serialNumber;
+            return new EquipmentResult(dateError.Value, null);
         }
 
-        if (request.Type is not null) equipment.Type = request.Type.Trim();
-        if (request.Brand is not null) equipment.Brand = request.Brand.Trim();
-        if (request.Model is not null) equipment.Model = request.Model.Trim();
-        if (HasJsonValue(request.Characteristics)) equipment.Characteristics = request.Characteristics!.Value.GetRawText();
-
-        if (request.OperatingSystem is not null)
+        if (internalCode != equipment.InternalCode
+            && await _context.Equipments.AnyAsync(e => e.InternalCode == internalCode && e.Id != id))
         {
-            equipment.OperatingSystem = string.IsNullOrWhiteSpace(request.OperatingSystem)
-                ? null
-                : request.OperatingSystem.Trim();
+            return new EquipmentResult(EquipmentActionStatus.DuplicateInternalCode, null);
         }
 
-        if (request.AcquisitionDate is not null) equipment.AcquisitionDate = request.AcquisitionDate;
-        if (request.AcquisitionPrice is not null) equipment.AcquisitionPrice = request.AcquisitionPrice;
-        if (request.WarrantyUntil is not null) equipment.WarrantyUntil = request.WarrantyUntil;
-        if (request.Location is not null) equipment.Location = request.Location.Trim();
-
-        if (!DatesAreConsistent(equipment.AcquisitionDate, equipment.WarrantyUntil))
+        if (serialNumber != equipment.SerialNumber
+            && await _context.Equipments.AnyAsync(e => e.SerialNumber == serialNumber && e.Id != id))
         {
-            return new EquipmentResult(EquipmentActionStatus.InvalidDates, null);
+            return new EquipmentResult(EquipmentActionStatus.DuplicateSerialNumber, null);
         }
 
-        if (request.Status is not null && request.Status.Value != equipment.Status)
-        {
-            var statusError = await ValidateStatusChangeAsync(equipment, request.Status.Value);
-            if (statusError is not null)
-            {
-                return new EquipmentResult(statusError.Value, null);
-            }
-
-            equipment.Status = request.Status.Value;
-        }
-
+        equipment.InternalCode = internalCode;
+        equipment.SerialNumber = serialNumber;
+        equipment.Type = request.Type.Trim();
+        equipment.Brand = request.Brand.Trim();
+        equipment.Model = request.Model.Trim();
+        equipment.Characteristics = HasJsonValue(request.Characteristics) ? request.Characteristics!.Value.GetRawText() : null;
+        equipment.OperatingSystem = EmptyToNull(request.OperatingSystem);
+        equipment.AcquisitionDate = request.AcquisitionDate;
+        equipment.AcquisitionPrice = request.AcquisitionPrice;
+        equipment.WarrantyUntil = request.WarrantyUntil;
+        equipment.Location = request.Location.Trim();
         equipment.UpdatedAt = DateTime.UtcNow;
+
         var duplicate = await SaveDetectingDuplicatesAsync();
         if (duplicate is not null)
         {
@@ -164,6 +180,8 @@ public class EquipmentService : IEquipmentService
         return new EquipmentResult(EquipmentActionStatus.Success, Map(equipment));
     }
 
+    // Cambio manual de estado: solo Fuera de servicio <-> en servicio (R4).
+    // Para volver a servicio basta pedir AVAILABLE o IN_USE: el estado real lo decide la asignación activa.
     public async Task<EquipmentResult> ChangeStatusAsync(Guid id, EquipmentStatus status)
     {
         var equipment = await _context.Equipments.FirstOrDefaultAsync(e => e.Id == id);
@@ -172,19 +190,16 @@ public class EquipmentService : IEquipmentService
             return new EquipmentResult(EquipmentActionStatus.NotFound, null);
         }
 
-        if (status != equipment.Status)
+        var target = status is EquipmentStatus.AVAILABLE or EquipmentStatus.IN_USE
+            ? await EquipmentStateMachine.GetRestingStatusAsync(_context, id)
+            : status;
+
+        if (!EquipmentStateMachine.TryApply(equipment, target, EquipmentTransition.Manual))
         {
-            var statusError = await ValidateStatusChangeAsync(equipment, status);
-            if (statusError is not null)
-            {
-                return new EquipmentResult(statusError.Value, null);
-            }
+            return new EquipmentResult(EquipmentActionStatus.InvalidStatusChange, null);
         }
 
-        equipment.Status = status;
-        equipment.UpdatedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync();
-
         return new EquipmentResult(EquipmentActionStatus.Success, Map(equipment));
     }
 
@@ -221,28 +236,30 @@ public class EquipmentService : IEquipmentService
             return EquipmentActionStatus.HasOpenMaintenance;
         }
 
-        equipment.Status = EquipmentStatus.DECOMMISSIONED;
-        equipment.UpdatedAt = DateTime.UtcNow;
-        await _context.SaveChangesAsync();
-
-        return EquipmentActionStatus.Success;
-    }
-
-    private async Task<EquipmentActionStatus?> ValidateStatusChangeAsync(Equipment equipment, EquipmentStatus newStatus)
-    {
-        // UNDER_MAINTENANCE solo lo asigna el flujo de mantenimiento.
-        if (newStatus == EquipmentStatus.UNDER_MAINTENANCE)
+        if (!EquipmentStateMachine.TryApply(equipment, EquipmentStatus.DECOMMISSIONED, EquipmentTransition.Decommission))
         {
             return EquipmentActionStatus.InvalidStatusChange;
         }
 
-        // Con un mantenimiento abierto, el estado se libera al cerrar o cancelar ese mantenimiento.
-        var hasOpenMaintenance = await _context.Maintenances.AnyAsync(m =>
-            m.EquipmentId == equipment.Id
-            && (m.Status == MaintenanceStatus.OPEN || m.Status == MaintenanceStatus.IN_PROGRESS));
-
-        return hasOpenMaintenance ? EquipmentActionStatus.InvalidStatusChange : null;
+        await _context.SaveChangesAsync();
+        return EquipmentActionStatus.Success;
     }
+
+    private static EquipmentActionStatus? ValidateDates(DateOnly? acquisitionDate, DateOnly? warrantyUntil)
+    {
+        if (acquisitionDate is not null && acquisitionDate > LocalClock.Today)
+        {
+            return EquipmentActionStatus.FutureAcquisitionDate;
+        }
+
+        return DatesAreConsistent(acquisitionDate, warrantyUntil) ? null : EquipmentActionStatus.InvalidDates;
+    }
+
+    // Código y serie se guardan sin espacios extremos y en mayúsculas, para que "lap-01" y "LAP-01"
+    // se reconozcan como el mismo equipo.
+    private static string NormalizeIdentifier(string value) => value.Trim().ToUpperInvariant();
+
+    private static string? EmptyToNull(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
     private static bool DatesAreConsistent(DateOnly? acquisitionDate, DateOnly? warrantyUntil)
     {

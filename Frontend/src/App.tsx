@@ -11,6 +11,7 @@ import MaintenanceHistoryPage from "./pages/MaintenanceHistoryPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Sidebar from "./components/Sidebar";
 import DashboardPage from "./pages/DashboardPage";
+import StaffDashboardPage from "./pages/StaffDashboardPage";
 import ReportsPage from "./pages/ReportsPage";
 import EquipmentHistoryPage from "./pages/EquipmentHistoryPage";
 import AuditPage from "./pages/AuditPage";
@@ -37,6 +38,13 @@ function Landing() {
   return isAuthenticated ? <Navigate to={roleHome(role)} replace /> : <LandingPage />;
 }
 
+// Cada rol ve su propio dashboard: Administrador y Cliente el gerencial (endpoints /dashboard),
+// Técnico y Empleado uno armado con los datos que sí pueden consultar.
+function DashboardRoute() {
+  const { role } = useAuth();
+  return role === "Administrador" || role === "Cliente" ? <DashboardPage /> : <StaffDashboardPage />;
+}
+
 function LoginRoute() {
   const { isAuthenticated, role } = useAuth();
   return isAuthenticated ? <Navigate to={roleHome(role)} replace /> : <LoginPage />;
@@ -51,13 +59,13 @@ export default function App() {
 
         {/* Cualquier usuario autenticado, incluido el Cliente */}
         <Route element={<ProtectedRoute />}>
+          <Route path="/dashboard" element={<DashboardRoute />} />
           <Route path="/mantenimientos" element={<MaintenanceHistoryPage />} />
           <Route path="/equipos/:id/historial" element={<EquipmentHistoryPage />} />
         </Route>
 
-        {/* El backend solo expone dashboard y reportes a Administrador y Cliente */}
+        {/* El backend solo expone reportes a Administrador y Cliente */}
         <Route element={<ProtectedRoute allowedRoles={["Administrador", "Cliente"]} />}>
-          <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/reportes" element={<ReportsPage />} />
         </Route>
 

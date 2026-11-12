@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { changeEquipmentStatus } from "../services/equipmentServices";
-import { EQUIPMENT_STATUS_LABEL, type Equipment, type EquipmentStatus } from "../types/equipment";
+import { changeEquipmentStatus, deleteEquipment } from "../services/equipmentServices";
+import type { Equipment } from "../types/equipment";
+import { useAuth } from "../context/authContext";
+import { manualStatusActions, statusLockedReason, type StatusAction } from "../lib/equipmentTransitions";
 import { getApiErrorMessage } from "../lib/errors";
 import StatusBadge from "./StatusBadge";
 
@@ -15,10 +17,14 @@ export default function EquipmentStatusMenu({
   canChange: boolean;
 }) {
   const queryClient = useQueryClient();
+  const { role } = useAuth();
   const [open, setOpen] = useState(false);
 
   const mutation = useMutation({
-    mutationFn: (status: EquipmentStatus) => changeEquipmentStatus(equipment.id, status),
+    mutationFn: async (action: StatusAction): Promise<void> => {
+      if (action.kind === "decommission") await deleteEquipment(equipment.id);
+      else await changeEquipmentStatus(equipment.id, action.target);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["equipment"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
@@ -28,26 +34,23 @@ export default function EquipmentStatusMenu({
 
   if (!canChange) return <StatusBadge status={equipment.status} />;
 
-  // "En mantenimiento" lo pone y lo quita el flujo de mantenimiento, no se cambia a mano.
-  if (equipment.status === "UNDER_MAINTENANCE") {
+  // R4: solo se ofrecen los cambios manuales que la regla maestra permite.
+  const options = manualStatusActions(equipment.status, role);
+  if (options.length === 0) {
     return (
-      <span title="Cambia solo al cerrar o cancelar el mantenimiento abierto">
+      <span title={statusLockedReason(equipment.status) ?? undefined}>
         <StatusBadge status={equipment.status} />
       </span>
     );
   }
 
-  const options = (Object.keys(EQUIPMENT_STATUS_LABEL) as EquipmentStatus[]).filter(
-    (st) => st !== "UNDER_MAINTENANCE" && st !== equipment.status
-  );
-
-  function choose(status: EquipmentStatus) {
+  function choose(action: StatusAction) {
     if (
-      status === "DECOMMISSIONED" &&
-      !confirm("Dar de baja un equipo es un cambio importante. ¿Continuar?")
+      action.kind === "decommission" &&
+      !confirm("Dar de baja un equipo es definitivo: no podrá volver a servicio. ¿Continuar?")
     )
       return;
-    mutation.mutate(status);
+    mutation.mutate(action);
   }
 
   return (
@@ -78,14 +81,14 @@ export default function EquipmentStatusMenu({
           className="absolute left-0 z-20 mt-1 min-w-[11rem] rounded border bg-white py-1 shadow-lg"
         >
           <li className="px-3 py-1 text-xs text-gray-500">Cambiar a:</li>
-          {options.map((st) => (
-            <li key={st}>
+          {options.map((action) => (
+            <li key={action.target}>
               <button
                 type="button"
-                onClick={() => choose(st)}
+                onClick={() => choose(action)}
                 className="block w-full px-3 py-1.5 text-left text-sm hover:bg-blue-50"
               >
-                {EQUIPMENT_STATUS_LABEL[st]}
+                {action.label}
               </button>
             </li>
           ))}

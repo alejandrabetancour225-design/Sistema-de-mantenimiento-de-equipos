@@ -30,6 +30,7 @@ public class CreateEquipmentRequest
     [MaxJsonLength(8000)]
     public JsonElement? Characteristics { get; set; }
 
+    [StringLength(100)]
     public string? OperatingSystem { get; set; }
 
     public DateOnly? AcquisitionDate { get; set; }

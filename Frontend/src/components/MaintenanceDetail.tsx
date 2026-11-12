@@ -6,24 +6,24 @@ import {
   addSparePart,
   removeSparePart,
   deleteMaintenance,
+  voidMaintenance,
 } from "../services/maintenanceServices";
 import {
   MAINTENANCE_STATUS_LABEL,
   type Maintenance,
   type MaintenanceStatus,
 } from "../types/maintenance";
-import { EQUIPMENT_STATUS_LABEL, type EquipmentStatus } from "../types/equipment";
+import type { EquipmentStatus } from "../types/equipment";
 import { INCIDENT_STATUS_LABEL } from "../types/incident";
 import { getApiErrorMessage } from "../lib/errors";
 import { Field } from "./MaintenanceShared";
 import { money, useInvalidateAll } from "../lib/maintenanceUtils";
 
-// El backend no admite UNDER_MAINTENANCE como estado final del equipo.
-const FINAL_EQUIPMENT_STATUSES: EquipmentStatus[] = [
-  "AVAILABLE",
-  "IN_USE",
-  "OUT_OF_SERVICE",
-  "DECOMMISSIONED",
+// R4: al cerrar, el equipo vuelve a servicio (la API decide Disponible o En uso según su asignación)
+// o queda Fuera de servicio si la reparación no funcionó. La baja se hace aparte, desde el equipo.
+const FINAL_EQUIPMENT_OPTIONS: { value: EquipmentStatus; label: string }[] = [
+  { value: "AVAILABLE", label: "Vuelve a servicio" },
+  { value: "OUT_OF_SERVICE", label: "Queda fuera de servicio" },
 ];
 // PutMaintenance no acepta COMPLETED (se completa con CloseMaintenance).
 const EDITABLE_STATUSES: MaintenanceStatus[] = ["OPEN", "IN_PROGRESS", "CANCELLED"];
@@ -46,7 +46,7 @@ export default function MaintenanceDetail({
   const [selectedPart, setSelectedPart] = useState("");
   const [quantity, setQuantity] = useState(1);
 
-  const isClosed = m.status === "COMPLETED" || m.status === "CANCELLED";
+  const isClosed = m.status === "COMPLETED" || m.status === "CANCELLED" || m.status === "VOIDED";
 
   // --- Edición (PutMaintenance) ---
   const [edit, setEdit] = useState({
@@ -135,8 +135,25 @@ export default function MaintenanceDetail({
     onSuccess: invalidateAll,
   });
 
+  // Un mantenimiento cerrado no se edita: si tiene errores, el Administrador lo anula y se registra uno nuevo.
+  const [voidReason, setVoidReason] = useState("");
+  const [voiding, setVoiding] = useState(false);
+  const voidMutation = useMutation({
+    mutationFn: () => voidMaintenance(m.id, voidReason.trim()),
+    onSuccess: () => {
+      invalidateAll();
+      setVoiding(false);
+      setVoidReason("");
+    },
+  });
+
   const actionError =
-    updateMutation.error ?? closeMutation.error ?? addPartMutation.error ?? removePartMutation.error ?? deleteMutation.error;
+    updateMutation.error ??
+    closeMutation.error ??
+    addPartMutation.error ??
+    removePartMutation.error ??
+    deleteMutation.error ??
+    voidMutation.error;
 
   return (
     <div className="space-y-3 border-t pt-2">
@@ -362,9 +379,9 @@ export default function MaintenanceDetail({
                 }
                 className="input"
               >
-                {FINAL_EQUIPMENT_STATUSES.map((s) => (
-                  <option key={s} value={s}>
-                    {EQUIPMENT_STATUS_LABEL[s]}
+                {FINAL_EQUIPMENT_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
                   </option>
                 ))}
               </select>
@@ -400,6 +417,46 @@ export default function MaintenanceDetail({
               Confirmar cierre
             </button>
             <button onClick={() => setMode("view")} className="text-gray-600">
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {m.status === "VOIDED" && (
+        <p className="rounded bg-red-500/10 p-2 text-xs text-red-400">
+          Anulado el {m.voidedAt ? new Date(m.voidedAt).toLocaleString() : "—"}: {m.voidReason}. No cuenta en
+          costos ni reportes.
+        </p>
+      )}
+
+      {m.status === "COMPLETED" && isAdmin && !voiding && (
+        <button onClick={() => setVoiding(true)} className="text-xs text-red-600">
+          Anular (tiene errores)
+        </button>
+      )}
+      {voiding && (
+        <div className="space-y-2 rounded border p-2 text-xs">
+          <p>
+            Anular deja este mantenimiento en el historial, pero fuera de costos y reportes. Después registra
+            un mantenimiento nuevo con los datos correctos.
+          </p>
+          <textarea
+            value={voidReason}
+            onChange={(e) => setVoidReason(e.target.value)}
+            placeholder="Motivo de la anulación (mínimo 10 caracteres)"
+            className="input w-full"
+            rows={2}
+          />
+          <div className="flex gap-2">
+            <button
+              disabled={voidReason.trim().length < 10 || voidMutation.isPending}
+              onClick={() => voidMutation.mutate()}
+              className="rounded bg-red-600 px-3 py-1 text-white disabled:opacity-50"
+            >
+              Confirmar anulación
+            </button>
+            <button onClick={() => setVoiding(false)} className="text-gray-600">
               Cancelar
             </button>
           </div>

@@ -62,16 +62,6 @@ function FooterColumn({ title, children }: { title: string; children: React.Reac
   );
 }
 
-function FooterLink({ to, children }: { to: string; children: React.ReactNode }) {
-  return (
-    <li>
-      <Link to={to} className={footerLink}>
-        {children}
-      </Link>
-    </li>
-  );
-}
-
 function FooterButton({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
   return (
     <li>

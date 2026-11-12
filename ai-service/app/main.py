@@ -8,7 +8,9 @@ import json
 app = FastAPI(title="AI Service - Diagnóstico de Equipos")
 
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
-MODEL_NAME = "llama3.1:8b"
+# Modelo y tiempo máximo configurables por variable de entorno (docker-compose.yml / .env).
+MODEL_NAME = os.getenv("OLLAMA_MODEL", "llama3.1:8b")
+OLLAMA_TIMEOUT_SECONDS = float(os.getenv("OLLAMA_TIMEOUT_SECONDS", "170"))
 
 
 class EquipmentContext(BaseModel):
@@ -37,12 +39,17 @@ class DiagnosisResponse(BaseModel):
     reasoning: str = Field(description="Breve explicación del razonamiento")
 
 
+class DiagnosisApiResponse(DiagnosisResponse):
+    # Lo agrega el servicio (no el modelo): qué modelo generó el diagnóstico.
+    model: str
+
+
 @app.get("/health")
 def health():
     return {"status": "ok", "model": MODEL_NAME}
 
 
-@app.post("/api/v1/diagnosis", response_model=DiagnosisResponse)
+@app.post("/api/v1/diagnosis", response_model=DiagnosisApiResponse)
 def diagnose(request: DiagnosisRequest):
     knowledge_text = "\n".join([
         f"- Síntoma: {k.get('symptom')} | Causas: {k.get('possibleCauses')} | Solución: {k.get('suggestedSolution')}"
@@ -100,11 +107,12 @@ RULES:
 
     try:
         # Llamada HTTP directa a Ollama (sin librería)
-        with httpx.Client(timeout=120.0) as client:
+        with httpx.Client(timeout=OLLAMA_TIMEOUT_SECONDS) as client:
             response = client.post(f"{OLLAMA_HOST}/api/chat", json=payload)
             response.raise_for_status()
             data = response.json()
 
+        raw_content = data["message"]["content"]
         raw = json.loads(raw_content)
 
         # Remapeo forzado (funciona sin importar lo que devuelva el modelo)
@@ -121,7 +129,8 @@ RULES:
             "reasoning": raw.get("reasoning", raw.get("razonamiento", ""))
         }
 
-        return DiagnosisResponse.model_validate(normalized)
+        validated = DiagnosisResponse.model_validate(normalized)
+        return DiagnosisApiResponse(**validated.model_dump(), model=MODEL_NAME)
 
     except httpx.HTTPStatusError as e:
         print(f"ERROR HTTP de Ollama: {e.response.text}")

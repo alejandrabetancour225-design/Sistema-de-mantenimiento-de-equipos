@@ -1,4 +1,5 @@
 using Backend.API.DTOs;
+using Backend.API.Infrastructure;
 using Backend.API.Models;
 using Backend.API.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -6,19 +7,25 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Backend.API.Controllers;
 
-// Cliente: sin acceso. Lectura: Administrador, Técnico y Empleado. Escritura: Administrador y Técnico.
+// Cliente: sin acceso. Lectura: Administrador y Técnico (todo), Empleado (solo sus equipos). Escritura: Administrador y Técnico.
 [Authorize(Roles = Roles.Staff)]
 [ApiController]
 [Route("api/[controller]")]
 public class EquipmentComponentController : ControllerBase
 {
     private readonly IEquipmentComponentService _componentService;
+    private readonly IEquipmentService _equipmentService;
 
-    public EquipmentComponentController(IEquipmentComponentService componentService)
+    public EquipmentComponentController(IEquipmentComponentService componentService, IEquipmentService equipmentService)
     {
         _componentService = componentService;
+        _equipmentService = equipmentService;
     }
 
+    private Task<bool> CanSeeEquipmentAsync(Guid equipmentId)
+        => _equipmentService.CanViewAsync(equipmentId, User.Id(), User.Role());
+
+    [Authorize(Roles = Roles.AdminOrTechnician)]
     [HttpGet("GetComponentList")]
     public async Task<ActionResult<List<EquipmentComponentResponse>>> GetComponentList()
     {
@@ -29,12 +36,22 @@ public class EquipmentComponentController : ControllerBase
     public async Task<ActionResult<EquipmentComponentResponse>> GetComponentById(Guid id)
     {
         var component = await _componentService.GetByIdAsync(id);
-        return component is null ? NotFound() : Ok(component);
+        if (component is null || !await CanSeeEquipmentAsync(component.EquipmentId))
+        {
+            return NotFound();
+        }
+
+        return Ok(component);
     }
 
     [HttpGet("GetComponentsByEquipment/{equipmentId:guid}")]
     public async Task<ActionResult<List<EquipmentComponentResponse>>> GetComponentsByEquipment(Guid equipmentId)
     {
+        if (!await CanSeeEquipmentAsync(equipmentId))
+        {
+            return NotFound(new { message = "El equipo no existe." });
+        }
+
         return Ok(await _componentService.GetByEquipmentAsync(equipmentId));
     }
 

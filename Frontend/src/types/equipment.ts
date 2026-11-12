@@ -46,4 +46,17 @@ export interface CreateEquipmentRequest {
   operatingSystem?: string;
 }
 
-export type UpdateEquipmentRequest = Partial<CreateEquipmentRequest>;
+// PUT = reemplazo completo: los campos opcionales en null se vacían. El estado no se cambia aquí.
+export interface UpdateEquipmentRequest {
+  internalCode: string;
+  serialNumber: string;
+  type: string;
+  brand: string;
+  model: string;
+  characteristics: Record<string, unknown> | null;
+  acquisitionDate: string | null;
+  acquisitionPrice: number | null;
+  warrantyUntil: string | null;
+  location: string;
+  operatingSystem: string | null;
+}

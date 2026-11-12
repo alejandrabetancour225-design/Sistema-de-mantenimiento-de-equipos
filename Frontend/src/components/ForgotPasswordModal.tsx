@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { forgotPassword, resetPassword } from "../services/authServices";
 import { getApiErrorMessage } from "../lib/errors";
+import { strongPassword } from "../schemas/authSchemas";
 
 type Step = "email" | "code" | "done";
 
@@ -51,6 +52,11 @@ export default function ForgotPasswordModal({
   async function handleResetPassword(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    const passwordCheck = strongPassword.safeParse(newPassword);
+    if (!passwordCheck.success) {
+      setError(passwordCheck.error.issues[0].message);
+      return;
+    }
     setLoading(true);
     try {
       await resetPassword(email, code, newPassword);

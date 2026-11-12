@@ -54,7 +54,8 @@ public class AssignmentController : ControllerBase
             AssignmentActionStatus.UserNotFound => NotFound(new { message = "El usuario no existe." }),
             AssignmentActionStatus.EquipmentAlreadyAssigned => Conflict(new { message = "El equipo ya está asignado (tiene una asignación activa)." }),
             AssignmentActionStatus.NotActive => BadRequest(new { message = "Solo se pueden liberar asignaciones activas." }),
-            AssignmentActionStatus.EquipmentNotAssignable => BadRequest(new { message = "El equipo está en mantenimiento, fuera de servicio o dado de baja; no se puede asignar." }),
+            AssignmentActionStatus.EquipmentNotAssignable => BadRequest(new { message = "Solo se puede asignar un equipo Disponible (no en mantenimiento, fuera de servicio ni dado de baja)." }),
+            AssignmentActionStatus.UserNotAssignable => BadRequest(new { message = "Los equipos solo se asignan a personal interno (Empleado, Técnico o Administrador)." }),
             AssignmentActionStatus.UserInactive => BadRequest(new { message = "El usuario está inactivo." }),
             _ => StatusCode(StatusCodes.Status500InternalServerError)
         };
