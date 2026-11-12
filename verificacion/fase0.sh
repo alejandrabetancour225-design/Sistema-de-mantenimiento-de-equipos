@@ -84,22 +84,26 @@ expect "Marcar Fuera de servicio" 200
 req PATCH "/equipment/PatchEquipmentStatus/$EQ" "$ADMIN" '{"status":"AVAILABLE"}'
 expect "Devolver a servicio" 200
 
-# Empleado de prueba: se registra (queda Cliente) y el Administrador le cambia el rol.
-EMP_EMAIL="qa.s6.$RUN@example.com"; EMP_PASS="QaSprint6$RUN"
-curl -s -X POST "$API/auth/register" -H "Content-Type: application/json" \
-  -d "{\"fullName\":\"QA S6 Empleado\",\"email\":\"$EMP_EMAIL\",\"password\":\"$EMP_PASS\"}" >/dev/null
-req GET /users "$ADMIN"
-EMP_ID=$(json "[u['id'] for u in d if u.get('email')=='$EMP_EMAIL'][0]")
+# Usuarios de prueba: el Administrador los crea con contraseña temporal (no hay registro público).
+EMP_EMAIL="qa.s6.$RUN@example.com"; EMP_PASS="QaSprint6$RUN"; GER_EMAIL="qa.s6.ger.$RUN@example.com"
+TEMP="Temporal${RUN}x"
+new_user() { # new_user email rol -> token con la contraseña definitiva
+  req POST /users "$ADMIN" "{\"fullName\":\"QA S6 Empleado\",\"email\":\"$1\",\"role\":\"$2\",\"temporaryPassword\":\"$TEMP\"}"
+  local t; t=$(login "$1" "$TEMP")
+  curl -s -X POST "$API/auth/change-password" -H "Authorization: Bearer $t" -H "Content-Type: application/json" \
+    -d "{\"currentPassword\":\"$TEMP\",\"newPassword\":\"$EMP_PASS\"}" >/dev/null
+}
+new_user "$GER_EMAIL" "Gerente"; expect "El Administrador crea un Gerente" 200
+GER_ID=$(json "d['id']")
+new_user "$EMP_EMAIL" "Empleado"; expect "El Administrador crea un Empleado" 200
+EMP_ID=$(json "d['id']")
 
-req POST /assignment/AssignEquipment "$ADMIN" "{\"equipmentId\":\"$EQ\",\"userId\":\"$EMP_ID\"}"
-expect "No se asigna a un Cliente" 400
+req POST /assignment/AssignEquipment "$ADMIN" "{\"equipmentId\":\"$EQ\",\"userId\":\"$GER_ID\"}"
+expect "No se asigna a un Gerente" 400
 
-CLI=$(login "$EMP_EMAIL" "$EMP_PASS")
-req GET /errorknowledge/GetKnowledgeList "$CLI"
-expect "El Cliente no consulta la biblioteca de errores" 403
-
-req PUT "/users/$EMP_ID/role" "$ADMIN" '{"role":"Empleado"}'
-expect "Cambiar rol a Empleado" 200
+GER=$(login "$GER_EMAIL" "$EMP_PASS")
+req GET /errorknowledge/GetKnowledgeList "$GER"
+expect "El Gerente no consulta la biblioteca de errores" 403
 
 req POST /assignment/AssignEquipment "$ADMIN" "{\"equipmentId\":\"$EQ\",\"userId\":\"$EMP_ID\"}"
 expect "Asignar a Empleado" 200

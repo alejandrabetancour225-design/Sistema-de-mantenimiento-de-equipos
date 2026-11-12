@@ -137,6 +137,15 @@ def triage(request: TriageRequest):
     request.glossary = glosario
     resultado = _llamar(mensajes_triaje(request), TriageModelResponse, max_tokens=500)
 
+    # Si el modelo dejó su pregunta dentro de "understanding", se rescata como pregunta.
+    if not resultado.question.strip() and "¿" in resultado.understanding and request.questions_asked < request.max_questions:
+        inicio = resultado.understanding.index("¿")
+        fin = resultado.understanding.find("?", inicio)
+        if fin > inicio:
+            resultado.question = resultado.understanding[inicio:fin + 1]
+            resultado.understanding = (resultado.understanding[:inicio] + resultado.understanding[fin + 1:]).strip()
+            resultado.needs_more_info = True
+
     # Límite de preguntas: lo impone el servicio, no la buena voluntad del modelo.
     if request.questions_asked >= request.max_questions or not resultado.question.strip():
         resultado.needs_more_info = False

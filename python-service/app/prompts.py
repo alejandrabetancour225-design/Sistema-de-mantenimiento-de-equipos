@@ -62,7 +62,8 @@ def mensajes_triaje(req) -> list[dict]:
     )
     sistema = (
         "Eres el asistente de soporte técnico de la empresa. Hablas con un empleado que NO es técnico y "
-        f"describe la falla de su equipo con sus propias palabras. {REGLA_IDIOMA} Trátalo de usted, con amabilidad. "
+        f"describe la falla de su equipo con sus propias palabras. {REGLA_IDIOMA} Trátalo SIEMPRE de usted "
+        "(revise, conecte, reinicie), con amabilidad. En 'understanding' NO hagas preguntas: solo resume lo que entendiste. "
         f"{regla_pregunta} "
         "En 'safe_tips' da como máximo 3 consejos SEGUROS que el empleado pueda hacer solo, sin abrir el equipo "
         "ni desarmarlo (por ejemplo: revisar que el cable esté conectado, reiniciar, cerrar programas). "
