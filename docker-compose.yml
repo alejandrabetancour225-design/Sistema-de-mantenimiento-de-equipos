@@ -104,3 +104,9 @@ services:
 
 volumes:
   postgres_data:
+
+# Nombre fijo de la red: así otras herramientas (p. ej. las bases de prueba de integraciones)
+# se conectan a ella sin depender del nombre de la carpeta del proyecto.
+networks:
+  default:
+    name: sistema-mantenimiento

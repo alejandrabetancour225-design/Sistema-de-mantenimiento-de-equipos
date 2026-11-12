@@ -250,21 +250,29 @@ def perfilar(registros: list[dict]) -> list[dict]:
 _SINONIMOS = {
     "internalCode": ["codigo", "cod", "code", "codigo interno", "id equipo", "placa", "activo", "asset", "asset tag",
                      "tag", "inventario", "numero inventario", "consecutivo"],
-    "serialNumber": ["serial", "serie", "numero serie", "num serie", "sn", "s n", "serial number", "nro serie"],
-    "type": ["tipo", "type", "categoria", "clase", "tipo equipo", "category", "device type"],
+    "serialNumber": ["serial", "serie", "numero serie", "num serie", "sn", "s n", "serial number", "nro serie",
+                     "serial no", "no serie"],
+    "type": ["tipo", "type", "categoria", "clase", "tipo equipo", "category", "device type", "device"],
     "brand": ["marca", "brand", "fabricante", "manufacturer", "make", "vendor"],
-    "model": ["modelo", "model", "referencia", "ref"],
+    "model": ["modelo", "model", "referencia", "ref", "model name"],
     "location": ["ubicacion", "location", "sede", "oficina", "area", "lugar", "piso", "departamento", "site"],
     "acquisitionDate": ["fecha compra", "fecha adquisicion", "purchase date", "fecha", "compra", "adquisicion",
-                        "fecha ingreso", "acquired"],
-    "acquisitionPrice": ["precio", "costo", "valor", "price", "cost", "valor compra", "precio compra"],
+                        "fecha ingreso", "acquired", "purchase"],
+    "acquisitionPrice": ["precio", "costo", "valor", "price", "cost", "valor compra", "precio compra", "purchase cost"],
     "operatingSystem": ["so", "s o", "sistema operativo", "os", "operating system"],
 }
 _TIPO_ESPERADO = {"acquisitionDate": "fecha", "acquisitionPrice": "número"}
 
 
+def _separar_palabras(columna: str) -> str:
+    """'AssetTag' -> 'Asset Tag', 'numeroSerie' -> 'numero Serie', 'fecha_compra' -> 'fecha compra'."""
+    columna = re.sub(r"([a-záéíóúñ0-9])([A-ZÁÉÍÓÚÑ])", r"\1 \2", columna)
+    columna = re.sub(r"([A-ZÁÉÍÓÚÑ]+)([A-ZÁÉÍÓÚÑ][a-záéíóúñ])", r"\1 \2", columna)
+    return columna.replace("_", " ").replace(".", " ").replace("-", " ")
+
+
 def _puntaje_nombre(columna: str, campo: str) -> float:
-    nombre = normalizar(columna.replace("_", " ").replace(".", " ").replace("-", " "))
+    nombre = normalizar(_separar_palabras(columna))
     mejor = 0.0
     for sinonimo in _SINONIMOS[campo]:
         if nombre == sinonimo:
@@ -288,6 +296,8 @@ def sugerir_mapeo(perfil: list[dict]) -> dict:
             if campo in ("internalCode", "serialNumber"):
                 # Identificadores: casi únicos, sin vacíos, suelen mezclar letras y números.
                 puntaje += 0.3 * col["unique_ratio"] + 0.1 * col["has_digits_and_letters"] - 0.4 * col["null_ratio"]
+                if col["type"] == "número":
+                    puntaje -= 0.3  # un id autoincremental rara vez es el código de inventario
             if campo in ("type", "brand") and col["type"] == "texto" and 0 < col["distinct"] <= 30:
                 puntaje += 0.1  # pocas categorías
             if puntaje >= 0.5:
