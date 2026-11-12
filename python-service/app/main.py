@@ -1,18 +1,24 @@
+"""Servicio Python del sistema de mantenimiento: diagnóstico y triaje con IA local (Ollama).
+
+R5: la IA solo sugiere. Nunca cambia estados ni crea registros; eso lo decide una persona en la API.
+"""
+from typing import List, Literal
+
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
-from typing import List
-import httpx
-import os
-import json
 
-app = FastAPI(title="AI Service - Diagnóstico de Equipos")
+from . import ollama_cliente
+from .ollama_cliente import ErrorDeModelo, chat_estructurado
+from .prompts import mensajes_diagnostico, mensajes_triaje
+from .texto import aplicar_glosario, proporcion_espanol
 
-OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
-# Modelo y tiempo máximo configurables por variable de entorno (docker-compose.yml / .env).
-MODEL_NAME = os.getenv("OLLAMA_MODEL", "llama3.1:8b")
-OLLAMA_TIMEOUT_SECONDS = float(os.getenv("OLLAMA_TIMEOUT_SECONDS", "170"))
+app = FastAPI(title="Python Service - Sistema de mantenimiento de equipos")
+
+# Palabras que delatan un "consejo" inseguro para alguien sin formación técnica.
+_CONSEJOS_PROHIBIDOS = ("abrir", "abra ", "destap", "desarm", "desatornill", "soldar", "carcasa", "tarjeta madre")
 
 
+# ---------- Modelos compartidos ----------
 class EquipmentContext(BaseModel):
     brand: str
     model: str
@@ -20,122 +26,127 @@ class EquipmentContext(BaseModel):
     components: List[str] = []
 
 
+class GlossaryEntry(BaseModel):
+    expresion: str
+    significado: str
+    categoria: str | None = None
+
+
+# ---------- Diagnóstico (técnico) ----------
 class DiagnosisRequest(BaseModel):
     equipment_id: str
     symptom: str
     equipment_context: EquipmentContext
     knowledge_context: List[dict] = []
+    glossary: List[GlossaryEntry] = []
 
 
 class RankedCause(BaseModel):
-    cause: str = Field(description="Descripción de la causa probable")
+    cause: str = Field(description="Causa probable, en español")
     probability: float = Field(ge=0, le=1, description="Probabilidad entre 0 y 1")
-    recommendation: str = Field(description="Qué debe hacer el técnico o usuario")
+    recommendation: str = Field(description="Acción concreta para el técnico, en español")
 
 
 class DiagnosisResponse(BaseModel):
-    ranked_causes: List[RankedCause] = Field(description="Lista de causas ordenadas por probabilidad")
-    requires_technician: bool = Field(description="True si requiere intervención física")
-    reasoning: str = Field(description="Breve explicación del razonamiento")
+    ranked_causes: List[RankedCause] = Field(min_length=1, max_length=3,
+                                             description="Exactamente 3 causas, de la más a la menos probable")
+    requires_technician: bool = Field(description="true si requiere intervención física de un técnico")
+    reasoning: str = Field(description="Explicación breve del razonamiento, en español")
 
 
 class DiagnosisApiResponse(DiagnosisResponse):
-    # Lo agrega el servicio (no el modelo): qué modelo generó el diagnóstico.
+    # Lo agrega el servicio (no el modelo).
     model: str
+    detected_expressions: List[str] = []
+
+
+# ---------- Triaje conversacional (empleado) ----------
+class ChatMessage(BaseModel):
+    role: Literal["empleado", "asistente"]
+    content: str = Field(max_length=2000)
+
+
+class TriageRequest(BaseModel):
+    equipment_context: EquipmentContext
+    messages: List[ChatMessage] = Field(min_length=1)
+    questions_asked: int = 0
+    max_questions: int = 3
+    glossary: List[GlossaryEntry] = []
+
+
+class TriageModelResponse(BaseModel):
+    understanding: str = Field(description="Lo que entendiste del problema, en palabras sencillas, en español")
+    needs_more_info: bool = Field(description="true si necesitas hacer una pregunta más")
+    question: str = Field(description="Una sola pregunta corta y sencilla en español, o vacía")
+    safe_tips: List[str] = Field(max_length=3, description="Hasta 3 consejos seguros, en español")
+    technical_summary: str = Field(description="Resumen técnico breve para el técnico, en español")
+    urgency: Literal["baja", "media", "alta"] = Field(description="Urgencia estimada")
+    requires_technician: bool = Field(description="true si probablemente necesita un técnico")
+
+
+class TriageApiResponse(TriageModelResponse):
+    model: str
+    detected_expressions: List[str] = []
+
+
+def _llamar(mensajes, esquema_modelo, max_tokens):
+    try:
+        datos = chat_estructurado(mensajes, esquema_modelo.model_json_schema(), max_tokens=max_tokens)
+        return esquema_modelo.model_validate(datos)
+    except ErrorDeModelo as e:
+        raise HTTPException(status_code=503, detail=str(e)) from e
+    except ValueError as e:
+        raise HTTPException(status_code=503, detail=f"Respuesta del modelo fuera del esquema: {e}") from e
+
+
+def _parece_ingles(*textos: str) -> bool:
+    return proporcion_espanol(" ".join(textos)) < 0.5
 
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "model": MODEL_NAME}
+    return {"status": "ok", "model": ollama_cliente.MODEL_NAME}
 
 
 @app.post("/api/v1/diagnosis", response_model=DiagnosisApiResponse)
 def diagnose(request: DiagnosisRequest):
-    knowledge_text = "\n".join([
-        f"- Síntoma: {k.get('symptom')} | Causas: {k.get('possibleCauses')} | Solución: {k.get('suggestedSolution')}"
-        for k in request.knowledge_context
-    ]) or "No hay errores documentados para este síntoma."
+    glosario = [g.model_dump() for g in request.glossary]
+    request.glossary = glosario  # los prompts trabajan con dicts
+    mensajes = mensajes_diagnostico(request)
+    resultado = _llamar(mensajes, DiagnosisResponse, max_tokens=700)
 
-    prompt = f"""You are an expert computer repair technician.
-Analyze the following case and return a technical diagnosis.
+    # Red de seguridad: si aun así respondió en inglés, se repite una vez exigiendo español.
+    if _parece_ingles(resultado.reasoning, *(c.cause for c in resultado.ranked_causes)):
+        mensajes.append({"role": "user", "content": "Tu respuesta anterior no estaba en español. Repítela completa en español."})
+        resultado = _llamar(mensajes, DiagnosisResponse, max_tokens=700)
 
-EQUIPMENT DATA:
-- Brand: {request.equipment_context.brand}
-- Model: {request.equipment_context.model}
-- OS: {request.equipment_context.os_info or 'Not available'}
-- Components: {', '.join(request.equipment_context.components) or 'Not registered'}
+    causas = sorted(resultado.ranked_causes, key=lambda c: c.probability, reverse=True)
+    return DiagnosisApiResponse(
+        ranked_causes=causas,
+        requires_technician=resultado.requires_technician,
+        reasoning=resultado.reasoning,
+        model=ollama_cliente.MODEL_NAME,
+        detected_expressions=[e["expresion"] for e in aplicar_glosario(request.symptom, glosario)],
+    )
 
-REPORTED SYMPTOM:
-{request.symptom}
 
-KNOWN ERROR LIBRARY:
-{knowledge_text}
+@app.post("/api/v1/triage", response_model=TriageApiResponse)
+def triage(request: TriageRequest):
+    glosario = [g.model_dump() for g in request.glossary]
+    request.glossary = glosario
+    resultado = _llamar(mensajes_triaje(request), TriageModelResponse, max_tokens=500)
 
-INSTRUCTIONS:
-- Use the equipment data (brand, model, OS, components) to filter compatible causes.
-- If OS or components are missing ("dato no disponible"), do not block the diagnosis; work with what is available.
-- Return a JSON object that strictly follows this schema. The keys MUST be in English exactly as shown:
-{{
-  "ranked_causes": [
-    {{
-      "cause": "string describing the probable cause",
-      "probability": 0.0,
-      "recommendation": "string with the recommended action"
-    }}
-  ],
-  "requires_technician": true,
-  "reasoning": "string with a brief explanation"
-}}
+    # Límite de preguntas: lo impone el servicio, no la buena voluntad del modelo.
+    if request.questions_asked >= request.max_questions or not resultado.question.strip():
+        resultado.needs_more_info = False
+        resultado.question = ""
+    resultado.safe_tips = [
+        t for t in resultado.safe_tips if not any(p in t.lower() for p in _CONSEJOS_PROHIBIDOS)
+    ][:3]
 
-RULES:
-- The field names MUST be exactly: "ranked_causes", "cause", "probability", "recommendation", "requires_technician", "reasoning".
-- Do NOT translate field names to Spanish.
-- Return exactly 3 causes in "ranked_causes".
-- "probability" must be a number between 0 and 1.
-"""
-
-    # Esquema exacto que Ollama debe respetar
-    schema = DiagnosisResponse.model_json_schema()
-
-    payload = {
-        "model": MODEL_NAME,
-        "messages": [{"role": "user", "content": prompt}],
-        "stream": False,
-        "format": schema,  # <-- Esquema directo a la API REST
-        "options": {"temperature": 0}
-    }
-
-    try:
-        # Llamada HTTP directa a Ollama (sin librería)
-        with httpx.Client(timeout=OLLAMA_TIMEOUT_SECONDS) as client:
-            response = client.post(f"{OLLAMA_HOST}/api/chat", json=payload)
-            response.raise_for_status()
-            data = response.json()
-
-        raw_content = data["message"]["content"]
-        raw = json.loads(raw_content)
-
-        # Remapeo forzado (funciona sin importar lo que devuelva el modelo)
-        normalized = {
-            "ranked_causes": [
-                {
-                    "cause": c.get("cause", c.get("causa", "")),
-                    "probability": float(c.get("probability", c.get("probabilidad", 0.0))),
-                    "recommendation": c.get("recommendation", c.get("recomendación", c.get("recomendacion", "")))
-                }
-                for c in raw.get("ranked_causes", raw.get("causas", []))
-            ],
-            "requires_technician": bool(raw.get("requires_technician", raw.get("requiere_tecnico", True))),
-            "reasoning": raw.get("reasoning", raw.get("razonamiento", ""))
-        }
-
-        validated = DiagnosisResponse.model_validate(normalized)
-        return DiagnosisApiResponse(**validated.model_dump(), model=MODEL_NAME)
-
-    except httpx.HTTPStatusError as e:
-        print(f"ERROR HTTP de Ollama: {e.response.text}")
-        raise HTTPException(status_code=503, detail=f"Error de Ollama: {e.response.text}")
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(status_code=503, detail=f"Error en el servicio de IA: {str(e)}")
+    texto_empleado = " ".join(m.content for m in request.messages if m.role == "empleado")
+    return TriageApiResponse(
+        **resultado.model_dump(),
+        model=ollama_cliente.MODEL_NAME,
+        detected_expressions=[e["expresion"] for e in aplicar_glosario(texto_empleado, glosario)],
+    )

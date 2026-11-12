@@ -22,6 +22,7 @@ public class AppDbContext : DbContext
     public DbSet<AIDiagnosis> AIDiagnoses => Set<AIDiagnosis>();
     public DbSet<FailurePrediction> FailurePredictions => Set<FailurePrediction>();
     public DbSet<AIFeedback> AIFeedbacks => Set<AIFeedback>();
+    public DbSet<SlangTerm> SlangTerms => Set<SlangTerm>();
 
     // Nombres de los índices únicos parciales que evitan duplicados por peticiones simultáneas.
     public const string ActiveAssignmentPerEquipmentIndex = "IX_Assignments_EquipmentId_Active";
@@ -164,6 +165,14 @@ public class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade);
             entity.HasIndex(c => c.UserId);
             entity.HasIndex(c => c.ExpiresAt);
+        });
+
+        modelBuilder.Entity<SlangTerm>(entity =>
+        {
+            entity.Property(t => t.Expression).HasMaxLength(120);
+            entity.Property(t => t.Meaning).HasMaxLength(400);
+            entity.Property(t => t.Category).HasMaxLength(40);
+            entity.HasIndex(t => t.Expression).IsUnique();
         });
 
         modelBuilder.Entity<ErrorKnowledge>(entity =>

@@ -1,0 +1,512 @@
+[
+ {
+  "expresion": "se fundió",
+  "significado": "no enciende; posible daño eléctrico en la fuente de poder o la tarjeta madre",
+  "categoria": "energía"
+ },
+ {
+  "expresion": "se quemó",
+  "significado": "daño eléctrico o por sobrecalentamiento; revisar fuente, cargador o tarjeta madre",
+  "categoria": "energía"
+ },
+ {
+  "expresion": "se tostó",
+  "significado": "daño por sobrecalentamiento o corto eléctrico",
+  "categoria": "energía"
+ },
+ {
+  "expresion": "no prende",
+  "significado": "no enciende (sin luces ni ventiladores)",
+  "categoria": "energía"
+ },
+ {
+  "expresion": "no arranca",
+  "significado": "no inicia: puede encender pero no carga el sistema operativo",
+  "categoria": "arranque"
+ },
+ {
+  "expresion": "no da señales de vida",
+  "significado": "no enciende en absoluto: sin luces, sin sonido, sin ventiladores",
+  "categoria": "energía"
+ },
+ {
+  "expresion": "está muerto",
+  "significado": "no enciende en absoluto",
+  "categoria": "energía"
+ },
+ {
+  "expresion": "se murió",
+  "significado": "dejó de encender o de funcionar por completo",
+  "categoria": "energía"
+ },
+ {
+  "expresion": "se apagó solo",
+  "significado": "apagado inesperado; posible sobrecalentamiento o falla de fuente/batería",
+  "categoria": "energía"
+ },
+ {
+  "expresion": "se apaga solo",
+  "significado": "apagados inesperados recurrentes; sobrecalentamiento, batería o fuente",
+  "categoria": "energía"
+ },
+ {
+  "expresion": "se reinicia solo",
+  "significado": "reinicios inesperados; sobrecalentamiento, RAM, fuente o controladores",
+  "categoria": "sistema"
+ },
+ {
+  "expresion": "chispeó",
+  "significado": "salieron chispas: corto eléctrico, desconectar de inmediato",
+  "categoria": "energía"
+ },
+ {
+  "expresion": "echó humo",
+  "significado": "salió humo: corto o componente quemado, desconectar de inmediato",
+  "categoria": "energía"
+ },
+ {
+  "expresion": "huele a quemado",
+  "significado": "olor a quemado: posible componente eléctrico dañado, desconectar",
+  "categoria": "energía"
+ },
+ {
+  "expresion": "se pegó",
+  "significado": "se congela o deja de responder",
+  "categoria": "rendimiento"
+ },
+ {
+  "expresion": "se pega",
+  "significado": "se congela con frecuencia",
+  "categoria": "rendimiento"
+ },
+ {
+  "expresion": "se quedó pegado",
+  "significado": "se congeló y no responde",
+  "categoria": "rendimiento"
+ },
+ {
+  "expresion": "se trabó",
+  "significado": "se congeló, no responde",
+  "categoria": "rendimiento"
+ },
+ {
+  "expresion": "se traba",
+  "significado": "se congela con frecuencia",
+  "categoria": "rendimiento"
+ },
+ {
+  "expresion": "se tranca",
+  "significado": "se congela o deja de responder",
+  "categoria": "rendimiento"
+ },
+ {
+  "expresion": "se colgó",
+  "significado": "el sistema dejó de responder",
+  "categoria": "rendimiento"
+ },
+ {
+  "expresion": "se cuelga",
+  "significado": "el sistema deja de responder con frecuencia",
+  "categoria": "rendimiento"
+ },
+ {
+  "expresion": "se bloqueó",
+  "significado": "el sistema dejó de responder",
+  "categoria": "rendimiento"
+ },
+ {
+  "expresion": "está lento",
+  "significado": "rendimiento bajo; disco lleno o dañado, poca RAM, malware o procesos en segundo plano",
+  "categoria": "rendimiento"
+ },
+ {
+  "expresion": "está lentísimo",
+  "significado": "rendimiento muy bajo",
+  "categoria": "rendimiento"
+ },
+ {
+  "expresion": "lento como una tortuga",
+  "significado": "rendimiento muy bajo",
+  "categoria": "rendimiento"
+ },
+ {
+  "expresion": "va a paso de tortuga",
+  "significado": "rendimiento muy bajo",
+  "categoria": "rendimiento"
+ },
+ {
+  "expresion": "está pesado",
+  "significado": "rendimiento bajo, tarda en responder",
+  "categoria": "rendimiento"
+ },
+ {
+  "expresion": "se demora una eternidad",
+  "significado": "tiempos de carga muy altos",
+  "categoria": "rendimiento"
+ },
+ {
+  "expresion": "tarda mucho en prender",
+  "significado": "arranque lento; disco mecánico, programas de inicio o disco dañado",
+  "categoria": "arranque"
+ },
+ {
+  "expresion": "se calienta mucho",
+  "significado": "sobrecalentamiento; ventiladores sucios o pasta térmica seca",
+  "categoria": "temperatura"
+ },
+ {
+  "expresion": "está hirviendo",
+  "significado": "sobrecalentamiento fuerte",
+  "categoria": "temperatura"
+ },
+ {
+  "expresion": "echa candela",
+  "significado": "sobrecalentamiento fuerte",
+  "categoria": "temperatura"
+ },
+ {
+  "expresion": "quema",
+  "significado": "temperatura excesiva al tacto",
+  "categoria": "temperatura"
+ },
+ {
+  "expresion": "suena como una licuadora",
+  "significado": "ventilador muy ruidoso; polvo o rodamiento desgastado",
+  "categoria": "ruido"
+ },
+ {
+  "expresion": "suena como un avión",
+  "significado": "ventilador muy ruidoso o trabajando al máximo",
+  "categoria": "ruido"
+ },
+ {
+  "expresion": "hace un ruido raro",
+  "significado": "ruido anormal; ventilador o disco duro mecánico",
+  "categoria": "ruido"
+ },
+ {
+  "expresion": "hace tic tac",
+  "significado": "ruido de clic en disco duro mecánico: posible falla inminente del disco",
+  "categoria": "ruido"
+ },
+ {
+  "expresion": "pita",
+  "significado": "emite pitidos al encender (códigos de error de BIOS: RAM o video)",
+  "categoria": "arranque"
+ },
+ {
+  "expresion": "pantallazo azul",
+  "significado": "error crítico de Windows (BSOD): controladores, RAM o disco",
+  "categoria": "sistema"
+ },
+ {
+  "expresion": "pantalla azul",
+  "significado": "error crítico de Windows (BSOD)",
+  "categoria": "sistema"
+ },
+ {
+  "expresion": "pantalla negra",
+  "significado": "enciende pero no muestra imagen: pantalla, cable de video, tarjeta gráfica o RAM",
+  "categoria": "pantalla"
+ },
+ {
+  "expresion": "se puso negra la pantalla",
+  "significado": "la pantalla dejó de mostrar imagen",
+  "categoria": "pantalla"
+ },
+ {
+  "expresion": "no da imagen",
+  "significado": "no muestra video: monitor, cable, tarjeta gráfica o RAM",
+  "categoria": "pantalla"
+ },
+ {
+  "expresion": "la pantalla parpadea",
+  "significado": "parpadeo de pantalla: cable flex, controlador de video o panel",
+  "categoria": "pantalla"
+ },
+ {
+  "expresion": "titila",
+  "significado": "parpadeo intermitente de pantalla o luces",
+  "categoria": "pantalla"
+ },
+ {
+  "expresion": "salen rayas en la pantalla",
+  "significado": "líneas en pantalla: panel LCD, cable flex o tarjeta gráfica",
+  "categoria": "pantalla"
+ },
+ {
+  "expresion": "la pantalla está rajada",
+  "significado": "panel de pantalla físicamente roto",
+  "categoria": "pantalla"
+ },
+ {
+  "expresion": "se ve borroso",
+  "significado": "imagen borrosa: resolución incorrecta o controlador de video",
+  "categoria": "pantalla"
+ },
+ {
+  "expresion": "se ve todo grande",
+  "significado": "resolución de pantalla incorrecta o zoom activado",
+  "categoria": "pantalla"
+ },
+ {
+  "expresion": "no carga",
+  "significado": "la batería no carga: cargador, puerto de carga o batería",
+  "categoria": "batería"
+ },
+ {
+  "expresion": "no coge carga",
+  "significado": "la batería no carga",
+  "categoria": "batería"
+ },
+ {
+  "expresion": "la pila no dura",
+  "significado": "la batería se descarga rápido: batería desgastada",
+  "categoria": "batería"
+ },
+ {
+  "expresion": "la batería no dura nada",
+  "significado": "batería desgastada o consumo alto",
+  "categoria": "batería"
+ },
+ {
+  "expresion": "la batería está inflada",
+  "significado": "batería hinchada: riesgo, retirarla y reemplazarla",
+  "categoria": "batería"
+ },
+ {
+  "expresion": "el cargador no sirve",
+  "significado": "cargador dañado o incompatible",
+  "categoria": "batería"
+ },
+ {
+  "expresion": "no coge internet",
+  "significado": "sin conexión a internet: wifi, red o controlador de red",
+  "categoria": "red"
+ },
+ {
+  "expresion": "no coge el wifi",
+  "significado": "no se conecta a la red inalámbrica",
+  "categoria": "red"
+ },
+ {
+  "expresion": "no agarra wifi",
+  "significado": "no se conecta a la red inalámbrica",
+  "categoria": "red"
+ },
+ {
+  "expresion": "se cae el internet",
+  "significado": "conexión intermitente",
+  "categoria": "red"
+ },
+ {
+  "expresion": "el internet está lento",
+  "significado": "conexión lenta",
+  "categoria": "red"
+ },
+ {
+  "expresion": "no tiene señal",
+  "significado": "sin conexión de red",
+  "categoria": "red"
+ },
+ {
+  "expresion": "se desconfiguró",
+  "significado": "configuración alterada; revisar ajustes, controladores o actualizaciones",
+  "categoria": "sistema"
+ },
+ {
+  "expresion": "se dañó el windows",
+  "significado": "el sistema operativo no inicia o está corrupto",
+  "categoria": "sistema"
+ },
+ {
+  "expresion": "se borró todo",
+  "significado": "pérdida de archivos; revisar papelera, copias de seguridad o disco",
+  "categoria": "datos"
+ },
+ {
+  "expresion": "me salen anuncios",
+  "significado": "publicidad no deseada: posible adware o malware",
+  "categoria": "seguridad"
+ },
+ {
+  "expresion": "tiene virus",
+  "significado": "sospecha de malware",
+  "categoria": "seguridad"
+ },
+ {
+  "expresion": "se metió un virus",
+  "significado": "sospecha de malware",
+  "categoria": "seguridad"
+ },
+ {
+  "expresion": "me hackearon",
+  "significado": "posible acceso no autorizado a la cuenta o equipo",
+  "categoria": "seguridad"
+ },
+ {
+  "expresion": "el teclado no escribe",
+  "significado": "teclado sin respuesta: conexión, controlador o teclado dañado",
+  "categoria": "periféricos"
+ },
+ {
+  "expresion": "se le cayó café",
+  "significado": "derrame de líquido: apagar, desconectar y no encender",
+  "categoria": "físico"
+ },
+ {
+  "expresion": "se mojó",
+  "significado": "contacto con líquido: apagar, desconectar y no encender",
+  "categoria": "físico"
+ },
+ {
+  "expresion": "se cayó al piso",
+  "significado": "golpe físico: posible daño en disco, pantalla o bisagras",
+  "categoria": "físico"
+ },
+ {
+  "expresion": "se le cayó",
+  "significado": "golpe físico",
+  "categoria": "físico"
+ },
+ {
+  "expresion": "se le partió la bisagra",
+  "significado": "bisagra de la pantalla rota",
+  "categoria": "físico"
+ },
+ {
+  "expresion": "el mouse no sirve",
+  "significado": "el mouse no responde: batería, receptor, puerto o mouse dañado",
+  "categoria": "periféricos"
+ },
+ {
+  "expresion": "el ratón no sirve",
+  "significado": "el mouse no responde",
+  "categoria": "periféricos"
+ },
+ {
+  "expresion": "el touchpad no sirve",
+  "significado": "el panel táctil no responde: desactivado o controlador",
+  "categoria": "periféricos"
+ },
+ {
+  "expresion": "no suena",
+  "significado": "sin audio: volumen, dispositivo de salida o controlador de sonido",
+  "categoria": "audio"
+ },
+ {
+  "expresion": "no se escucha",
+  "significado": "sin audio",
+  "categoria": "audio"
+ },
+ {
+  "expresion": "suena distorsionado",
+  "significado": "audio distorsionado: parlantes dañados o controlador",
+  "categoria": "audio"
+ },
+ {
+  "expresion": "el micrófono no sirve",
+  "significado": "micrófono sin entrada: permisos, dispositivo o controlador",
+  "categoria": "audio"
+ },
+ {
+  "expresion": "no reconoce la memoria",
+  "significado": "no detecta la memoria USB: puerto, memoria o formato",
+  "categoria": "almacenamiento"
+ },
+ {
+  "expresion": "no lee la usb",
+  "significado": "no detecta el dispositivo USB",
+  "categoria": "almacenamiento"
+ },
+ {
+  "expresion": "el disco está lleno",
+  "significado": "almacenamiento sin espacio",
+  "categoria": "almacenamiento"
+ },
+ {
+  "expresion": "dice que no hay espacio",
+  "significado": "almacenamiento sin espacio",
+  "categoria": "almacenamiento"
+ },
+ {
+  "expresion": "la impresora no imprime",
+  "significado": "la impresora no imprime: conexión, cola de impresión, papel o tinta",
+  "categoria": "impresión"
+ },
+ {
+  "expresion": "se atasca el papel",
+  "significado": "atasco de papel en la impresora",
+  "categoria": "impresión"
+ },
+ {
+  "expresion": "imprime en blanco",
+  "significado": "impresión sin tinta: cartuchos vacíos o cabezal tapado",
+  "categoria": "impresión"
+ },
+ {
+  "expresion": "imprime rayado",
+  "significado": "impresión con rayas: cabezal sucio o tóner/tinta baja",
+  "categoria": "impresión"
+ },
+ {
+  "expresion": "la cámara no sirve",
+  "significado": "la cámara web no funciona: permisos, controlador o hardware",
+  "categoria": "periféricos"
+ },
+ {
+  "expresion": "no deja entrar",
+  "significado": "no permite iniciar sesión: contraseña, cuenta bloqueada o perfil dañado",
+  "categoria": "acceso"
+ },
+ {
+  "expresion": "se me olvidó la clave",
+  "significado": "contraseña olvidada",
+  "categoria": "acceso"
+ },
+ {
+  "expresion": "pide una actualización",
+  "significado": "actualizaciones pendientes del sistema",
+  "categoria": "sistema"
+ },
+ {
+  "expresion": "se quedó actualizando",
+  "significado": "actualización atascada",
+  "categoria": "sistema"
+ },
+ {
+  "expresion": "está todo raro",
+  "significado": "comportamiento anómalo general; requiere más detalle",
+  "categoria": "general"
+ },
+ {
+  "expresion": "hace cosas raras",
+  "significado": "comportamiento anómalo; posible malware o falla de sistema",
+  "categoria": "general"
+ },
+ {
+  "expresion": "no funciona",
+  "significado": "falla general; requiere más detalle",
+  "categoria": "general"
+ },
+ {
+  "expresion": "está malo",
+  "significado": "falla general; requiere más detalle",
+  "categoria": "general"
+ },
+ {
+  "expresion": "está dañado",
+  "significado": "falla general; requiere más detalle",
+  "categoria": "general"
+ },
+ {
+  "expresion": "la pantalla no prende",
+  "significado": "el monitor o panel no enciende: alimentación, cable o panel",
+  "categoria": "pantalla"
+ },
+ {
+  "expresion": "el computador está caliente y lento",
+  "significado": "sobrecalentamiento que reduce el rendimiento (thermal throttling)",
+  "categoria": "temperatura"
+ }
+]

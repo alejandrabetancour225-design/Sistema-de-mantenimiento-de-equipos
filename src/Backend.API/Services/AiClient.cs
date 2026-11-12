@@ -17,11 +17,18 @@ public class AiClient : IAiClient
         _logger = logger;
     }
 
-    public async Task<FastApiDiagnosisResponse?> DiagnoseAsync(AiDiagnosisRequest request, CancellationToken ct = default)
+    public Task<FastApiDiagnosisResponse?> DiagnoseAsync(AiDiagnosisRequest request, CancellationToken ct = default)
+        => PostAsync<AiDiagnosisRequest, FastApiDiagnosisResponse>("/api/v1/diagnosis", request, ct);
+
+    public Task<AiTriageResponse?> TriageAsync(AiTriageRequest request, CancellationToken ct = default)
+        => PostAsync<AiTriageRequest, AiTriageResponse>("/api/v1/triage", request, ct);
+
+    private async Task<TResponse?> PostAsync<TRequest, TResponse>(string path, TRequest request, CancellationToken ct)
+        where TResponse : class
     {
         try
         {
-            var response = await _httpClient.PostAsJsonAsync("/api/v1/diagnosis", request, ct);
+            var response = await _httpClient.PostAsJsonAsync(path, request, ct);
             var body = await response.Content.ReadAsStringAsync(ct);
 
             if (!response.IsSuccessStatusCode)
@@ -30,7 +37,7 @@ public class AiClient : IAiClient
                 return null;
             }
 
-            return JsonSerializer.Deserialize<FastApiDiagnosisResponse>(body);
+            return JsonSerializer.Deserialize<TResponse>(body);
         }
         catch (Exception ex)
         {

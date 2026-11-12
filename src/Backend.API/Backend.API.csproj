@@ -8,6 +8,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Glosario base de modismos colombianos: se carga en la base al arrancar si la tabla está vacía. -->
+    <EmbeddedResource Include="Data/Seed/glosario_colombia.json" LogicalName="Backend.API.Data.Seed.glosario_colombia.json" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="ClosedXML" Version="0.105.1" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.11" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.11" />

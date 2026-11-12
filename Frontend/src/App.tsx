@@ -20,6 +20,8 @@ import { useAuth } from "./context/authContext";
 import { roleHome } from "./utils/roleHome";
 import DiagnosisPage from "./pages/DiagnosisPage";
 import AIMetricsPage from "./pages/AIMetricsPage";
+import AssistantPage from "./pages/AssistantPage";
+import GlossaryPage from "./pages/GlossaryPage";
 import LandingPage from "./pages/LandingPage";
 function Layout() {
   return (
@@ -74,13 +76,19 @@ export default function App() {
           <Route path="/equipos" element={<EquipoListPage />} />
           <Route path="/equipos/:id" element={<EquipoDetailPage />} />
           <Route path="/asignaciones" element={<AssignmentsPage />} />
-          <Route path="/diagnosis" element={<DiagnosisPage />} />
+          <Route path="/glosario" element={<GlossaryPage />} />
+        </Route>
+
+        {/* Reportar una falla en lenguaje cotidiano (asistente IA) */}
+        <Route element={<ProtectedRoute allowedRoles={["Administrador", "Empleado"]} />}>
+          <Route path="/asistente" element={<AssistantPage />} />
         </Route>
 
         <Route element={<ProtectedRoute allowedRoles={["Administrador", "Técnico"]} />}>
           <Route path="/equipos/nuevo" element={<EquipoFormPage />} />
           <Route path="/equipos/:id/editar" element={<EquipoFormPage />} />
           <Route path="/repuestos" element={<SparePartsPage />} />
+          <Route path="/diagnosis" element={<DiagnosisPage />} />
           <Route path="/error-knowledge" element={<ErrorKnowledgePage />} />
           <Route path="/ai-metrics" element={<AIMetricsPage />} />
         </Route>

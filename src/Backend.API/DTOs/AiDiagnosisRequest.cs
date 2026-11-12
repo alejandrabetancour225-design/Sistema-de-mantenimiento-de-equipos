@@ -15,6 +15,22 @@ public class AiDiagnosisRequest
 
     [JsonPropertyName("knowledge_context")]
     public List<AiKnowledgeItem> KnowledgeContext { get; set; } = new();
+
+    // Glosario de modismos: el servicio de IA detecta las expresiones y las explica en el prompt.
+    [JsonPropertyName("glossary")]
+    public List<AiGlossaryItem> Glossary { get; set; } = new();
+}
+
+public class AiGlossaryItem
+{
+    [JsonPropertyName("expresion")]
+    public string Expresion { get; set; } = string.Empty;
+
+    [JsonPropertyName("significado")]
+    public string Significado { get; set; } = string.Empty;
+
+    [JsonPropertyName("categoria")]
+    public string? Categoria { get; set; }
 }
 
 public class AiEquipmentContext

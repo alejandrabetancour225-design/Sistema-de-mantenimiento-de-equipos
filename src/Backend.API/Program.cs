@@ -293,6 +293,7 @@ builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();
 builder.Services.AddScoped<IErrorKnowledgeService, ErrorKnowledgeService>();
 builder.Services.AddHttpClient<IAiClient, AiClient>();
 builder.Services.AddScoped<IDiagnosisService, DiagnosisService>();
+builder.Services.AddScoped<IGlossaryService, GlossaryService>();
 builder.Services.AddScoped<IPredictionService, PredictionService>();
 builder.Services.AddScoped<IFeedbackService, FeedbackService>();
 
@@ -342,6 +343,14 @@ using (var scope = app.Services.CreateScope())
     }
 
     await AdminBootstrapper.EnsureAdministratorAsync(scope.ServiceProvider, app.Configuration, app.Logger);
+    try
+    {
+        await GlossaryService.SeedBaseAsync(dbContext, app.Logger);
+    }
+    catch (Npgsql.PostgresException ex) when (ex.SqlState == "42P01")
+    {
+        app.Logger.LogWarning("La tabla del glosario no existe todavía: aplica las migraciones.");
+    }
 
     if (app.Configuration.GetValue("Seed:Demo", false))
     {

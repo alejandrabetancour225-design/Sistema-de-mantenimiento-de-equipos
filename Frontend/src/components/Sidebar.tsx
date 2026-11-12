@@ -58,9 +58,16 @@ export default function Sidebar() {
               <Link to="/asignaciones" className={linkClass("/asignaciones")}>
                 Asignaciones
               </Link>
-              <Link to="/diagnosis" className={linkClass("/diagnosis")}>
-                Diagnóstico IA
-              </Link>
+              {(role === "Empleado" || role === "Administrador") && (
+                <Link to="/asistente" className={linkClass("/asistente")}>
+                  Reportar una falla
+                </Link>
+              )}
+              {canManageEquipment && (
+                <Link to="/diagnosis" className={linkClass("/diagnosis")}>
+                  Diagnóstico IA
+                </Link>
+              )}
             </>
           )}
           <Link to="/mantenimientos" className={linkClass("/mantenimientos")}>
@@ -89,6 +96,11 @@ export default function Sidebar() {
           {canManageEquipment && (
             <Link to="/error-knowledge" className={linkClass("/error-knowledge")}>
               Biblioteca IA
+            </Link>
+          )}
+          {isStaff && (
+            <Link to="/glosario" className={linkClass("/glosario")}>
+              Glosario de modismos
             </Link>
           )}
         </div>
