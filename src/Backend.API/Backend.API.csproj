@@ -10,6 +10,8 @@
   <ItemGroup>
     <!-- Glosario base de modismos colombianos: se carga en la base al arrancar si la tabla está vacía. -->
     <EmbeddedResource Include="Data/Seed/glosario_colombia.json" LogicalName="Backend.API.Data.Seed.glosario_colombia.json" />
+    <!-- Fuente para los PDF (PDFsharp no encuentra fuentes del sistema en Linux/contenedores). -->
+    <EmbeddedResource Include="Fonts/*.ttf" LogicalName="Backend.API.Fonts.%(Filename)%(Extension)" />
   </ItemGroup>
 
   <ItemGroup>

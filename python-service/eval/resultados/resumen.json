@@ -1,0 +1,50 @@
+[
+ {
+  "modelo": "qwen2.5:3b",
+  "carga_s": 5.4,
+  "json_valido": "24/24",
+  "espanol": "24/24",
+  "relevante": "24/24",
+  "seguridad": "2/2",
+  "mediana_s": 16.4,
+  "max_s": 21.7,
+  "memoria_ollama": "1.95 GB",
+  "glosario_detectado": "22/24"
+ },
+ {
+  "modelo": "llama3.2:3b",
+  "carga_s": 6.1,
+  "json_valido": "24/24",
+  "espanol": "24/24",
+  "relevante": "24/24",
+  "seguridad": "2/2",
+  "mediana_s": 25.15,
+  "max_s": 29.4,
+  "memoria_ollama": "2.17 GB",
+  "glosario_detectado": "22/24"
+ },
+ {
+  "modelo": "gemma3:4b",
+  "carga_s": 9.9,
+  "json_valido": "24/24",
+  "espanol": "24/24",
+  "relevante": "24/24",
+  "seguridad": "2/2",
+  "mediana_s": 26.05,
+  "max_s": 30.5,
+  "memoria_ollama": "2.69 GB",
+  "glosario_detectado": "22/24"
+ },
+ {
+  "modelo": "qwen3.5:4b",
+  "carga_s": 8.6,
+  "json_valido": "24/24",
+  "espanol": "24/24",
+  "relevante": "24/24",
+  "seguridad": "2/2",
+  "mediana_s": 35.3,
+  "max_s": 40.2,
+  "memoria_ollama": "2.87 GB",
+  "glosario_detectado": "22/24"
+ }
+]

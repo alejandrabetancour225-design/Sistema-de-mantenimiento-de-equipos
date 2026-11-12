@@ -43,7 +43,7 @@ El script:
 
 1. Comprueba Docker/Podman y el `.env`.
 2. La primera vez pregunta si quieres **datos de demostración**.
-3. Levanta Ollama y descarga el modelo de IA si no está (solo la primera vez, ~5 GB; muestra el progreso).
+3. Levanta Ollama y descarga el modelo de IA si no está (solo la primera vez, ~2 GB; muestra el progreso).
 4. Construye y levanta todo, aplica las migraciones y abre **http://localhost:8080**.
 
 ### Opciones
@@ -170,6 +170,29 @@ Todos los cambios de estado pasan por [EquipmentStateMachine](src/Backend.API/Se
 - Los equipos importados quedan ligados a su fuente: los campos mapeados **no se editan** en la app (se corrigen en la fuente) y las columnas sin equivalente se guardan en **JSONB** (`ExternalAttributes`). Sincronización manual o cada N horas; una segunda sincronización actualiza, no duplica.
 - Decisión de diseño (Q4): la opción (a), JSONB dentro del mismo PostgreSQL, resolvió el caso; no hizo falta MongoDB ni crear tablas dinámicas.
 - Probado con CSV, Excel, JSON y PostgreSQL ([verificacion/fase6.sh](verificacion/fase6.sh), base de prueba en [verificacion/base-externa.sql](verificacion/base-externa.sql)). Los conectores de MySQL, SQL Server y MongoDB están instalados pero **no se probaron contra un servidor real**.
+
+### IA en español (local, solo CPU)
+
+- Modelo por defecto **`llama3.2:3b`** (Ollama), elegido con [python-service/eval](python-service/eval/README.md) sobre 24 fallas descritas en lenguaje informal colombiano:
+
+  | Modelo | JSON válido | En español | Causas relevantes | Mediana (4 hilos CPU) | RAM |
+  | --- | --- | --- | --- | --- | --- |
+  | qwen2.5:3b | 24/24 | 24/24 | 24/24 | 16 s | 1,95 GB |
+  | **llama3.2:3b** | 24/24 | 24/24 | 24/24 | 25 s | 2,17 GB |
+  | gemma3:4b | 24/24 | 24/24 | 24/24 | 26 s | 2,69 GB |
+  | qwen3.5:4b | 24/24 | 24/24 | 24/24 | 35 s | 2,87 GB |
+
+  `llama3.2:3b` tuvo el mejor criterio técnico con un consumo moderado. Se cambia con `OLLAMA_MODEL` en el `.env`.
+- **JSON estricto garantizado**: Ollama recibe el JSON Schema en `format` y restringe la generación con una gramática; el backend C# siempre recibe la forma que espera, con cualquier modelo.
+- Ollama limitado a 3,5 GB de RAM (`OLLAMA_MEM_LIMIT`), contexto de 2048 tokens, un pedido a la vez y el modelo sale de la RAM tras 5 minutos sin uso.
+- **Lenguaje informal**: glosario de 102 modismos colombianos ("se fundió", "se pega", "echa candela"…) que la IA usa para entender; cada empresa agrega los suyos (Técnico o Administrador).
+- **Reportar una falla** (Empleado): chat que entiende el lenguaje cotidiano, hace hasta 3 preguntas y da solo consejos seguros. La incidencia la crea el empleado al confirmar (R5: la IA nunca cambia datos por sí sola). Las causas probables solo las ve el técnico.
+
+### Reportes con IA e información de mercado (plan Integraciones)
+
+- **Reporte ejecutivo** redactado por IA con las cifras del periodo (estados, mantenimientos, costos, fallas repetidas, planes vencidos, alquileres): automático el **día 1 de cada mes** y bajo demanda. Se ve en la app, se descarga en **PDF** y se avisa por campana y correo a Gerentes y Administradores.
+- **Información de mercado** gratuita (sin claves ni cobros): `ddgs` consulta buscadores públicos (Bing, DuckDuckGo, Brave…) y, si fallan, una instancia propia de **SearXNG** (`SEARXNG_URL`). Cada dato muestra su **fuente y fecha**; la IA solo puede citar las fuentes que recibió.
+- En el detalle de un equipo: "Buscar precio y guías" (precio de reemplazo en Colombia y guías de mantenimiento/reparación).
 
 ### Roles y permisos (se aplican en la API, no solo en la interfaz)
 

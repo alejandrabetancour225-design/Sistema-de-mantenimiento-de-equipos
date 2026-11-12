@@ -57,9 +57,10 @@ services:
     container_name: sm-python-service
     environment:
       OLLAMA_HOST: http://ollama:11434
-      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.1:8b}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.2:3b}
       OLLAMA_TIMEOUT_SECONDS: ${OLLAMA_TIMEOUT_SECONDS:-170}
       OLLAMA_NUM_CTX: ${OLLAMA_NUM_CTX:-2048}
+      SEARXNG_URL: ${SEARXNG_URL:-}
     ports:
       # Solo accesible desde este equipo: el servicio no tiene autenticación propia.
       - "127.0.0.1:8000:8000"

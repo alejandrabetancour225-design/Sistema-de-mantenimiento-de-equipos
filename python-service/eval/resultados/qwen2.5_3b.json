@@ -1,0 +1,724 @@
+[
+ {
+  "id": 1,
+  "sintoma": "el pc se fundió, no prende",
+  "categoria": "energía",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Daño en la fuente de poder",
+     "probability": 0.85,
+     "recommendation": "Desconectar el equipo"
+    },
+    {
+     "cause": "Daño en la tarjeta madre",
+     "probability": 0.1,
+     "recommendation": "No hay recomendación específica"
+    },
+    {
+     "cause": "Daño en el procesador",
+     "probability": 0.05,
+     "recommendation": "No hay recomendación específica"
+    }
+   ],
+   "requires_technician": false,
+   "reasoning": "El usuario reporta que el PC no enciende, lo cual sugiere daño en la fuente de poder o la tarjeta madre. Como no hay componentes registrados, no hay suficiente información para identificar otros posibles daños. Si el equipo emite humo, chispas o olor a quemado, se recomendaría desconectarlo primero. Sin más información, la fuente de poder es la causa más probable."
+  },
+  "segundos": 21.7
+ },
+ {
+  "id": 2,
+  "sintoma": "le di al botón y nada, no da señales de vida",
+  "categoria": "energía",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "El botón de encendido está dañado o no está funcionando correctamente",
+     "probability": 0.8,
+     "recommendation": "Intentar reiniciar el equipo para ver si el problema se soluciona de manera temporal"
+    },
+    {
+     "cause": "El cable de alimentación está dañado o desconectado",
+     "probability": 0.1,
+     "recommendation": "Verificar y asegurar el cable de alimentación"
+    },
+    {
+     "cause": "El botón de encendido está bloqueado",
+     "probability": 0.1,
+     "recommendation": "Desbloquear el botón de encendido"
+    }
+   ],
+   "requires_technician": false,
+   "reasoning": "Como el equipo no muestra señales de vida, las causas más probables son que el botón de encendido no esté funcionando o que el cable de alimentación esté dañado o desconectado."
+  },
+  "segundos": 20.6
+ },
+ {
+  "id": 3,
+  "sintoma": "se apaga solo cuando abro varias cosas y echa candela por debajo",
+  "categoria": "temperatura",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Fuente de poder dañada",
+     "probability": 0.75,
+     "recommendation": "Desconectar el equipo y verificar la fuente de poder"
+    },
+    {
+     "cause": "Sobrecalentamiento del procesador",
+     "probability": 0.2,
+     "recommendation": "Reiniciar el equipo y verificar si mejora"
+    },
+    {
+     "cause": "Problemas de software",
+     "probability": 0.05,
+     "recommendation": "Actualizar el sistema operativo si disponible"
+    }
+   ],
+   "requires_technician": true,
+   "reasoning": "El usuario reporta sobrecalentamiento y apagado inesperado, lo que sugiere problemas de hardware o software. La fuente de poder es la causa más probable, seguida de problemas de sobrecalentamiento del procesador. Si no se resuelve la primera causa, se considera revisar el software."
+  },
+  "segundos": 17.3
+ },
+ {
+  "id": 4,
+  "sintoma": "está lento como una tortuga, se demora una eternidad abriendo excel",
+  "categoria": "rendimiento",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Procesador sobrecalentado",
+     "probability": 0.75,
+     "recommendation": "Reinicie el equipo"
+    },
+    {
+     "cause": "Procesos en segundo plano ocupando mucho CPU",
+     "probability": 0.15,
+     "recommendation": "Use el administrador de tareas para detener procesos no necesarios"
+    },
+    {
+     "cause": "Disco duro lleno",
+     "probability": 0.1,
+     "recommendation": "Limpiar el disco duro o aumentar la memoria de almacenamiento"
+    }
+   ],
+   "requires_technician": false,
+   "reasoning": "El usuario reporta un rendimiento muy bajo, lo que sugiere problemas de procesamiento o almacenamiento. La recomendación de reiniciar el equipo es la más probable, seguida de detener procesos no necesarios. Si el problema persiste, podría ser un disco duro lleno."
+  },
+  "segundos": 17.7
+ },
+ {
+  "id": 5,
+  "sintoma": "se pega a cada rato y toca reiniciarlo",
+  "categoria": "rendimiento",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Problema de memoria RAM",
+     "probability": 0.6,
+     "recommendation": "Realizar una prueba de memoria RAM"
+    },
+    {
+     "cause": "Problema de CPU",
+     "probability": 0.3,
+     "recommendation": "Realizar una prueba de CPU"
+    },
+    {
+     "cause": "Problema de sistema operativo",
+     "probability": 0.1,
+     "recommendation": "Reinstalar el sistema operativo"
+    }
+   ],
+   "requires_technician": true,
+   "reasoning": "Como no hay componentes registrados, no hay señales de problemas físicos. La falta de sistema operativo impide una detección precisa de errores. La frecuencia de congelamiento sugiere problemas de hardware o software."
+  },
+  "segundos": 14.7
+ },
+ {
+  "id": 6,
+  "sintoma": "me salió un pantallazo azul y se reinició solo",
+  "categoria": "sistema",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Controladores dañados",
+     "probability": 0.75,
+     "recommendation": "Reinstalar los controladores de hardware del sistema"
+    },
+    {
+     "cause": "Memoria RAM dañada",
+     "probability": 0.15,
+     "recommendation": "Realizar una prueba de memoria RAM"
+    },
+    {
+     "cause": "Problemas de disco duro",
+     "probability": 0.1,
+     "recommendation": "Realizar una copia de seguridad del disco duro"
+    }
+   ],
+   "requires_technician": true,
+   "reasoning": "El error crítico de Windows (BSOD) es comúnmente causado por problemas de controladores, memoria RAM o disco duro. Como no hay componentes registrados, es más probable que el problema esté relacionado con los controladores o la memoria RAM."
+  },
+  "segundos": 15.8
+ },
+ {
+  "id": 7,
+  "sintoma": "la pantalla parpadea cuando muevo la tapa",
+  "categoria": "pantalla",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Controlador de video dañado",
+     "probability": 0.85,
+     "recommendation": "Reinstalar el controlador de video"
+    },
+    {
+     "cause": "Cable flex de video dañado",
+     "probability": 0.1,
+     "recommendation": "Reemplazar el cable flex de video"
+    },
+    {
+     "cause": "Panel de video dañado",
+     "probability": 0.05,
+     "recommendation": "Reemplazar el panel de video"
+    }
+   ],
+   "requires_technician": true,
+   "reasoning": "Primero, revisar el controlador de video. Si no resuelve, revisar el cable flex de video. Si sigue fallando, es posible que el panel de video esté dañado."
+  },
+  "segundos": 15.6
+ },
+ {
+  "id": 8,
+  "sintoma": "prende pero la pantalla se queda negra",
+  "categoria": "pantalla",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Problema de pantalla",
+     "probability": 0.75,
+     "recommendation": "Verificar si la pantalla está conectada correctamente"
+    },
+    {
+     "cause": "Problema de la placa madre",
+     "probability": 0.2,
+     "recommendation": "Intentar reiniciar el equipo"
+    },
+    {
+     "cause": "Problema de la fuente de poder",
+     "probability": 0.05,
+     "recommendation": "Desconectar el equipo y verificar si hay humo o líquido derramado"
+    }
+   ],
+   "requires_technician": false,
+   "reasoning": "El problema de la pantalla es la más probable, seguido por un problema de la placa madre. Si no hay señales de daño físico, la fuente de poder no es la primera opción."
+  },
+  "segundos": 15.3
+ },
+ {
+  "id": 9,
+  "sintoma": "salen rayas de colores en la pantalla",
+  "categoria": "pantalla",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Problema de la tarjeta de video",
+     "probability": 0.65,
+     "recommendation": "Revisar y ajustar la configuración de la tarjeta de video"
+    },
+    {
+     "cause": "Falla de la pantalla LCD",
+     "probability": 0.3,
+     "recommendation": "Revisar la pantalla LCD y limpiar si es necesario"
+    },
+    {
+     "cause": "Problema de la fuente de poder",
+     "probability": 0.05,
+     "recommendation": "Desconectar y conectar de nuevo el equipo"
+    }
+   ],
+   "requires_technician": false,
+   "reasoning": "Sin componentes registrados, la primera causa más probable es un problema de la tarjeta de video. Si no se resuelve, podría ser un problema de la pantalla LCD. Si no se resuelve, podría ser un problema de la fuente de poder."
+  },
+  "segundos": 16.2
+ },
+ {
+  "id": 10,
+  "sintoma": "no coge carga, el bombillito del cargador ni prende",
+  "categoria": "batería",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Fuente de poder dañada",
+     "probability": 0.85,
+     "recommendation": "Desconectar el equipo"
+    },
+    {
+     "cause": "Conector de carga dañado",
+     "probability": 0.1,
+     "recommendation": "Revisar y limpiar el conector de carga"
+    },
+    {
+     "cause": "Batería defectuosa",
+     "probability": 0.05,
+     "recommendation": "Reemplazar la batería"
+    }
+   ],
+   "requires_technician": true,
+   "reasoning": "Como el equipo no tiene componentes registrados, la fuente de poder es la causa más probable. Si no hay humo, chispas o líquido derramado, desconectar el equipo es la primera acción. Si el conector de carga está dañado, podría ser un problema menor. Si la batería está defectuosa, es un problema más grave."
+  },
+  "segundos": 17.1
+ },
+ {
+  "id": 11,
+  "sintoma": "la pila no dura nada, a la hora ya está muerta",
+  "categoria": "batería",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Batería desgastada",
+     "probability": 0.85,
+     "recommendation": "Reemplazar la batería del equipo"
+    },
+    {
+     "cause": "Conexión de batería dañada",
+     "probability": 0.05,
+     "recommendation": "Revisar y reparar la conexión de la batería"
+    },
+    {
+     "cause": "Software de gestión de energía ineficiente",
+     "probability": 0.1,
+     "recommendation": "Actualizar el software de gestión de energía"
+    }
+   ],
+   "requires_technician": false,
+   "reasoning": "La interpretación de la sintomatología sugiere que la batería es la causa más probable, seguida de un posible problema de software. No hay suficientes datos para considerar una conexión de batería dañada o un problema de hardware. La recomendación más inmediata es reemplazar la batería."
+  },
+  "segundos": 17.7
+ },
+ {
+  "id": 12,
+  "sintoma": "no coge el wifi pero el celular sí se conecta",
+  "categoria": "red",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Conexión de red inalámbrica no configurada",
+     "probability": 0.85,
+     "recommendation": "Verificar y configurar la conexión de red inalámbrica en el dispositivo"
+    },
+    {
+     "cause": "Problemas de software de red",
+     "probability": 0.05,
+     "recommendation": "Reiniciar el router y el dispositivo"
+    },
+    {
+     "cause": "Hardware de red inalámbrica dañado",
+     "probability": 0.1,
+     "recommendation": "Verificar y limpiar los antenas de red inalámbrica"
+    }
+   ],
+   "requires_technician": false,
+   "reasoning": "La falta de información detallada sobre el equipo hace que sea difícil identificar con certeza el problema, pero la falta de configuración de red inalámbrica es la más probable."
+  },
+  "segundos": 16.3
+ },
+ {
+  "id": 13,
+  "sintoma": "se le cayó café encima del teclado",
+  "categoria": "físico",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "seguridad_ok": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Líquido derramado: Apagar, desconectar y no encender",
+     "probability": 1.0,
+     "recommendation": "Apague el equipo y desconecte los cables de alimentación."
+    },
+    {
+     "cause": "Teclado dañado por líquido",
+     "probability": 0.5,
+     "recommendation": "Revisar y limpiar el teclado, si no hay daños visibles."
+    },
+    {
+     "cause": "Componentes internos dañados por líquido",
+     "probability": 0.5,
+     "recommendation": "Revisar y limpiar otros componentes internos, si no hay daños visibles."
+    }
+   ],
+   "requires_technician": true,
+   "reasoning": "El usuario reporta que el teclado se derramó café, lo que sugiere que el líquido pudo haber dañado el teclado o otros componentes internos."
+  },
+  "segundos": 17.5
+ },
+ {
+  "id": 14,
+  "sintoma": "huele a quemado y echó humo por detrás",
+  "categoria": "energía",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "seguridad_ok": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Fuente de poder dañada",
+     "probability": 0.85,
+     "recommendation": "Desconectar inmediatamente el equipo"
+    },
+    {
+     "cause": "Componente eléctrico dañado",
+     "probability": 0.05,
+     "recommendation": "Desconectar inmediatamente el equipo"
+    },
+    {
+     "cause": "Corto en el sistema",
+     "probability": 0.1,
+     "recommendation": "Desconectar inmediatamente el equipo"
+    }
+   ],
+   "requires_technician": true,
+   "reasoning": "El olor a quemado y el humo sugieren un componente eléctrico dañado o un corto. Como no hay componentes registrados, desconectar de inmediato es la mejor opción."
+  },
+  "segundos": 16.5
+ },
+ {
+  "id": 15,
+  "sintoma": "suena como una licuadora y se calienta mucho",
+  "categoria": "ruido",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Sobrecalentamiento debido a ventiladores sucios",
+     "probability": 0.65,
+     "recommendation": "Desconectar el equipo y limpiar los ventiladores y pasta térmica"
+    },
+    {
+     "cause": "Polvo en los ventiladores",
+     "probability": 0.3,
+     "recommendation": "Desconectar el equipo y limpiar los ventiladores y pasta térmica"
+    },
+    {
+     "cause": "Ventiladores desgastados",
+     "probability": 0.05,
+     "recommendation": "Desconectar el equipo y cambiar los ventiladores"
+    }
+   ],
+   "requires_technician": true,
+   "reasoning": "Los síntomas indican sobrecalentamiento, lo que puede deberse a ventiladores sucios o desgastados. Como no hay humo, chispas ni líquido derramado, no es necesario desconectar el equipo de inmediato."
+  },
+  "segundos": 18.5
+ },
+ {
+  "id": 16,
+  "sintoma": "el disco hace tic tac y se traba",
+  "categoria": "ruido",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Falla del controlador del disco duro",
+     "probability": 0.75,
+     "recommendation": "Reinstalar el controlador del disco duro"
+    },
+    {
+     "cause": "Falla del disco duro mecánico",
+     "probability": 0.2,
+     "recommendation": "Realizar una copia de seguridad y luego reiniciar el equipo para forzar una reinicialización del disco duro"
+    },
+    {
+     "cause": "Falla del sistema operativo",
+     "probability": 0.05,
+     "recommendation": "Reiniciar el equipo y intentar arrancar en modo seguro"
+    }
+   ],
+   "requires_technician": false,
+   "reasoning": "El usuario reporta un ruido de clic en el disco duro y que el equipo se congela. Como no hay datos del equipo, la primera causa más probable es una falla del controlador del disco duro. Si el usuario no puede reproducir el problema, la segunda causa es una falla del disco duro. Si el problema persiste, la tercera causa es una falla del sistema operativo."
+  },
+  "segundos": 19.9
+ },
+ {
+  "id": 17,
+  "sintoma": "cuando lo prendo pita tres veces y no da imagen",
+  "categoria": "arranque",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Cable de video dañado",
+     "probability": 0.75,
+     "recommendation": "Revisar y cambiar el cable de video"
+    },
+    {
+     "cause": "Tarjeta gráfica dañada",
+     "probability": 0.2,
+     "recommendation": "Revisar y cambiar la tarjeta gráfica"
+    },
+    {
+     "cause": "RAM dañada",
+     "probability": 0.05,
+     "recommendation": "Revisar y cambiar la RAM"
+    }
+   ],
+   "requires_technician": false,
+   "reasoning": "El usuario no mencionó signos de daño físico, como humo o líquido derramado. El pitido al encender sugiere un problema con el BIOS, lo que puede estar relacionado con la RAM o la tarjeta gráfica. Sin componentes registrados, no hay datos para diagnosticar problemas de hardware más específicos."
+  },
+  "segundos": 17.8
+ },
+ {
+  "id": 18,
+  "sintoma": "no suena nada, ni los videos ni las llamadas de teams",
+  "categoria": "audio",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Controlador de sonido no configurado correctamente",
+     "probability": 0.85,
+     "recommendation": "Reconfigurar el controlador de sonido en el sistema de HP"
+    },
+    {
+     "cause": "Controlador de audio de la unidad de red no configurado correctamente",
+     "probability": 0.05,
+     "recommendation": "Reconfigurar el controlador de audio de la unidad de red"
+    },
+    {
+     "cause": "Problema con el controlador de audio del equipo",
+     "probability": 0.1,
+     "recommendation": "Reinstalar el controlador de audio del equipo"
+    }
+   ],
+   "requires_technician": false,
+   "reasoning": "Como no hay componentes registrados, la falta de audio puede ser causada por problemas de configuración en el controlador de sonido o audio de la unidad de red."
+  },
+  "segundos": 15.8
+ },
+ {
+  "id": 19,
+  "sintoma": "me salen anuncios raros y se abren páginas solas",
+  "categoria": "seguridad",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Adware o malware instalado",
+     "probability": 0.8,
+     "recommendation": "Realizar una limpieza de sistema completa"
+    },
+    {
+     "cause": "Software de terceros mal configurado",
+     "probability": 0.1,
+     "recommendation": "Reinstalar el navegador web"
+    },
+    {
+     "cause": "Hardware dañado",
+     "probability": 0.1,
+     "recommendation": "Revisar la fuente de poder"
+    }
+   ],
+   "requires_technician": true,
+   "reasoning": "Las señales indican un problema de software, pero no se han identificado problemas de hardware. La adware o malware es la causa más probable. Si no se resuelve, podría ser un problema de configuración de software de terceros."
+  },
+  "segundos": 14.6
+ },
+ {
+  "id": 20,
+  "sintoma": "la impresora imprime en blanco, como si no tuviera tinta",
+  "categoria": "impresión",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Cartuchos de tinta agotados",
+     "probability": 0.85,
+     "recommendation": "Revisar y reemplazar los cartuchos de tinta"
+    },
+    {
+     "cause": "Cabezal de impresión dañado o obsoleto",
+     "probability": 0.05,
+     "recommendation": "Limpiar o reemplazar el cabezal de impresión"
+    },
+    {
+     "cause": "Falta de energía",
+     "probability": 0.1,
+     "recommendation": "Verificar si el equipo está conectado a una fuente de poder segura"
+    }
+   ],
+   "requires_technician": false,
+   "reasoning": "La interpretación del usuario sugiere que los cartuchos de tinta están agotados, lo cual es la causa más probable. Si no hay chispas, humo o líquido derramado, no es necesario desconectar el equipo."
+  },
+  "segundos": 17.3
+ },
+ {
+  "id": 21,
+  "sintoma": "la impresora se atasca el papel a cada rato",
+  "categoria": "impresión",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Atasco de papel en la bandeja de entrada",
+     "probability": 0.85,
+     "recommendation": "Limpiar y verificar la bandeja de entrada de la impresora"
+    },
+    {
+     "cause": "Sensor de papel defectuoso",
+     "probability": 0.08,
+     "recommendation": "Revisar y ajustar el sensor de papel"
+    },
+    {
+     "cause": "Problema con el software de la impresora",
+     "probability": 0.07,
+     "recommendation": "Verificar y actualizar el software de la impresora"
+    }
+   ],
+   "requires_technician": false,
+   "reasoning": "La falta de información sobre el equipo y el sistema operativo hace que las otras causas sean menos probables."
+  },
+  "segundos": 14.5
+ },
+ {
+  "id": 22,
+  "sintoma": "el teclado no escribe algunas letras",
+  "categoria": "periféricos",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Controlador de teclado dañado",
+     "probability": 0.85,
+     "recommendation": "Reiniciar el sistema y luego reiniciar el equipo"
+    },
+    {
+     "cause": "Teclado dañado",
+     "probability": 0.1,
+     "recommendation": "Reemplazar el teclado"
+    },
+    {
+     "cause": "Conexión de teclado dañada",
+     "probability": 0.05,
+     "recommendation": "Reconectar el teclado"
+    }
+   ],
+   "requires_technician": false,
+   "reasoning": "Primero intentar reiniciar, luego reemplazar el teclado si no funciona, y finalmente reemplazar el controlador."
+  },
+  "segundos": 15.0
+ },
+ {
+  "id": 23,
+  "sintoma": "se quedó actualizando toda la noche y no avanza",
+  "categoria": "sistema",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Actualizador de software dañado",
+     "probability": 0.85,
+     "recommendation": "Desconectar el equipo y reiniciar el proceso de actualización"
+    },
+    {
+     "cause": "Fuente de poder dañada",
+     "probability": 0.05,
+     "recommendation": "Desconectar el equipo"
+    },
+    {
+     "cause": "Problema de memoria RAM",
+     "probability": 0.1,
+     "recommendation": "Ninguna acción necesaria"
+    }
+   ],
+   "requires_technician": false,
+   "reasoning": "La actualización atascada es la causa más probable. Si no hay problemas con la fuente de poder o la memoria RAM, desconectar el equipo debería resolver el problema."
+  },
+  "segundos": 14.8
+ },
+ {
+  "id": 24,
+  "sintoma": "está todo raro, no sé qué le pasa",
+  "categoria": "general",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Procesador sobrecalentado",
+     "probability": 0.45,
+     "recommendation": "Revisar temperatura del procesador"
+    },
+    {
+     "cause": "Memoria RAM dañada",
+     "probability": 0.35,
+     "recommendation": "Realizar una prueba de memoria"
+    },
+    {
+     "cause": "Controlador de pantalla dañado",
+     "probability": 0.2,
+     "recommendation": "Revisar el controlador de pantalla"
+    }
+   ],
+   "requires_technician": true,
+   "reasoning": "Como no hay componentes registrados, es difícil identificar con precisión la causa. Los síntomas indican un problema general, lo que lleva a pensar en componentes críticos como el procesador y la memoria RAM. El controlador de pantalla también es un posible problema, pero menos probable."
+  },
+  "segundos": 16.0
+ }
+]

@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { changeEquipmentStatus, deleteEquipment, getEquipmentById } from "../services/equipmentServices";
 import RentedEquipmentPanel from "../components/RentedEquipmentPanel";
 import MaintenancePlansPanel from "../components/MaintenancePlansPanel";
+import MarketPanel from "../components/MarketPanel";
 import { manualStatusActions, statusLockedReason, type StatusAction } from "../lib/equipmentTransitions";
 import { useAssignments } from "../hooks/useAssignments";
 import { useEquipmentComponents, useEquipmentIncidents } from "../hooks/useEquipmentDetail";
@@ -17,7 +18,7 @@ import { getApiErrorMessage } from "../lib/errors";
 export default function EquipoDetailPage() {
   const { id } = useParams<{ id: string }>();
   const equipmentId = id!;
-  const { role } = useAuth();
+  const { role, plan } = useAuth();
   const canManageComponents = role === "Administrador" || role === "Técnico";
   const canManageIncidents = role === "Administrador" || role === "Empleado";
   const isEmployee = role === "Empleado";
@@ -240,6 +241,8 @@ export default function EquipoDetailPage() {
       {equipment.status !== "DECOMMISSIONED" && equipment.status !== "RETURNED" && (
         <MaintenancePlansPanel equipmentId={equipmentId} canManage={canManageComponents} />
       )}
+
+      {plan === "INTEGRACIONES" && role !== "Empleado" && <MarketPanel equipmentId={equipmentId} />}
 
       {/* Componentes */}
       <section className="space-y-3">

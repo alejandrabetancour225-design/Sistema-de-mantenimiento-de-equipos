@@ -62,7 +62,7 @@ if ! $DB_LOCAL; then
 fi
 ((${#missing[@]})) && fatal "Faltan valores en .env: ${missing[*]}. Pídelos al líder del equipo."
 
-OLLAMA_MODEL="${OLLAMA_MODEL:-llama3.1:8b}"
+OLLAMA_MODEL="${OLLAMA_MODEL:-llama3.2:3b}"
 APP_PORT="${APP_PORT:-8080}"
 PROFILE_ARGS=()
 if $DB_LOCAL; then

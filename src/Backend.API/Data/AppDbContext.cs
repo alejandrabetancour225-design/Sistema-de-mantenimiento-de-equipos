@@ -25,6 +25,7 @@ public class AppDbContext : DbContext
     public DbSet<MaintenancePlan> MaintenancePlans => Set<MaintenancePlan>();
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<ExternalSource> ExternalSources => Set<ExternalSource>();
+    public DbSet<AiReport> AiReports => Set<AiReport>();
 
     public DbSet<User> Users => Set<User>();
     public DbSet<Role> Roles => Set<Role>();
@@ -114,6 +115,7 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Lessor>().HasQueryFilter(e => CurrentOrganizationId == null || e.OrganizationId == CurrentOrganizationId);
         modelBuilder.Entity<RentalContract>().HasQueryFilter(e => CurrentOrganizationId == null || e.OrganizationId == CurrentOrganizationId);
         modelBuilder.Entity<MaintenancePlan>().HasQueryFilter(e => CurrentOrganizationId == null || e.OrganizationId == CurrentOrganizationId);
+        modelBuilder.Entity<AiReport>().HasQueryFilter(e => CurrentOrganizationId == null || e.OrganizationId == CurrentOrganizationId);
         modelBuilder.Entity<ExternalSource>().HasQueryFilter(e => CurrentOrganizationId == null || e.OrganizationId == CurrentOrganizationId);
         modelBuilder.Entity<Notification>().HasQueryFilter(e => CurrentOrganizationId == null || e.OrganizationId == CurrentOrganizationId);
         modelBuilder.Entity<LessorClaim>().HasQueryFilter(e => CurrentOrganizationId == null || e.OrganizationId == CurrentOrganizationId);
@@ -300,6 +302,15 @@ public class AppDbContext : DbContext
             entity.HasIndex(c => c.Status);
             entity.HasOne(c => c.Equipment).WithMany().HasForeignKey(c => c.EquipmentId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(c => c.Contract).WithMany().HasForeignKey(c => c.ContractId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<AiReport>(entity =>
+        {
+            entity.Property(r => r.Status).HasMaxLength(20);
+            entity.Property(r => r.StatsJson).HasColumnType("jsonb");
+            entity.Property(r => r.ContentJson).HasColumnType("jsonb");
+            entity.Property(r => r.MarketJson).HasColumnType("jsonb");
+            entity.HasIndex(r => new { r.OrganizationId, r.CreatedAt });
         });
 
         modelBuilder.Entity<ExternalSource>(entity =>

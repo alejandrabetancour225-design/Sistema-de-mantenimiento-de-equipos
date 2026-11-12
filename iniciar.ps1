@@ -69,7 +69,7 @@ if (-not $DbLocal) { $required += @("DB_HOST", "DB_NAME", "DB_USER", "DB_PASSWOR
 $missing = $required | Where-Object { [string]::IsNullOrWhiteSpace((Get-Setting $_)) }
 if ($missing) { Fatal "Faltan valores en .env: $($missing -join ', '). Pídelos al líder del equipo." }
 
-$Model = Get-Setting "OLLAMA_MODEL" "llama3.1:8b"
+$Model = Get-Setting "OLLAMA_MODEL" "llama3.2:3b"
 $AppPort = Get-Setting "APP_PORT" "8080"
 $ProfileArgs = @()
 if ($DbLocal) {

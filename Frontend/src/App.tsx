@@ -26,6 +26,7 @@ import GlossaryPage from "./pages/GlossaryPage";
 import RentalPage from "./pages/RentalPage";
 import CalendarPage from "./pages/CalendarPage";
 import IntegrationsPage from "./pages/IntegrationsPage";
+import AIReportsPage from "./pages/AIReportsPage";
 import LandingPage from "./pages/LandingPage";
 function Layout() {
   return (
@@ -82,6 +83,7 @@ export default function App() {
         {/* El backend solo expone reportes a Administrador y Gerente */}
         <Route element={<ProtectedRoute allowedRoles={["Administrador", "Gerente"]} />}>
           <Route path="/reportes" element={<ReportsPage />} />
+          <Route path="/reportes-ia" element={<AIReportsPage />} />
         </Route>
 
         {/* Equipos alquilados */}

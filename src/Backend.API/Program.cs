@@ -19,6 +19,9 @@ using Microsoft.Net.Http.Headers;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Fuentes incrustadas para los PDF (funciona igual en Windows, Linux y contenedores).
+EmbeddedFontResolver.Register();
+
 // ---------- Límites de tamaño ----------
 var maxRequestBodyBytes = builder.Configuration.GetValue<long>("Limits:MaxRequestBodyBytes", 1_048_576);
 builder.WebHost.ConfigureKestrel(options =>
@@ -327,6 +330,8 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<ReminderJob>();
 builder.Services.AddHttpClient<IIntegrationService, IntegrationService>();
 builder.Services.AddScoped<IntegrationSyncJob>();
+builder.Services.AddHttpClient("python-service");
+builder.Services.AddScoped<AiReportJob>();
 
 // ---------- Tiempo real (SignalR) ----------
 builder.Services.AddSignalR();
@@ -532,6 +537,9 @@ if (jobsEnabled)
     recurring.AddOrUpdate<ReminderJob>("recordatorios-mantenimiento", job => job.RunAsync(), "15 * * * *",
         new RecurringJobOptions { TimeZone = TimeZoneInfo.FindSystemTimeZoneById("America/Bogota") });
     recurring.AddOrUpdate<IntegrationSyncJob>("sincronizar-integraciones", job => job.RunAsync(), "40 * * * *",
+        new RecurringJobOptions { TimeZone = TimeZoneInfo.FindSystemTimeZoneById("America/Bogota") });
+    // Reporte ejecutivo con IA del mes anterior, el día 1 a las 6:00 (plan Integraciones).
+    recurring.AddOrUpdate<AiReportJob>("reporte-ejecutivo-mensual", job => job.MonthlyAsync(), "0 6 1 * *",
         new RecurringJobOptions { TimeZone = TimeZoneInfo.FindSystemTimeZoneById("America/Bogota") });
     // Una pasada al arrancar, para no esperar a la siguiente hora.
     app.Services.GetRequiredService<IBackgroundJobClient>().Enqueue<ReminderJob>(job => job.RunAsync());

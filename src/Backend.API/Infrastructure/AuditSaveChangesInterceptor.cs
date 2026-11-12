@@ -64,7 +64,7 @@ public sealed class AuditSaveChangesInterceptor : SaveChangesInterceptor
         var now = DateTime.UtcNow;
 
         var entries = context.ChangeTracker.Entries()
-            .Where(e => e.Entity is not AuditLog && e.Entity is not Notification
+            .Where(e => e.Entity is not AuditLog && e.Entity is not Notification && e.Entity is not AiReport
                 && (e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted))
             .ToList();
 

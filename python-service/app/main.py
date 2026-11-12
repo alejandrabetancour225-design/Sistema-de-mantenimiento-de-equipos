@@ -2,6 +2,7 @@
 
 R5: la IA solo sugiere. Nunca cambia estados ni crea registros; eso lo decide una persona en la API.
 """
+import json
 from typing import List, Literal
 
 from fastapi import FastAPI, HTTPException
@@ -205,3 +206,91 @@ def extract_source(spec: SourceSpec):
     """Devuelve los registros de la fuente (máximo 5000) para sincronizarlos en la API."""
     registros = _leer(spec, integraciones.MAX_FILAS)
     return {"rows": integraciones.a_json(registros), "truncated": len(registros) >= integraciones.MAX_FILAS}
+
+
+# ---------- Información de mercado y reportes generados por IA (plan Integraciones) ----------
+from . import mercado  # noqa: E402
+
+
+class MarketSearchRequest(BaseModel):
+    queries: List[str] = Field(min_length=1, max_length=8)
+    max_results: int = Field(default=4, ge=1, le=8)
+
+
+@app.post("/api/v1/market/search")
+def market_search(request: MarketSearchRequest):
+    return mercado.buscar(request.queries, request.max_results)
+
+
+class MarketItem(BaseModel):
+    title: str
+    url: str
+    snippet: str = ""
+    retrieved_at: str = ""
+    query: str = ""
+
+
+class ExecutiveReportRequest(BaseModel):
+    organization: str
+    period_from: str
+    period_to: str
+    stats: dict
+    market: List[MarketItem] = []
+
+
+class Recommendation(BaseModel):
+    text: str = Field(description="Recomendación concreta, en español")
+    priority: Literal["alta", "media", "baja"]
+
+
+class MarketNote(BaseModel):
+    source_index: int = Field(ge=1, description="Número de la fuente de mercado citada (de la lista dada)")
+    note: str = Field(description="Qué dice esa fuente y por qué importa, en español")
+
+
+class ExecutiveReportModel(BaseModel):
+    summary: str = Field(description="Resumen ejecutivo de 3 a 5 frases, en español")
+    findings: List[str] = Field(max_length=5, description="Hallazgos con cifras, en español")
+    recommendations: List[Recommendation] = Field(max_length=5)
+    alerts: List[str] = Field(max_length=4, description="Riesgos que requieren atención, en español")
+    market_notes: List[MarketNote] = Field(max_length=5, description="Solo fuentes de la lista dada")
+
+
+@app.post("/api/v1/reports/executive")
+def executive_report(request: ExecutiveReportRequest):
+    """Reporte ejecutivo en español a partir de las cifras del periodo y, si hay, fuentes de mercado.
+    R5: solo redacta; no cambia datos. Las notas de mercado solo pueden citar las fuentes entregadas."""
+    fuentes = "\n".join(
+        f"[{i}] {m.title} ({m.url}): {m.snippet[:160]}" for i, m in enumerate(request.market[:6], start=1)
+    ) or "No hay fuentes de mercado disponibles: deja market_notes vacío."
+    mensajes = [
+        {"role": "system", "content": (
+            "Eres un analista de gestión de activos de TI que escribe para la gerencia de una empresa colombiana. "
+            f"{REGLA_IDIOMA_REPORTE} Usa SOLO las cifras entregadas (no inventes números). Montos en pesos "
+            "colombianos (COP). En market_notes cita únicamente fuentes de la lista por su número.")},
+        {"role": "user", "content": (
+            f"EMPRESA: {request.organization}\nPERIODO: {request.period_from} a {request.period_to}\n\n"
+            f"CIFRAS DEL PERIODO (JSON):\n{json.dumps(request.stats, ensure_ascii=False)[:2500]}\n\n"
+            f"FUENTES DE MERCADO:\n{fuentes}")},
+    ]
+    resultado = _llamar_ctx(mensajes, ExecutiveReportModel, max_tokens=900, num_ctx=4096)
+    validas = []
+    for nota in resultado.market_notes:
+        if 1 <= nota.source_index <= min(len(request.market), 6):
+            fuente = request.market[nota.source_index - 1]
+            validas.append({"note": nota.note, "title": fuente.title, "url": fuente.url,
+                            "retrieved_at": fuente.retrieved_at})
+    return {**resultado.model_dump(exclude={"market_notes"}), "market_notes": validas, "model": ollama_cliente.MODEL_NAME}
+
+
+REGLA_IDIOMA_REPORTE = "Escribe SIEMPRE en español (Colombia), en tono profesional y claro."
+
+
+def _llamar_ctx(mensajes, esquema_modelo, max_tokens, num_ctx):
+    try:
+        datos = chat_estructurado(mensajes, esquema_modelo.model_json_schema(), max_tokens=max_tokens, num_ctx=num_ctx)
+        return esquema_modelo.model_validate(datos)
+    except ErrorDeModelo as e:
+        raise HTTPException(status_code=503, detail=str(e)) from e
+    except ValueError as e:
+        raise HTTPException(status_code=503, detail=f"Respuesta del modelo fuera del esquema: {e}") from e

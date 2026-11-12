@@ -131,6 +131,11 @@ export default function Sidebar() {
               Reportes
             </Link>
           )}
+          {canSeeDashboard && (
+            <Link to="/reportes-ia" className={linkClass("/reportes-ia")}>
+              Reportes con IA {plan !== "INTEGRACIONES" && <span className="text-[10px] text-gray-500">(plan)</span>}
+            </Link>
+          )}
           {role === "Administrador" && (
             <Link to="/integraciones" className={linkClass("/integraciones")}>
               Integraciones {plan !== "INTEGRACIONES" && <span className="text-[10px] text-gray-500">(plan)</span>}
