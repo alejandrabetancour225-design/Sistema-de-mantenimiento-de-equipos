@@ -1,9 +1,11 @@
 namespace Backend.API.Models;
 
 // Registro de auditoría: quién hizo qué, sobre qué registro y cuándo.
-// No guarda valores (para no duplicar datos personales), solo los nombres de los campos modificados.
+// En entidades operativas, Details guarda en JSON el valor anterior y el nuevo de cada campo modificado.
+// En entidades con datos personales (usuarios) solo guarda los nombres de los campos modificados.
 public class AuditLog
 {
+    public Guid? OrganizationId { get; set; }
     public Guid Id { get; set; }
     public DateTime Timestamp { get; set; }
     public Guid? UserId { get; set; }

@@ -6,6 +6,7 @@ const COLORS: Record<EquipmentStatus, string> = {
   UNDER_MAINTENANCE: "bg-yellow-100 text-yellow-800",
   OUT_OF_SERVICE: "bg-orange-100 text-orange-800",
   DECOMMISSIONED: "bg-gray-200 text-gray-600",
+  RETURNED: "bg-slate-200 text-slate-700",
 };
 
 export default function StatusBadge({ status }: { status: EquipmentStatus }) {

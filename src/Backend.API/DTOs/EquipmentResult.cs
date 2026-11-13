@@ -8,13 +8,23 @@ public enum EquipmentActionStatus
     DuplicateSerialNumber,
     // La garantía termina antes de la fecha de compra.
     InvalidDates,
-    // UNDER_MAINTENANCE lo asigna solo el flujo de mantenimiento; tampoco se cambia el estado con un mantenimiento abierto.
+    // La fecha de adquisición es posterior a hoy.
+    FutureAcquisitionDate,
+    // El cambio de estado no está permitido por la regla maestra (R4).
     InvalidStatusChange,
+    // Solo un Administrador puede cambiar el código interno o el número de serie.
+    IdentityChangeForbidden,
     // Tiene asignaciones, componentes, incidentes o mantenimientos: dar de baja en lugar de borrar.
     HasRelatedRecords,
     AlreadyDecommissioned,
     HasActiveAssignment,
-    HasOpenMaintenance
+    HasOpenMaintenance,
+    // Contrato de alquiler inexistente, terminado o sin tarifa para el tipo de equipo.
+    InvalidRentalContract,
+    // Un equipo alquilado se devuelve al arrendador, no se da de baja.
+    RentedCannotBeDecommissioned,
+    // Se intentó cambiar un campo que se sincroniza desde una base de terceros.
+    ExternalFieldLocked
 }
 
 public record EquipmentResult(EquipmentActionStatus Status, EquipmentResponse? Equipment);

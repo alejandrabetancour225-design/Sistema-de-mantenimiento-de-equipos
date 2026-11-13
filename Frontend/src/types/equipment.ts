@@ -3,7 +3,10 @@ export type EquipmentStatus =
   | "IN_USE"
   | "UNDER_MAINTENANCE"
   | "OUT_OF_SERVICE"
-  | "DECOMMISSIONED";
+  | "DECOMMISSIONED"
+  | "RETURNED";
+
+export type EquipmentOwnership = "OWNED" | "RENTED";
 
 export const EQUIPMENT_STATUS_LABEL: Record<EquipmentStatus, string> = {
   AVAILABLE: "Disponible",
@@ -11,6 +14,7 @@ export const EQUIPMENT_STATUS_LABEL: Record<EquipmentStatus, string> = {
   UNDER_MAINTENANCE: "En mantenimiento",
   OUT_OF_SERVICE: "Fuera de servicio",
   DECOMMISSIONED: "Dado de baja",
+  RETURNED: "Devuelto al arrendador",
 };
 
 export interface Equipment {
@@ -29,6 +33,17 @@ export interface Equipment {
   createdAt: string;
   updatedAt: string;
   operatingSystem?: string | null;
+  ownership: EquipmentOwnership;
+  rentalContractId?: string | null;
+  contractNumber?: string | null;
+  lessorName?: string | null;
+  allowsInternalPreventive?: boolean;
+  replacesEquipmentId?: string | null;
+  returnedAt?: string | null;
+  externalSourceId?: string | null;
+  externalId?: string | null;
+  externalAttributes?: Record<string, unknown> | null;
+  lockedFields?: string[];
 }
 
 export interface CreateEquipmentRequest {
@@ -44,6 +59,23 @@ export interface CreateEquipmentRequest {
   location: string;
   status?: EquipmentStatus;
   operatingSystem?: string;
+  ownership?: EquipmentOwnership;
+  rentalContractId?: string;
 }
 
-export type UpdateEquipmentRequest = Partial<CreateEquipmentRequest>;
+// PUT = reemplazo completo: los campos opcionales en null se vacían. El estado no se cambia aquí.
+export interface UpdateEquipmentRequest {
+  internalCode: string;
+  serialNumber: string;
+  type: string;
+  brand: string;
+  model: string;
+  characteristics: Record<string, unknown> | null;
+  acquisitionDate: string | null;
+  acquisitionPrice: number | null;
+  warrantyUntil: string | null;
+  location: string;
+  operatingSystem: string | null;
+  ownership: EquipmentOwnership;
+  rentalContractId: string | null;
+}

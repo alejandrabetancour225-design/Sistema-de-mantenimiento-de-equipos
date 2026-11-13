@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Backend.API.Controllers;
 
-[Authorize(Roles = Roles.Administrador + "," + Roles.Cliente)]
+[Authorize(Roles = Roles.AdminOrManager)]
 [ApiController]
 [Route("api/[controller]")]
 public class DashboardController : ControllerBase

@@ -488,6 +488,11 @@ dist/
 # Scripts de configuracion con secretos locales
 setup.ps1
 setup.cmd
->>>>>>> upstream/master
 
 ollama-data/
+
+# Marca de primer arranque de iniciar.sh / iniciar.ps1
+.iniciado
+
+# Resultados y logs de la evaluación de modelos (se regeneran)
+python-service/eval/*.log

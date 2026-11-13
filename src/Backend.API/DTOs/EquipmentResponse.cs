@@ -18,6 +18,18 @@ public class EquipmentResponse
     public DateOnly? WarrantyUntil { get; set; }
     public string Location { get; set; } = string.Empty;
     public EquipmentStatus Status { get; set; }
+    public EquipmentOwnership Ownership { get; set; }
+    public Guid? RentalContractId { get; set; }
+    public string? ContractNumber { get; set; }
+    public string? LessorName { get; set; }
+    public bool AllowsInternalPreventive { get; set; }
+    public Guid? ReplacesEquipmentId { get; set; }
+    public DateTime? ReturnedAt { get; set; }
+    // Importado de una base de terceros: nombre de la fuente, campos bloqueados y columnas extra.
+    public Guid? ExternalSourceId { get; set; }
+    public string? ExternalId { get; set; }
+    public JsonElement? ExternalAttributes { get; set; }
+    public List<string> LockedFields { get; set; } = new();
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }

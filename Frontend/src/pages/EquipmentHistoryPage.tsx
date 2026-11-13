@@ -20,11 +20,11 @@ export default function EquipmentHistoryPage() {
   const { id } = useParams<{ id: string }>();
   const equipmentId = id!;
   const { role } = useAuth();
-  const isStaff = role !== "Cliente";
+  const isStaff = role !== "Gerente";
   const [newestFirst, setNewestFirst] = useState(true);
 
   const { data: history, isLoading, error } = useEquipmentHistory(equipmentId);
-  // El Cliente no puede consultar equipos: solo el personal interno ve los datos de adquisición
+  // El Gerente no puede consultar equipos: solo el personal interno ve los datos de adquisición
   const { data: equipment } = useQuery({
     queryKey: ["equipment", equipmentId],
     queryFn: () => getEquipmentById(equipmentId),

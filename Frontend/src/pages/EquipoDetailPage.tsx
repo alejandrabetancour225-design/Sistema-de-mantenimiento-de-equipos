@@ -1,7 +1,11 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { changeEquipmentStatus, getEquipmentById } from "../services/equipmentServices";
+import { changeEquipmentStatus, deleteEquipment, getEquipmentById } from "../services/equipmentServices";
+import RentedEquipmentPanel from "../components/RentedEquipmentPanel";
+import MaintenancePlansPanel from "../components/MaintenancePlansPanel";
+import MarketPanel from "../components/MarketPanel";
+import { manualStatusActions, statusLockedReason, type StatusAction } from "../lib/equipmentTransitions";
 import { useAssignments } from "../hooks/useAssignments";
 import { useEquipmentComponents, useEquipmentIncidents } from "../hooks/useEquipmentDetail";
 import { createComponent, deleteComponent } from "../services/equipmentComponentServices";
@@ -14,7 +18,7 @@ import { getApiErrorMessage } from "../lib/errors";
 export default function EquipoDetailPage() {
   const { id } = useParams<{ id: string }>();
   const equipmentId = id!;
-  const { role } = useAuth();
+  const { role, plan } = useAuth();
   const canManageComponents = role === "Administrador" || role === "Técnico";
   const canManageIncidents = role === "Administrador" || role === "Empleado";
   const isEmployee = role === "Empleado";
@@ -38,7 +42,10 @@ export default function EquipoDetailPage() {
   // --- Cambio de estado (Administrador / Técnico) ---
   const [newStatus, setNewStatus] = useState<EquipmentStatus | "">("");
   const statusMutation = useMutation({
-    mutationFn: (status: EquipmentStatus) => changeEquipmentStatus(equipmentId, status),
+    mutationFn: async (action: StatusAction): Promise<void> => {
+      if (action.kind === "decommission") await deleteEquipment(equipmentId);
+      else await changeEquipmentStatus(equipmentId, action.target);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["equipment"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
@@ -161,10 +168,10 @@ export default function EquipoDetailPage() {
       {canManageComponents && (
         <section className="space-y-2 rounded border p-3 text-sm">
           <h2 className="font-medium">Estado del equipo</h2>
-          {equipment.status === "UNDER_MAINTENANCE" ? (
+          {manualStatusActions(equipment.status, role, equipment.ownership).length === 0 ? (
             <p className="text-xs text-gray-600">
-              El equipo está en mantenimiento: su estado cambia al cerrar o cancelar el
-              mantenimiento abierto.
+              Actual: <strong>{EQUIPMENT_STATUS_LABEL[equipment.status]}</strong>.{" "}
+              {statusLockedReason(equipment.status)}
             </p>
           ) : (
             <div className="flex flex-wrap items-center gap-2">
@@ -177,25 +184,26 @@ export default function EquipoDetailPage() {
                 className="rounded border px-2 py-1"
               >
                 <option value="">Cambiar a...</option>
-                {(Object.keys(EQUIPMENT_STATUS_LABEL) as EquipmentStatus[])
-                  // En mantenimiento solo lo pone el flujo de mantenimiento
-                  .filter((st) => st !== "UNDER_MAINTENANCE" && st !== equipment.status)
-                  .map((st) => (
-                    <option key={st} value={st}>
-                      {EQUIPMENT_STATUS_LABEL[st]}
-                    </option>
-                  ))}
+                {/* R4: solo los cambios manuales que permite la regla maestra */}
+                {manualStatusActions(equipment.status, role, equipment.ownership).map((action) => (
+                  <option key={action.target} value={action.target}>
+                    {action.label}
+                  </option>
+                ))}
               </select>
               <button
                 disabled={!newStatus || statusMutation.isPending}
                 onClick={() => {
-                  if (!newStatus) return;
+                  const action = manualStatusActions(equipment.status, role, equipment.ownership).find(
+                    (a) => a.target === newStatus
+                  );
+                  if (!action) return;
                   if (
-                    newStatus === "DECOMMISSIONED" &&
-                    !confirm("Dar de baja un equipo es un cambio importante. ¿Continuar?")
+                    action.kind === "decommission" &&
+                    !confirm("Dar de baja un equipo es definitivo: no podrá volver a servicio. ¿Continuar?")
                   )
                     return;
-                  statusMutation.mutate(newStatus);
+                  statusMutation.mutate(action);
                 }}
                 className="rounded bg-blue-600 px-3 py-1 text-white disabled:opacity-50"
               >
@@ -208,6 +216,33 @@ export default function EquipoDetailPage() {
           )}
         </section>
       )}
+
+      {equipment.ownership === "RENTED" && <RentedEquipmentPanel equipment={equipment} role={role} />}
+
+      {equipment.externalSourceId && (
+        <section className="space-y-1 rounded border border-white/10 p-3 text-sm">
+          <h2 className="font-medium">Importado de la base de datos de la empresa</h2>
+          <p className="text-xs text-gray-400">
+            Registro externo {equipment.externalId}. Los datos sincronizados se corrigen en la fuente.
+          </p>
+          {equipment.externalAttributes && Object.keys(equipment.externalAttributes).length > 0 && (
+            <dl className="grid grid-cols-2 gap-x-4 text-xs md:grid-cols-3">
+              {Object.entries(equipment.externalAttributes).map(([k, v]) => (
+                <div key={k}>
+                  <dt className="text-gray-400">{k}</dt>
+                  <dd>{typeof v === "string" ? v : JSON.stringify(v)}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
+        </section>
+      )}
+
+      {equipment.status !== "DECOMMISSIONED" && equipment.status !== "RETURNED" && (
+        <MaintenancePlansPanel equipmentId={equipmentId} canManage={canManageComponents} />
+      )}
+
+      {plan === "INTEGRACIONES" && role !== "Empleado" && <MarketPanel equipmentId={equipmentId} />}
 
       {/* Componentes */}
       <section className="space-y-3">

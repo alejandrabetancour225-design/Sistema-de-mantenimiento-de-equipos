@@ -1,0 +1,724 @@
+[
+ {
+  "id": 1,
+  "sintoma": "el pc se fundió, no prende",
+  "categoria": "energía",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Fuente de poder defectuosa",
+     "probability": 0.65,
+     "recommendation": "Revisar la fuente de poder. Reemplazar si presenta anomalías."
+    },
+    {
+     "cause": "Sobrecarga de la placa base",
+     "probability": 0.25,
+     "recommendation": "Inspeccionar visualmente la placa base en busca de componentes dañados."
+    },
+    {
+     "cause": "Problema en la memoria RAM",
+     "probability": 0.1,
+     "recommendation": "Probar con un módulo de memoria RAM diferente."
+    }
+   ],
+   "requires_technician": true,
+   "reasoning": "La falla de 'fundirse' y 'no encender' apunta a un problema eléctrico. La fuente de poder es la causa más probable. Luego, la placa base o la memoria podrían ser la causa."
+  },
+  "segundos": 27.8
+ },
+ {
+  "id": 2,
+  "sintoma": "le di al botón y nada, no da señales de vida",
+  "categoria": "energía",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Fuente de poder defectuosa",
+     "probability": 0.65,
+     "recommendation": "Verificar la conexión de la fuente de poder. Reemplazar la fuente de poder."
+    },
+    {
+     "cause": "Placa base dañada",
+     "probability": 0.25,
+     "recommendation": "Inspeccionar visualmente la placa base en busca de componentes dañados."
+    },
+    {
+     "cause": "Problema en la memoria RAM",
+     "probability": 0.1,
+     "recommendation": "Realizar una prueba de memoria RAM con una herramienta de diagnóstico."
+    }
+   ],
+   "requires_technician": true,
+   "reasoning": "El equipo no enciende, lo que indica un fallo de alimentación o un problema en la placa base. La memoria RAM es una causa menos probable."
+  },
+  "segundos": 28.6
+ },
+ {
+  "id": 3,
+  "sintoma": "se apaga solo cuando abro varias cosas y echa candela por debajo",
+  "categoria": "temperatura",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Disipador de calor obstruido o mal instalado",
+     "probability": 0.6,
+     "recommendation": "Verificar y limpiar el disipador de calor. Asegurarse de que esté correctamente instalado y en contacto directo con el procesador."
+    },
+    {
+     "cause": "Fuente de poder defectuosa",
+     "probability": 0.3,
+     "recommendation": "Revisar la fuente de poder.  Medir el voltaje de salida para verificar su correcto funcionamiento."
+    },
+    {
+     "cause": "Problema con la tarjeta gráfica",
+     "probability": 0.1,
+     "recommendation": "Si es posible, probar con otra tarjeta gráfica compatible para descartar problemas de hardware."
+    }
+   ],
+   "requires_technician": true,
+   "reasoning": "El sobrecalentamiento y el olor a quemado sugieren un problema de refrigeración. La fuente de poder es una causa común de apagones repentinos. La tarjeta gráfica es una posible causa, aunque menos probable."
+  },
+  "segundos": 30.5
+ },
+ {
+  "id": 4,
+  "sintoma": "está lento como una tortuga, se demora una eternidad abriendo excel",
+  "categoria": "rendimiento",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Disco Duro Fragmentado",
+     "probability": 0.65,
+     "recommendation": "Ejecutar una optimización del disco duro."
+    },
+    {
+     "cause": "Falta de Memoria RAM",
+     "probability": 0.25,
+     "recommendation": "Verificar el uso de la memoria RAM y, si es necesario, aumentar la capacidad."
+    },
+    {
+     "cause": "Procesos en Segundo Plano",
+     "probability": 0.1,
+     "recommendation": "Identificar y cerrar procesos innecesarios en ejecución."
+    }
+   ],
+   "requires_technician": true,
+   "reasoning": "El problema de lentitud en Excel sugiere un problema de rendimiento.  El disco duro fragmentado es la causa más probable, seguido por la falta de RAM y finalmente, procesos que consumen recursos."
+  },
+  "segundos": 29.6
+ },
+ {
+  "id": 5,
+  "sintoma": "se pega a cada rato y toca reiniciarlo",
+  "categoria": "rendimiento",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Sobrecalentamiento de la CPU",
+     "probability": 0.6,
+     "recommendation": "Verificar la pasta térmica de la CPU y limpiar el disipador de calor."
+    },
+    {
+     "cause": "Fallo en la memoria RAM",
+     "probability": 0.3,
+     "recommendation": "Realizar una prueba de diagnóstico de memoria RAM con Memtest86+."
+    },
+    {
+     "cause": "Problemas con el disco duro/SSD",
+     "probability": 0.1,
+     "recommendation": "Ejecutar una comprobación del disco duro/SSD con CrystalDiskInfo."
+    }
+   ],
+   "requires_technician": true,
+   "reasoning": "El problema de 'se pega' indica un fallo en el sistema. El sobrecalentamiento es común en VivoBooks. Luego, la memoria RAM o el disco duro/SSD son causas frecuentes."
+  },
+  "segundos": 27.0
+ },
+ {
+  "id": 6,
+  "sintoma": "me salió un pantallazo azul y se reinició solo",
+  "categoria": "sistema",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Fallo en la memoria RAM",
+     "probability": 0.6,
+     "recommendation": "Revisar y probar cada módulo de RAM individualmente."
+    },
+    {
+     "cause": "Controlador de video defectuoso",
+     "probability": 0.3,
+     "recommendation": "Actualizar o reinstalar el controlador de video más reciente."
+    },
+    {
+     "cause": "Sobrecalentamiento del procesador",
+     "probability": 0.1,
+     "recommendation": "Verificar la correcta ventilación y limpieza del sistema."
+    }
+   ],
+   "requires_technician": true,
+   "reasoning": "Pantallazo azul y reinicio automático sugieren un error grave en Windows. La RAM y el controlador de video son las causas más comunes."
+  },
+  "segundos": 25.1
+ },
+ {
+  "id": 7,
+  "sintoma": "la pantalla parpadea cuando muevo la tapa",
+  "categoria": "pantalla",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Conector del panel LCD suelto",
+     "probability": 0.65,
+     "recommendation": "Revisa y asegura el conector del panel LCD."
+    },
+    {
+     "cause": "Cable flex del panel LCD dañado",
+     "probability": 0.25,
+     "recommendation": "Inspecciona visualmente el cable flex del panel LCD en busca de roturas."
+    },
+    {
+     "cause": "Controlador de video (GPU) con problemas",
+     "probability": 0.1,
+     "recommendation": "Verifica la compatibilidad del controlador de video y actualízalo."
+    }
+   ],
+   "requires_technician": true,
+   "reasoning": "El parpadeo de la pantalla al mover la tapa sugiere un problema con la señal visual. Priorizo el conector LCD por su frecuencia de fallo."
+  },
+  "segundos": 23.7
+ },
+ {
+  "id": 8,
+  "sintoma": "prende pero la pantalla se queda negra",
+  "categoria": "pantalla",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Tarjeta gráfica defectuosa",
+     "probability": 0.65,
+     "recommendation": "Reemplazar la tarjeta gráfica."
+    },
+    {
+     "cause": "Problema en la memoria RAM",
+     "probability": 0.25,
+     "recommendation": "Realizar una prueba de memoria RAM."
+    },
+    {
+     "cause": "Fuente de poder insuficiente",
+     "probability": 0.1,
+     "recommendation": "Verificar la fuente de poder y su conexión."
+    }
+   ],
+   "requires_technician": true,
+   "reasoning": "Pantalla negra después de encender indica fallo en la visualización. La tarjeta gráfica es la causa más común."
+  },
+  "segundos": 21.1
+ },
+ {
+  "id": 9,
+  "sintoma": "salen rayas de colores en la pantalla",
+  "categoria": "pantalla",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Tarjeta gráfica defectuosa",
+     "probability": 0.65,
+     "recommendation": "Reemplazar la tarjeta gráfica."
+    },
+    {
+     "cause": "Problema de cable de video (HDMI o VGA)",
+     "probability": 0.25,
+     "recommendation": "Revisar y reemplazar el cable de video."
+    },
+    {
+     "cause": "Configuración incorrecta del monitor",
+     "probability": 0.1,
+     "recommendation": "Verificar la configuración de resolución y frecuencia de actualización del monitor."
+    }
+   ],
+   "requires_technician": true,
+   "reasoning": "Rayas de colores en la pantalla del ThinkPad E14 sugieren un problema con la tarjeta gráfica o la transmisión de video.  La configuración incorrecta del monitor es una posibilidad, aunque menos probable."
+  },
+  "segundos": 25.8
+ },
+ {
+  "id": 10,
+  "sintoma": "no coge carga, el bombillito del cargador ni prende",
+  "categoria": "batería",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Puerto de carga defectuoso",
+     "probability": 0.65,
+     "recommendation": "Revisar el puerto de carga en busca de suciedad o daños físicos."
+    },
+    {
+     "cause": "Cargador defectuoso",
+     "probability": 0.25,
+     "recommendation": "Probar con otro cargador compatible."
+    },
+    {
+     "cause": "Cable USB defectuoso",
+     "probability": 0.1,
+     "recommendation": "Utilizar otro cable USB de buena calidad."
+    }
+   ],
+   "requires_technician": true,
+   "reasoning": "El problema principal es que la batería no carga.  Lo más probable es un fallo en el puerto de carga o en el cargador.  Un cable defectuoso es una posibilidad menor."
+  },
+  "segundos": 27.0
+ },
+ {
+  "id": 11,
+  "sintoma": "la pila no dura nada, a la hora ya está muerta",
+  "categoria": "batería",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Batería de iones de litio desgastada",
+     "probability": 0.75,
+     "recommendation": "Reemplazar la batería de la laptop."
+    },
+    {
+     "cause": "Problema en el controlador de energía",
+     "probability": 0.15,
+     "recommendation": "Verificar y actualizar el controlador de energía del sistema."
+    },
+    {
+     "cause": "Consumo excesivo de energía por software en segundo plano",
+     "probability": 0.1,
+     "recommendation": "Identificar y cerrar aplicaciones que consumen energía innecesariamente."
+    }
+   ],
+   "requires_technician": true,
+   "reasoning": "La batería desgastada es la causa más probable. Luego, un problema con el controlador o un uso excesivo de energía."
+  },
+  "segundos": 26.3
+ },
+ {
+  "id": 12,
+  "sintoma": "no coge el wifi pero el celular sí se conecta",
+  "categoria": "red",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Tarjeta de red inalámbrica defectuosa",
+     "probability": 0.65,
+     "recommendation": "Revisar la tarjeta de red inalámbrica.  Verificar si está bien conectada."
+    },
+    {
+     "cause": "Problema de driver de red",
+     "probability": 0.25,
+     "recommendation": "Actualizar o reinstalar el driver de red.  Buscar la versión más reciente."
+    },
+    {
+     "cause": "Interferencia inalámbrica",
+     "probability": 0.1,
+     "recommendation": "Alejar el equipo de fuentes de interferencia inalámbrica."
+    }
+   ],
+   "requires_technician": true,
+   "reasoning": "El problema es que el equipo no se conecta al wifi, pero el celular sí.  La tarjeta de red inalámbrica es la causa más probable."
+  },
+  "segundos": 23.8
+ },
+ {
+  "id": 13,
+  "sintoma": "se le cayó café encima del teclado",
+  "categoria": "físico",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "seguridad_ok": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Cortocircuito en la placa base",
+     "probability": 0.65,
+     "recommendation": "Desconectar el equipo inmediatamente.  Inspeccionar visualmente la placa base en busca de daños visibles."
+    },
+    {
+     "cause": "Deterioro de los contactos del teclado",
+     "probability": 0.25,
+     "recommendation": "Limpiar cuidadosamente los contactos del teclado con alcohol isopropílico."
+    },
+    {
+     "cause": "Daño a la cubierta del teclado",
+     "probability": 0.1,
+     "recommendation": "Revisar la cubierta del teclado en busca de grietas o deformaciones."
+    }
+   ],
+   "requires_technician": true,
+   "reasoning": "Derrame de líquido en el teclado. Mayor riesgo de daño en la placa base. Limpieza de contactos es posible, pero el daño es probable."
+  },
+  "segundos": 27.1
+ },
+ {
+  "id": 14,
+  "sintoma": "huele a quemado y echó humo por detrás",
+  "categoria": "energía",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "seguridad_ok": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Fuente de poder defectuosa",
+     "probability": 0.75,
+     "recommendation": "Desconectar el equipo inmediatamente. Evaluar la fuente de poder."
+    },
+    {
+     "cause": "Sobrecalentamiento del procesador",
+     "probability": 0.15,
+     "recommendation": "Inspeccionar la refrigeración del procesador. Limpiar el disipador de calor."
+    },
+    {
+     "cause": "Cortocircuito en la placa base",
+     "probability": 0.1,
+     "recommendation": "Revisar visualmente la placa base en busca de daños.  Considerar la revisión por un técnico especializado."
+    }
+   ],
+   "requires_technician": true,
+   "reasoning": "El olor a quemado y el humo indican un fallo eléctrico grave. La fuente de poder es la causa más probable.  El sobrecalentamiento y el cortocircuito son posibles, pero menos comunes."
+  },
+  "segundos": 30.0
+ },
+ {
+  "id": 15,
+  "sintoma": "suena como una licuadora y se calienta mucho",
+  "categoria": "ruido",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Ventilador del sistema de refrigeración obstruido por polvo.",
+     "probability": 0.65,
+     "recommendation": "Limpiar el ventilador del sistema de refrigeración con aire comprimido."
+    },
+    {
+     "cause": "Pasta térmica seca entre el procesador y el disipador.",
+     "probability": 0.25,
+     "recommendation": "Aplicar pasta térmica nueva entre el procesador y el disipador."
+    },
+    {
+     "cause": "Sobreuso de la CPU.",
+     "probability": 0.1,
+     "recommendation": "Monitorear el uso de la CPU y cerrar aplicaciones innecesarias."
+    }
+   ],
+   "requires_technician": true,
+   "reasoning": "El ruido como una licuadora indica un ventilador problemático. El sobrecalentamiento refuerza la sospecha de obstrucción o pasta térmica defectuosa."
+  },
+  "segundos": 25.5
+ },
+ {
+  "id": 16,
+  "sintoma": "el disco hace tic tac y se traba",
+  "categoria": "ruido",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Plato del disco duro defectuoso",
+     "probability": 0.65,
+     "recommendation": "Reemplazar el disco duro por uno nuevo."
+    },
+    {
+     "cause": "Controlador SATA fallido",
+     "probability": 0.25,
+     "recommendation": "Probar con otro controlador SATA compatible."
+    },
+    {
+     "cause": "Sobrecalentamiento del disco duro",
+     "probability": 0.1,
+     "recommendation": "Verificar la ventilación y limpieza del interior del equipo."
+    }
+   ],
+   "requires_technician": true,
+   "reasoning": "El ruido de 'tic tac' indica un problema mecánico en el disco duro. La congelación sugiere un error de lectura/escritura. Priorizo el plato defectuoso, luego el controlador SATA y finalmente el sobrecalentamiento."
+  },
+  "segundos": 24.8
+ },
+ {
+  "id": 17,
+  "sintoma": "cuando lo prendo pita tres veces y no da imagen",
+  "categoria": "arranque",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Tarjeta gráfica defectuosa",
+     "probability": 0.65,
+     "recommendation": "Reemplazar la tarjeta gráfica."
+    },
+    {
+     "cause": "Problema en la memoria RAM",
+     "probability": 0.25,
+     "recommendation": "Probar la memoria RAM con una herramienta de diagnóstico."
+    },
+    {
+     "cause": "Fuente de poder insuficiente o defectuosa",
+     "probability": 0.1,
+     "recommendation": "Verificar la fuente de poder y reemplazar si es necesario."
+    }
+   ],
+   "requires_technician": true,
+   "reasoning": "El pitido al encender indica un problema de hardware. La falta de imagen apunta a la tarjeta gráfica o la memoria RAM. La fuente de poder es una causa común."
+  },
+  "segundos": 24.3
+ },
+ {
+  "id": 18,
+  "sintoma": "no suena nada, ni los videos ni las llamadas de teams",
+  "categoria": "audio",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Tarjeta de sonido interna defectuosa",
+     "probability": 0.65,
+     "recommendation": "Revisar la tarjeta de sonido interna.  Verificar conexiones."
+    },
+    {
+     "cause": "Controlador de audio desactualizado o corrupto",
+     "probability": 0.25,
+     "recommendation": "Actualizar o reinstalar el controlador de audio más reciente."
+    },
+    {
+     "cause": "Problema de volumen en el sistema operativo (si estuviera presente)",
+     "probability": 0.1,
+     "recommendation": "Verificar el nivel de volumen en la configuración del sistema."
+    }
+   ],
+   "requires_technician": true,
+   "reasoning": "El problema es la falta de audio. La tarjeta de sonido es la causa más probable."
+  },
+  "segundos": 26.9
+ },
+ {
+  "id": 19,
+  "sintoma": "me salen anuncios raros y se abren páginas solas",
+  "categoria": "seguridad",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Adware instalado en el sistema",
+     "probability": 0.65,
+     "recommendation": "Escanea el sistema con un antivirus actualizado."
+    },
+    {
+     "cause": "Software de publicidad en segundo plano",
+     "probability": 0.25,
+     "recommendation": "Verifica los programas en ejecución y cierra los que no reconozcas."
+    },
+    {
+     "cause": "Malware activo",
+     "probability": 0.1,
+     "recommendation": "Realiza un análisis completo de malware con un software especializado."
+    }
+   ],
+   "requires_technician": true,
+   "reasoning": "Anuncios y páginas que se abren solos apuntan a adware o malware. Priorizo la posibilidad de software malicioso."
+  },
+  "segundos": 23.3
+ },
+ {
+  "id": 20,
+  "sintoma": "la impresora imprime en blanco, como si no tuviera tinta",
+  "categoria": "impresión",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Cabezal de impresión obstruido",
+     "probability": 0.65,
+     "recommendation": "Limpiar el cabezal de impresión con la herramienta de limpieza automática."
+    },
+    {
+     "cause": "Cartucho de tinta vacío o defectuoso",
+     "probability": 0.25,
+     "recommendation": "Reemplazar el cartucho de tinta."
+    },
+    {
+     "cause": "Problema en la bomba de tinta",
+     "probability": 0.1,
+     "recommendation": "Verificar el funcionamiento de la bomba de tinta."
+    }
+   ],
+   "requires_technician": true,
+   "reasoning": "La impresora imprime en blanco, lo que indica falta de tinta.  El cabezal obstruido es la causa más común. Luego, un cartucho vacío o defectuoso. Finalmente, un problema con la bomba de tinta."
+  },
+  "segundos": 25.1
+ },
+ {
+  "id": 21,
+  "sintoma": "la impresora se atasca el papel a cada rato",
+  "categoria": "impresión",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Sensor de presencia de papel defectuoso",
+     "probability": 0.65,
+     "recommendation": "Reemplazar el sensor de presencia de papel."
+    },
+    {
+     "cause": "Atascadero de papel en el rodillo de alimentación",
+     "probability": 0.25,
+     "recommendation": "Inspeccionar y limpiar el rodillo de alimentación."
+    },
+    {
+     "cause": "Problema de alimentación de papel",
+     "probability": 0.1,
+     "recommendation": "Verificar la tensión del flector de papel."
+    }
+   ],
+   "requires_technician": true,
+   "reasoning": "El atasco frecuente de papel sugiere un problema en la alimentación del mismo. Priorizo el sensor de presencia, seguido del atascadero y finalmente, la alimentación en general."
+  },
+  "segundos": 25.2
+ },
+ {
+  "id": 22,
+  "sintoma": "el teclado no escribe algunas letras",
+  "categoria": "periféricos",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Cable USB defectuoso",
+     "probability": 0.65,
+     "recommendation": "Revisa el cable USB, prueba con otro."
+    },
+    {
+     "cause": "Controlador del teclado desactualizado o corrupto",
+     "probability": 0.25,
+     "recommendation": "Verifica si hay actualizaciones del controlador."
+    },
+    {
+     "cause": "Problema de hardware en el teclado",
+     "probability": 0.1,
+     "recommendation": "Prueba con otro teclado si es posible."
+    }
+   ],
+   "requires_technician": true,
+   "reasoning": "El problema es que algunas letras no escriben.  Lo más probable es un fallo en el cable o en el controlador del teclado."
+  },
+  "segundos": 22.4
+ },
+ {
+  "id": 23,
+  "sintoma": "se quedó actualizando toda la noche y no avanza",
+  "categoria": "sistema",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Disco Duro con Fallo",
+     "probability": 0.65,
+     "recommendation": "Revisar el estado del disco duro con herramientas de diagnóstico."
+    },
+    {
+     "cause": "Sobrecalentamiento del Procesador",
+     "probability": 0.25,
+     "recommendation": "Verificar la correcta ventilación de la torre."
+    },
+    {
+     "cause": "Congestión en la Memoria RAM",
+     "probability": 0.1,
+     "recommendation": "Realizar un test de memoria RAM."
+    }
+   ],
+   "requires_technician": true,
+   "reasoning": "La actualización atascada sugiere un problema de lectura/escritura en el disco duro. El sobrecalentamiento puede causar bloqueos. La memoria RAM congestionada también puede ser la causa."
+  },
+  "segundos": 27.5
+ },
+ {
+  "id": 24,
+  "sintoma": "está todo raro, no sé qué le pasa",
+  "categoria": "general",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Fuente de poder defectuosa",
+     "probability": 0.6,
+     "recommendation": "Verificar voltaje de salida de la fuente con un multímetro."
+    },
+    {
+     "cause": "Sobrecalentamiento del procesador",
+     "probability": 0.3,
+     "recommendation": "Inspeccionar la ventilación y limpieza del disipador de calor."
+    },
+    {
+     "cause": "Problema en la memoria RAM",
+     "probability": 0.1,
+     "recommendation": "Realizar una prueba de diagnóstico de memoria con Memtest."
+    }
+   ],
+   "requires_technician": true,
+   "reasoning": "Comportamiento anómalo general. Priorizo la fuente de poder, luego el sobrecalentamiento y finalmente la memoria."
+  },
+  "segundos": 27.0
+ }
+]

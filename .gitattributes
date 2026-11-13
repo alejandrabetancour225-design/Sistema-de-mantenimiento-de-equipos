@@ -1,0 +1,5 @@
+# Los scripts de shell deben tener fin de línea LF (si no, fallan en Linux/macOS),
+# y los de Windows CRLF.
+*.sh   text eol=lf
+*.cmd  text eol=crlf
+*.ps1  text eol=crlf

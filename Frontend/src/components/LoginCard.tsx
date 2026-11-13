@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Settings, Eye, EyeOff } from "lucide-react";
 import { loginSchema } from "../schemas/authSchemas";
 import { useLogin, getAuthErrorMessage } from "../hooks/useAuthMutations";
@@ -112,10 +112,7 @@ export default function LoginCard() {
         </button>
 
         <p className="text-center text-sm text-gray-400">
-          ¿No tienes una cuenta?{" "}
-          <Link to="/register" className="font-medium text-blue-400 hover:underline">
-            Registrarse
-          </Link>
+          ¿No tienes una cuenta? Pídela al administrador de tu empresa.
         </p>
       </form>
 

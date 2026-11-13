@@ -33,7 +33,7 @@ const ROLES = [
   { name: "Administrador", text: "Controla usuarios, equipos, mantenimientos, reportes y la auditoría del sistema." },
   { name: "Técnico", text: "Registra y cierra mantenimientos, gestiona repuestos y cambia el estado de los equipos." },
   { name: "Empleado", text: "Consulta los equipos que tiene asignados y reporta daños o fallas." },
-  { name: "Gerente / Cliente", text: "Consulta el dashboard, el historial de mantenimientos, los costos y los reportes." },
+  { name: "Gerente", text: "Consulta el dashboard, el historial de mantenimientos, los costos y los reportes." },
 ];
 
 const STEPS = [
@@ -59,16 +59,6 @@ function FooterColumn({ title, children }: { title: string; children: React.Reac
       <p className="font-medium text-white">{title}</p>
       <ul className="mt-4 space-y-2.5">{children}</ul>
     </div>
-  );
-}
-
-function FooterLink({ to, children }: { to: string; children: React.ReactNode }) {
-  return (
-    <li>
-      <Link to={to} className={footerLink}>
-        {children}
-      </Link>
-    </li>
   );
 }
 
@@ -179,12 +169,6 @@ export default function LandingPage() {
             <Link to="/login" className="rounded-lg px-3 py-2 text-slate-200 hover:text-white">
               Iniciar sesión
             </Link>
-            <Link
-              to="/register"
-              className="rounded-lg bg-slate-100 px-4 py-2 font-medium text-slate-900 transition hover:bg-slate-300"
-            >
-              Crear cuenta
-            </Link>
           </div>
         </nav>
       </header>
@@ -219,12 +203,6 @@ export default function LandingPage() {
                 className="inline-flex items-center gap-2 rounded-lg bg-blue-500 px-6 py-3 font-medium text-white transition hover:bg-blue-600"
               >
                 Iniciar sesión <ArrowRight size={16} />
-              </Link>
-              <Link
-                to="/register"
-                className="rounded-lg border border-white/20 px-6 py-3 font-medium text-white transition hover:bg-white/5"
-              >
-                Crear cuenta
               </Link>
             </div>
             <dl className="mt-10 flex gap-8 text-sm">
@@ -327,9 +305,6 @@ export default function LandingPage() {
           <div className="mt-8 flex justify-center gap-3">
             <Link to="/login" className="rounded-lg bg-blue-500 px-6 py-3 font-medium text-white transition hover:bg-blue-600">
               Iniciar sesión
-            </Link>
-            <Link to="/register" className="rounded-lg border border-white/20 px-6 py-3 font-medium text-white transition hover:bg-white/5">
-              Crear cuenta
             </Link>
           </div>
         </div>

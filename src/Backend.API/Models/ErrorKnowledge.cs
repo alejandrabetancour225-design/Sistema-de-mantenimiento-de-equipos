@@ -1,7 +1,8 @@
 namespace Backend.API.Models;
 
-public class ErrorKnowledge
+public class ErrorKnowledge : IOrganizationScoped
 {
+    public Guid OrganizationId { get; set; }
     public Guid Id { get; set; }
 
     public string Symptom { get; set; } = string.Empty;

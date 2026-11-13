@@ -6,5 +6,7 @@ public enum EquipmentStatus
     IN_USE,
     UNDER_MAINTENANCE,
     OUT_OF_SERVICE,
-    DECOMMISSIONED
+    DECOMMISSIONED,
+    // Equipo alquilado devuelto al arrendador (terminal, conserva su historial).
+    RETURNED
 }

@@ -12,6 +12,10 @@ public class FastApiDiagnosisResponse
 
     [JsonPropertyName("reasoning")]
     public string Reasoning { get; set; } = string.Empty;
+
+    // Modelo que generó el diagnóstico (lo informa el servicio de IA).
+    [JsonPropertyName("model")]
+    public string? Model { get; set; }
 }
 
 public class FastApiRankedCause

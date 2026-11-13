@@ -1,5 +1,6 @@
 using Backend.API.Data;
 using Backend.API.DTOs;
+using Backend.API.Infrastructure;
 using Backend.API.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -60,7 +61,7 @@ public class DashboardService : IDashboardService
 
     public async Task<List<DashboardUpcomingMaintenanceResponse>> GetUpcomingMaintenancesAsync(int daysAhead = 30)
     {
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var today = LocalClock.Today;
         var limit = today.AddDays(daysAhead);
 
         var maintenances = await _context.Maintenances
@@ -69,7 +70,8 @@ public class DashboardService : IDashboardService
             .Include(m => m.Technician)
             .Where(m => m.NextMaintenanceDate != null
                 && m.NextMaintenanceDate <= limit
-                && m.Status != MaintenanceStatus.CANCELLED)
+                && m.Status != MaintenanceStatus.CANCELLED
+                && m.Status != MaintenanceStatus.VOIDED)
             .OrderBy(m => m.NextMaintenanceDate)
             .ToListAsync();
 

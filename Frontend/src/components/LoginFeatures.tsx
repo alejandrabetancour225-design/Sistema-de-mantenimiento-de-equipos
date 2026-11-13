@@ -19,7 +19,7 @@ const FEATURES = [
   {
     icon: ShieldCheck,
     title: "Acceso por roles",
-    text: "Administrador, Técnico, Empleado y Cliente, cada uno con lo que necesita.",
+    text: "Administrador, Técnico, Empleado y Gerente, cada uno con lo que necesita.",
   },
 ];
 

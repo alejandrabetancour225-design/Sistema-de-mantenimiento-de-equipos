@@ -30,20 +30,6 @@ public class AuthController : ControllerBase
     }
 
     [AllowAnonymous]
-    [EnableRateLimiting(RateLimitPolicies.Register)]
-    [HttpPost("register")]
-    public async Task<ActionResult<AuthResponse>> Register(RegisterRequest request)
-    {
-        var response = await _authService.RegisterAsync(request);
-        if (response is null)
-        {
-            return Conflict(new { message = "No se pudo completar el registro. Si ya tienes una cuenta, inicia sesión." });
-        }
-
-        return Ok(WithSession(response));
-    }
-
-    [AllowAnonymous]
     [EnableRateLimiting(RateLimitPolicies.Login)]
     [HttpPost("login")]
     public async Task<ActionResult<AuthResponse>> Login(LoginRequest request)

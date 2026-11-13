@@ -51,6 +51,9 @@ namespace Backend.API.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("RankedCausesJson")
                         .IsRequired()
                         .HasColumnType("jsonb");
@@ -107,6 +110,9 @@ namespace Backend.API.Data.Migrations
                     b.Property<string>("Notes")
                         .HasColumnType("text");
 
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("PredictedCause")
                         .IsRequired()
                         .HasColumnType("text");
@@ -127,6 +133,60 @@ namespace Backend.API.Data.Migrations
                     b.ToTable("AIFeedbacks");
                 });
 
+            modelBuilder.Entity("Backend.API.Models.AiReport", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Automatic")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ContentJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Error")
+                        .HasColumnType("text");
+
+                    b.Property<string>("MarketJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<byte[]>("Pdf")
+                        .HasColumnType("bytea");
+
+                    b.Property<DateOnly>("PeriodFrom")
+                        .HasColumnType("date");
+
+                    b.Property<DateOnly>("PeriodTo")
+                        .HasColumnType("date");
+
+                    b.Property<Guid?>("RequestedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("StatsJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrganizationId", "CreatedAt");
+
+                    b.ToTable("AiReports");
+                });
+
             modelBuilder.Entity("Backend.API.Models.Assignment", b =>
                 {
                     b.Property<Guid>("Id")
@@ -142,6 +202,9 @@ namespace Backend.API.Data.Migrations
                     b.Property<string>("Observations")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime?>("ReleasedAt")
                         .HasColumnType("timestamp with time zone");
@@ -188,6 +251,9 @@ namespace Backend.API.Data.Migrations
                     b.Property<string>("IpAddress")
                         .HasColumnType("text");
 
+                    b.Property<Guid?>("OrganizationId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTime>("Timestamp")
                         .HasColumnType("timestamp with time zone");
 
@@ -225,6 +291,16 @@ namespace Backend.API.Data.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("ExternalAttributes")
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("ExternalId")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid?>("ExternalSourceId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("InternalCode")
                         .IsRequired()
                         .HasColumnType("text");
@@ -239,6 +315,21 @@ namespace Backend.API.Data.Migrations
 
                     b.Property<string>("OperatingSystem")
                         .HasColumnType("text");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Ownership")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("RentalContractId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ReplacesEquipmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ReturnedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("SerialNumber")
                         .IsRequired()
@@ -259,10 +350,16 @@ namespace Backend.API.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("InternalCode")
+                    b.HasIndex("RentalContractId");
+
+                    b.HasIndex("ExternalSourceId", "ExternalId")
+                        .IsUnique()
+                        .HasFilter("\"ExternalSourceId\" IS NOT NULL");
+
+                    b.HasIndex("OrganizationId", "InternalCode")
                         .IsUnique();
 
-                    b.HasIndex("SerialNumber")
+                    b.HasIndex("OrganizationId", "SerialNumber")
                         .IsUnique();
 
                     b.ToTable("Equipments");
@@ -291,6 +388,9 @@ namespace Backend.API.Data.Migrations
                     b.Property<string>("Model")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("SerialNumber")
                         .IsRequired()
@@ -328,6 +428,9 @@ namespace Backend.API.Data.Migrations
                     b.Property<Guid?>("CreatedByUserId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("PossibleCauses")
                         .IsRequired()
                         .HasColumnType("text");
@@ -363,6 +466,72 @@ namespace Backend.API.Data.Migrations
                     b.ToTable("ErrorKnowledges");
                 });
 
+            modelBuilder.Entity("Backend.API.Models.ExternalSource", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("EncryptedConnection")
+                        .HasColumnType("text");
+
+                    b.Property<byte[]>("FileContent")
+                        .HasColumnType("bytea");
+
+                    b.Property<string>("FileName")
+                        .HasColumnType("text");
+
+                    b.Property<string>("KeyColumn")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime?>("LastSyncAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("LastSyncSummary")
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("MappingJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("SyncIntervalHours")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TableName")
+                        .HasMaxLength(130)
+                        .HasColumnType("character varying(130)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrganizationId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("ExternalSources");
+                });
+
             modelBuilder.Entity("Backend.API.Models.FailurePrediction", b =>
                 {
                     b.Property<Guid>("Id")
@@ -378,6 +547,9 @@ namespace Backend.API.Data.Migrations
                     b.Property<string>("ModelVersion")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("PredictedAt")
                         .HasColumnType("timestamp with time zone");
@@ -419,6 +591,9 @@ namespace Backend.API.Data.Migrations
                     b.Property<Guid>("EquipmentId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTime>("ReportedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -439,6 +614,108 @@ namespace Backend.API.Data.Migrations
                         .HasFilter("\"Status\" IN (0, 1)");
 
                     b.ToTable("Incidents");
+                });
+
+            modelBuilder.Entity("Backend.API.Models.Lessor", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("ContactEmail")
+                        .IsRequired()
+                        .HasMaxLength(254)
+                        .HasColumnType("character varying(254)");
+
+                    b.Property<string>("ContactName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ContactPhone")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("TaxId")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrganizationId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("Lessors");
+                });
+
+            modelBuilder.Entity("Backend.API.Models.LessorClaim", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ContractId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<Guid>("EquipmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("IncidentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("LessorResponse")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTime?>("NotifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ContractId");
+
+                    b.HasIndex("EquipmentId");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("LessorClaims");
                 });
 
             modelBuilder.Entity("Backend.API.Models.Maintenance", b =>
@@ -463,12 +740,18 @@ namespace Backend.API.Data.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
 
+                    b.Property<Guid?>("MaintenancePlanId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateOnly?>("NextMaintenanceDate")
                         .HasColumnType("date");
 
                     b.Property<string>("Observations")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
 
                     b.Property<decimal>("OtherCosts")
                         .HasPrecision(18, 2)
@@ -493,6 +776,15 @@ namespace Backend.API.Data.Migrations
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("VoidReason")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("VoidedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("VoidedById")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("WorkDone")
                         .HasColumnType("text");
 
@@ -514,6 +806,55 @@ namespace Backend.API.Data.Migrations
                         .HasFilter("\"Status\" IN (0, 1)");
 
                     b.ToTable("Maintenances");
+                });
+
+            modelBuilder.Entity("Backend.API.Models.MaintenancePlan", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("EquipmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("IntervalWeeks")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("LastCompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateOnly>("NextDate")
+                        .HasColumnType("date");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("TechnicianId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EquipmentId");
+
+                    b.HasIndex("TechnicianId");
+
+                    b.HasIndex("Active", "NextDate");
+
+                    b.ToTable("MaintenancePlans");
                 });
 
             modelBuilder.Entity("Backend.API.Models.MaintenanceSparePart", b =>
@@ -543,6 +884,100 @@ namespace Backend.API.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("MaintenanceSpareParts");
+                });
+
+            modelBuilder.Entity("Backend.API.Models.Notification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DedupKey")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Link")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ReadAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "DedupKey")
+                        .IsUnique()
+                        .HasFilter("\"DedupKey\" IS NOT NULL");
+
+                    b.HasIndex("UserId", "ReadAt");
+
+                    b.ToTable("Notifications");
+                });
+
+            modelBuilder.Entity("Backend.API.Models.Organization", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<int>("Plan")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("Organizations");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("0e000000-0000-0000-0000-000000000001"),
+                            Active = true,
+                            CreatedAt = new DateTime(2026, 11, 12, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Name = "Organización por defecto",
+                            Plan = 1,
+                            UpdatedAt = new DateTime(2026, 11, 12, 0, 0, 0, 0, DateTimeKind.Utc)
+                        });
                 });
 
             modelBuilder.Entity("Backend.API.Models.PasswordResetCode", b =>
@@ -579,6 +1014,85 @@ namespace Backend.API.Data.Migrations
                     b.ToTable("PasswordResetCodes");
                 });
 
+            modelBuilder.Entity("Backend.API.Models.RentalContract", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("AllowsInternalPreventive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("ContractNumber")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateOnly>("EndDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime?>("ExpiryNotifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("LessorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly>("StartDate")
+                        .HasColumnType("date");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EndDate");
+
+                    b.HasIndex("LessorId");
+
+                    b.HasIndex("OrganizationId", "ContractNumber")
+                        .IsUnique();
+
+                    b.ToTable("RentalContracts");
+                });
+
+            modelBuilder.Entity("Backend.API.Models.RentalRate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ContractId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("EquipmentType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<decimal>("MonthlyRate")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ContractId", "EquipmentType")
+                        .IsUnique();
+
+                    b.ToTable("RentalRates");
+                });
+
             modelBuilder.Entity("Backend.API.Models.Role", b =>
                 {
                     b.Property<Guid>("Id")
@@ -612,8 +1126,60 @@ namespace Backend.API.Data.Migrations
                         new
                         {
                             Id = new Guid("a0000000-0000-0000-0000-000000000004"),
-                            Name = "Cliente"
+                            Name = "Gerente"
+                        },
+                        new
+                        {
+                            Id = new Guid("a0000000-0000-0000-0000-000000000005"),
+                            Name = "SuperAdmin"
                         });
+                });
+
+            modelBuilder.Entity("Backend.API.Models.SlangTerm", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Expression")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<bool>("IsBase")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Meaning")
+                        .IsRequired()
+                        .HasMaxLength(400)
+                        .HasColumnType("character varying(400)");
+
+                    b.Property<Guid?>("OrganizationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrganizationId", "Expression")
+                        .IsUnique();
+
+                    b.ToTable("SlangTerms");
                 });
 
             modelBuilder.Entity("Backend.API.Models.SparePart", b =>
@@ -635,6 +1201,9 @@ namespace Backend.API.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
                     b.Property<decimal>("UnitCost")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
@@ -644,7 +1213,7 @@ namespace Backend.API.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Name")
+                    b.HasIndex("OrganizationId", "Name")
                         .IsUnique();
 
                     b.ToTable("SpareParts");
@@ -680,6 +1249,12 @@ namespace Backend.API.Data.Migrations
                     b.Property<DateTime?>("LockoutEnd")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<bool>("MustChangePassword")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("OrganizationId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasColumnType("text");
@@ -701,6 +1276,8 @@ namespace Backend.API.Data.Migrations
 
                     b.HasIndex("EmailHash")
                         .IsUnique();
+
+                    b.HasIndex("OrganizationId");
 
                     b.HasIndex("RoleId");
 
@@ -771,6 +1348,22 @@ namespace Backend.API.Data.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Backend.API.Models.Equipment", b =>
+                {
+                    b.HasOne("Backend.API.Models.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Backend.API.Models.RentalContract", "RentalContract")
+                        .WithMany("Equipment")
+                        .HasForeignKey("RentalContractId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("RentalContract");
+                });
+
             modelBuilder.Entity("Backend.API.Models.EquipmentComponent", b =>
                 {
                     b.HasOne("Backend.API.Models.Equipment", "Equipment")
@@ -822,6 +1415,25 @@ namespace Backend.API.Data.Migrations
                     b.Navigation("Reporter");
                 });
 
+            modelBuilder.Entity("Backend.API.Models.LessorClaim", b =>
+                {
+                    b.HasOne("Backend.API.Models.RentalContract", "Contract")
+                        .WithMany()
+                        .HasForeignKey("ContractId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Backend.API.Models.Equipment", "Equipment")
+                        .WithMany()
+                        .HasForeignKey("EquipmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Contract");
+
+                    b.Navigation("Equipment");
+                });
+
             modelBuilder.Entity("Backend.API.Models.Maintenance", b =>
                 {
                     b.HasOne("Backend.API.Models.Equipment", "Equipment")
@@ -844,6 +1456,24 @@ namespace Backend.API.Data.Migrations
                     b.Navigation("Equipment");
 
                     b.Navigation("Incident");
+
+                    b.Navigation("Technician");
+                });
+
+            modelBuilder.Entity("Backend.API.Models.MaintenancePlan", b =>
+                {
+                    b.HasOne("Backend.API.Models.Equipment", "Equipment")
+                        .WithMany()
+                        .HasForeignKey("EquipmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Backend.API.Models.User", "Technician")
+                        .WithMany()
+                        .HasForeignKey("TechnicianId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Equipment");
 
                     b.Navigation("Technician");
                 });
@@ -878,8 +1508,35 @@ namespace Backend.API.Data.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Backend.API.Models.RentalContract", b =>
+                {
+                    b.HasOne("Backend.API.Models.Lessor", "Lessor")
+                        .WithMany("Contracts")
+                        .HasForeignKey("LessorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Lessor");
+                });
+
+            modelBuilder.Entity("Backend.API.Models.RentalRate", b =>
+                {
+                    b.HasOne("Backend.API.Models.RentalContract", "Contract")
+                        .WithMany("Rates")
+                        .HasForeignKey("ContractId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Contract");
+                });
+
             modelBuilder.Entity("Backend.API.Models.User", b =>
                 {
+                    b.HasOne("Backend.API.Models.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Backend.API.Models.Role", "Role")
                         .WithMany("Users")
                         .HasForeignKey("RoleId")
@@ -904,9 +1561,21 @@ namespace Backend.API.Data.Migrations
                     b.Navigation("Maintenance");
                 });
 
+            modelBuilder.Entity("Backend.API.Models.Lessor", b =>
+                {
+                    b.Navigation("Contracts");
+                });
+
             modelBuilder.Entity("Backend.API.Models.Maintenance", b =>
                 {
                     b.Navigation("SpareParts");
+                });
+
+            modelBuilder.Entity("Backend.API.Models.RentalContract", b =>
+                {
+                    b.Navigation("Equipment");
+
+                    b.Navigation("Rates");
                 });
 
             modelBuilder.Entity("Backend.API.Models.Role", b =>

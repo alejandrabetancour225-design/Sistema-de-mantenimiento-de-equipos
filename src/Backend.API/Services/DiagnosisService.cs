@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Backend.API.Data;
 using Backend.API.DTOs;
+using Backend.API.Infrastructure;
 using Backend.API.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,16 +11,46 @@ public class DiagnosisService : IDiagnosisService
 {
     private readonly AppDbContext _context;
     private readonly IAiClient _aiClient;
+    private readonly IGlossaryService _glossary;
     private readonly ILogger<DiagnosisService> _logger;
 
     public DiagnosisService(
         AppDbContext context,
         IAiClient aiClient,
+        IGlossaryService glossary,
         ILogger<DiagnosisService> logger)
     {
         _context = context;
         _aiClient = aiClient;
+        _glossary = glossary;
         _logger = logger;
+    }
+
+    // Busca en la biblioteca de errores por parecido de palabras (sin importar tildes ni mayúsculas).
+    // El síntoma se amplía con el significado técnico de los modismos detectados, para que
+    // "se pega" encuentre la entrada "El equipo se congela".
+    public async Task<List<ErrorKnowledge>> FindRelatedKnowledgeAsync(string symptom, List<GlossaryEntryDto> glossary, int take = 5)
+    {
+        var expanded = symptom + " " + string.Join(" ", _glossary.Match(symptom, glossary).Select(g => g.Significado));
+        var keywords = TextNormalizer.Keywords(expanded);
+        if (keywords.Count == 0)
+        {
+            return new List<ErrorKnowledge>();
+        }
+
+        var entries = await _context.ErrorKnowledges.AsNoTracking().Where(e => e.Active).ToListAsync();
+        return entries
+            .Select(e => new
+            {
+                Entry = e,
+                Score = TextNormalizer.Keywords(e.Symptom + " " + e.ComponentType).Count(keywords.Contains)
+            })
+            .Where(x => x.Score > 0)
+            .OrderByDescending(x => x.Score)
+            .ThenByDescending(x => x.Entry.Confidence)
+            .Take(take)
+            .Select(x => x.Entry)
+            .ToList();
     }
 
     public async Task<DiagnosisResult> DiagnoseAsync(CreateDiagnosisRequest request, Guid currentUserId)
@@ -47,12 +78,9 @@ public class DiagnosisService : IDiagnosisService
                 return new DiagnosisResult(DiagnosisActionStatus.IncidentNotOpen, null);
         }
 
-        // 3. Cargar biblioteca de errores relevante
-        var knowledge = await _context.ErrorKnowledges
-            .AsNoTracking()
-            .Where(e => e.Active && (e.Symptom.Contains(request.Symptom) || request.Symptom.Contains(e.Symptom)))
-            .Take(5)
-            .ToListAsync();
+        // 3. Glosario de modismos y biblioteca de errores relevante
+        var glossary = await _glossary.GetActiveAsync();
+        var knowledge = await FindRelatedKnowledgeAsync(request.Symptom, glossary);
 
         // 4. Construir el request para FastAPI
         var components = equipment.Components?
@@ -81,6 +109,12 @@ public class DiagnosisService : IDiagnosisService
                 Symptom = k.Symptom,
                 PossibleCauses = k.PossibleCauses,
                 SuggestedSolution = k.SuggestedSolution
+            }).ToList(),
+            Glossary = glossary.Select(g => new AiGlossaryItem
+            {
+                Expresion = g.Expresion,
+                Significado = g.Significado,
+                Categoria = g.Categoria
             }).ToList()
         };
 
@@ -103,7 +137,7 @@ public class DiagnosisService : IDiagnosisService
             RankedCausesJson = JsonSerializer.Serialize(aiResponse.RankedCauses),
             RequiresTechnician = aiResponse.RequiresTechnician,
             Reasoning = aiResponse.Reasoning,
-            ModelVersion = "llama3.1:8b",
+            ModelVersion = aiResponse.Model ?? "desconocido",
             Confidence = aiResponse.RankedCauses.Max(c => c.Probability),
             Status = "PENDING",
             CreatedAt = DateTime.UtcNow,

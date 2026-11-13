@@ -7,10 +7,11 @@ import {
   createPreventiveMaintenance,
 } from "../services/predictionServices";
 
-export function useHighRiskPredictions(take = 10) {
+export function useHighRiskPredictions(take = 10, enabled = true) {
   return useQuery({
     queryKey: ["predictions", "high-risk", take],
     queryFn: () => getHighRiskPredictions(take),
+    enabled,
   });
 }
 

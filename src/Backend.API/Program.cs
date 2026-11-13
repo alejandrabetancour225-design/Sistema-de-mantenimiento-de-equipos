@@ -5,8 +5,12 @@ using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using Backend.API.Data;
 using Backend.API.Infrastructure;
+using Backend.API.Realtime;
 using Backend.API.Services;
+using Hangfire;
+using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
@@ -14,6 +18,9 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.Net.Http.Headers;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Fuentes incrustadas para los PDF (funciona igual en Windows, Linux y contenedores).
+EmbeddedFontResolver.Register();
 
 // ---------- Límites de tamaño ----------
 var maxRequestBodyBytes = builder.Configuration.GetValue<long>("Limits:MaxRequestBodyBytes", 1_048_576);
@@ -69,8 +76,11 @@ if (string.IsNullOrWhiteSpace(db["Host"]) || string.IsNullOrWhiteSpace(db["Name"
 
 var sslMode = db["SslMode"];
 var connectionString = $"Host={db["Host"]};Port={db["Port"] ?? "5432"};Database={db["Name"]};Username={db["User"]};Password={db["Password"]}"
-    + (string.IsNullOrEmpty(sslMode) ? "" : $";SslMode={sslMode}");
+    + (string.IsNullOrEmpty(sslMode) ? "" : $";SslMode={sslMode}")
+    // Sin Kerberos/GSSAPI: no se usa y en contenedores falta la librería (evita un error ruidoso).
+    + ";GssEncryptionMode=Disable";
 
+builder.Services.AddScoped<ITenantContext, HttpTenantContext>();
 builder.Services.AddSingleton<AuditSaveChangesInterceptor>();
 builder.Services.AddDbContext<AppDbContext>((services, options) =>
     options.UseNpgsql(connectionString)
@@ -120,6 +130,15 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             // Acepta el token en la cabecera Authorization o en la cookie httpOnly.
             OnMessageReceived = context =>
             {
+                // SignalR por WebSocket no puede mandar cabeceras: el token llega en ?access_token=.
+                var accessToken = context.Request.Query["access_token"];
+                if (!string.IsNullOrEmpty(accessToken)
+                    && context.HttpContext.Request.Path.StartsWithSegments("/api/hubs"))
+                {
+                    context.Token = accessToken;
+                    return Task.CompletedTask;
+                }
+
                 if (string.IsNullOrEmpty(context.Token)
                     && !context.Request.Headers.ContainsKey(HeaderNames.Authorization)
                     && context.Request.Cookies.TryGetValue(AuthCookie.Name, out var cookieToken)
@@ -153,6 +172,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                     {
                         u.Active,
                         u.SecurityStamp,
+                        u.OrganizationId,
+                        u.MustChangePassword,
+                        OrganizationActive = u.OrganizationId == null
+                            || dbContext.Organizations.Any(o => o.Id == u.OrganizationId && o.Active),
                         RoleName = u.Role != null ? u.Role.Name : null
                     })
                     .SingleOrDefaultAsync(context.HttpContext.RequestAborted);
@@ -175,6 +198,17 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                     context.Fail("La sesión ya no es válida. Inicia sesión de nuevo.");
                     return;
                 }
+
+                // Multiempresa: el token debe ser de la organización actual del usuario y esta debe estar activa.
+                var orgClaim = principal?.FindFirstValue(AppClaimsOrg.Organization);
+                var tokenOrg = Guid.TryParse(orgClaim, out var parsedOrg) ? parsedOrg : (Guid?)null;
+                if (tokenOrg != user.OrganizationId || !user.OrganizationActive)
+                {
+                    context.Fail("La organización del usuario cambió o está inactiva.");
+                    return;
+                }
+
+                context.HttpContext.Items[MustChangePasswordItem] = user.MustChangePassword;
 
                 var roleClaim = principal?.FindFirstValue(ClaimTypes.Role);
                 if (!string.Equals(roleClaim, user.RoleName, StringComparison.Ordinal))
@@ -291,6 +325,30 @@ builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();
 builder.Services.AddScoped<IErrorKnowledgeService, ErrorKnowledgeService>();
 builder.Services.AddHttpClient<IAiClient, AiClient>();
 builder.Services.AddScoped<IDiagnosisService, DiagnosisService>();
+builder.Services.AddScoped<IGlossaryService, GlossaryService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<ReminderJob>();
+builder.Services.AddHttpClient<IIntegrationService, IntegrationService>();
+builder.Services.AddScoped<IntegrationSyncJob>();
+builder.Services.AddHttpClient("python-service");
+builder.Services.AddScoped<AiReportJob>();
+
+// ---------- Tiempo real (SignalR) ----------
+builder.Services.AddSignalR();
+
+// ---------- Tareas programadas (Hangfire, guardadas en Postgres, esquema "hangfire") ----------
+var jobsEnabled = builder.Configuration.GetValue("Jobs:Enabled", true);
+builder.Services.AddHangfire(config => config
+    .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+    .UseSimpleAssemblyNameTypeSerializer()
+    .UseRecommendedSerializerSettings()
+    .UsePostgreSqlStorage(options => options.UseNpgsqlConnection(connectionString),
+        new PostgreSqlStorageOptions { SchemaName = "hangfire", PrepareSchemaIfNecessary = true }));
+if (jobsEnabled)
+{
+    // Un solo trabajador: las tareas son livianas y así se ahorra RAM en equipos de 8 GB.
+    builder.Services.AddHangfireServer(options => options.WorkerCount = 1);
+}
 builder.Services.AddScoped<IPredictionService, PredictionService>();
 builder.Services.AddScoped<IFeedbackService, FeedbackService>();
 
@@ -340,6 +398,20 @@ using (var scope = app.Services.CreateScope())
     }
 
     await AdminBootstrapper.EnsureAdministratorAsync(scope.ServiceProvider, app.Configuration, app.Logger);
+    await AdminBootstrapper.EnsureSuperAdminAsync(scope.ServiceProvider, app.Configuration, app.Logger);
+    try
+    {
+        await GlossaryService.SeedBaseAsync(dbContext, app.Logger);
+    }
+    catch (Npgsql.PostgresException ex) when (ex.SqlState == "42P01")
+    {
+        app.Logger.LogWarning("La tabla del glosario no existe todavía: aplica las migraciones.");
+    }
+
+    if (app.Configuration.GetValue("Seed:Demo", false))
+    {
+        await DemoDataSeeder.SeedAsync(scope.ServiceProvider, app.Logger);
+    }
 }
 
 // ---------- Pipeline HTTP ----------
@@ -350,7 +422,11 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-app.UseHttpsRedirection();
+// En contenedores la API va detrás de nginx por HTTP; ahí se desactiva con Http__RedirectToHttps=false.
+if (app.Configuration.GetValue("Http:RedirectToHttps", true))
+{
+    app.UseHttpsRedirection();
+}
 
 // Cabeceras de seguridad. La API solo devuelve JSON: no debe poder incrustarse ni ejecutar contenido.
 app.Use(async (context, next) =>
@@ -405,8 +481,82 @@ app.Use(async (context, next) =>
     await next();
 });
 
+// Contraseña temporal: hasta cambiarla, la cuenta solo puede consultar su sesión, cambiar la
+// contraseña o cerrar sesión (la interfaz también lo exige, pero la regla vive aquí).
+app.Use(async (context, next) =>
+{
+    if (context.Items.TryGetValue(MustChangePasswordItem, out var flag) && flag is true)
+    {
+        var path = context.Request.Path;
+        var allowed = path.StartsWithSegments("/api/auth/change-password", StringComparison.OrdinalIgnoreCase)
+            || path.StartsWithSegments("/api/auth/me", StringComparison.OrdinalIgnoreCase)
+            || path.StartsWithSegments("/api/auth/logout", StringComparison.OrdinalIgnoreCase)
+            || path.StartsWithSegments("/api/organizations/current", StringComparison.OrdinalIgnoreCase);
+        if (!allowed)
+        {
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            await context.Response.WriteAsJsonAsync(new { message = "Debes cambiar tu contraseña temporal antes de continuar." });
+            return;
+        }
+    }
+
+    await next();
+});
+
 app.UseAuthorization();
+
+// R3 – Tiempo real: tras cualquier cambio exitoso (POST/PUT/PATCH/DELETE) se avisa a la
+// organización por SignalR para que dashboard, calendario y listas se refresquen solos.
+app.Use(async (context, next) =>
+{
+    await next();
+    var request = context.Request;
+    if (HttpMethods.IsGet(request.Method) || HttpMethods.IsHead(request.Method) || HttpMethods.IsOptions(request.Method)
+        || context.Response.StatusCode >= 400
+        || request.Path.StartsWithSegments("/api/hubs")
+        || request.Path.StartsWithSegments("/api/auth")
+        || request.Path.StartsWithSegments("/api/notifications"))
+    {
+        return;
+    }
+
+    if (Guid.TryParse(context.User.FindFirst(AppClaimsOrg.Organization)?.Value, out var org))
+    {
+        var hub = context.RequestServices.GetRequiredService<IHubContext<NotificationsHub>>();
+        await hub.Clients.Group(NotificationsHub.OrgGroup(org)).SendAsync("datosCambiaron", request.Path.Value);
+    }
+});
 
 app.MapControllers();
 
+app.MapHub<NotificationsHub>(NotificationsHub.Path);
+
+if (jobsEnabled)
+{
+    var recurring = app.Services.GetRequiredService<IRecurringJobManager>();
+    recurring.AddOrUpdate<ReminderJob>("recordatorios-mantenimiento", job => job.RunAsync(), "15 * * * *",
+        new RecurringJobOptions { TimeZone = TimeZoneInfo.FindSystemTimeZoneById("America/Bogota") });
+    recurring.AddOrUpdate<IntegrationSyncJob>("sincronizar-integraciones", job => job.RunAsync(), "40 * * * *",
+        new RecurringJobOptions { TimeZone = TimeZoneInfo.FindSystemTimeZoneById("America/Bogota") });
+    // Reporte ejecutivo con IA del mes anterior, el día 1 a las 6:00 (plan Integraciones).
+    recurring.AddOrUpdate<AiReportJob>("reporte-ejecutivo-mensual", job => job.MonthlyAsync(), "0 6 1 * *",
+        new RecurringJobOptions { TimeZone = TimeZoneInfo.FindSystemTimeZoneById("America/Bogota") });
+    // Una pasada al arrancar, para no esperar a la siguiente hora.
+    app.Services.GetRequiredService<IBackgroundJobClient>().Enqueue<ReminderJob>(job => job.RunAsync());
+}
+
+if (app.Environment.IsDevelopment())
+{
+    // Panel de Hangfire (solo desde este equipo y en desarrollo): http://localhost:5255/hangfire
+    app.UseHangfireDashboard("/hangfire");
+}
+
+// Sonda de salud para iniciar.sh / iniciar.ps1 y docker compose (sin autenticación, sin datos).
+app.MapGet("/api/health", () => Results.Ok(new { status = "ok" })).AllowAnonymous();
+
 app.Run();
+
+public partial class Program
+{
+    private const string MustChangePasswordItem = "MustChangePassword";
+}

@@ -34,4 +34,7 @@ public class CreateMaintenanceRequest
 
     [NotInFuture]
     public DateTime? StartedAt { get; set; }
+
+    // Plan preventivo desde el que se inicia (calendario). Al cerrarse, el plan avanza solo.
+    public Guid? MaintenancePlanId { get; set; }
 }

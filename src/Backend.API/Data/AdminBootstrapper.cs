@@ -11,6 +11,56 @@ namespace Backend.API.Data;
 //   Bootstrap:AdminEmail, Bootstrap:AdminPassword, Bootstrap:AdminFullName (opcional)
 public static class AdminBootstrapper
 {
+    // SuperAdmin de la plataforma (Bootstrap:SuperAdminEmail / Bootstrap:SuperAdminPassword).
+    // Se crea una sola vez, sin organización: administra organizaciones y planes.
+    public static async Task EnsureSuperAdminAsync(IServiceProvider services, IConfiguration configuration, ILogger logger)
+    {
+        var context = services.GetRequiredService<AppDbContext>();
+        var email = configuration["Bootstrap:SuperAdminEmail"];
+        var password = configuration["Bootstrap:SuperAdminPassword"];
+        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password)
+            || await context.Users.AnyAsync(u => u.Role != null && u.Role.Name == Roles.SuperAdmin))
+        {
+            return;
+        }
+
+        if (!new EmailAddressAttribute().IsValid(email) || !StrongPasswordAttribute.IsStrong(password))
+        {
+            logger.LogError("Bootstrap:SuperAdminEmail o Bootstrap:SuperAdminPassword no son válidos. No se creó el SuperAdmin.");
+            return;
+        }
+
+        var encryption = services.GetRequiredService<IEncryptionService>();
+        var normalized = encryption.Normalize(email);
+        var candidates = encryption.ComputeLookupCandidates(normalized);
+        if (await context.Users.AnyAsync(u => candidates.Contains(u.EmailHash)))
+        {
+            logger.LogError("El correo de Bootstrap:SuperAdminEmail ya pertenece a otro usuario. No se creó el SuperAdmin.");
+            return;
+        }
+
+        var role = await context.Roles.FirstAsync(r => r.Name == Roles.SuperAdmin);
+        var now = DateTime.UtcNow;
+        var id = Guid.NewGuid();
+        context.Users.Add(new User
+        {
+            Id = id,
+            OrganizationId = null,
+            Email = encryption.Encrypt(normalized, EncryptionContexts.UserEmail(id)),
+            EmailHash = encryption.ComputeLookup(normalized),
+            PasswordHash = services.GetRequiredService<IPasswordHasher>().Hash(password),
+            FullName = "Administrador de la plataforma",
+            Phone = string.Empty,
+            Active = true,
+            SecurityStamp = Guid.NewGuid(),
+            CreatedAt = now,
+            UpdatedAt = now,
+            RoleId = role.Id
+        });
+        await context.SaveChangesAsync();
+        logger.LogWarning("Se creó el SuperAdmin de la plataforma ({UserId}).", id);
+    }
+
     public static async Task EnsureAdministratorAsync(
         IServiceProvider services,
         IConfiguration configuration,
@@ -86,6 +136,7 @@ public static class AdminBootstrapper
         context.Users.Add(new User
         {
             Id = userId,
+            OrganizationId = Organization.DefaultId,
             Email = encryption.Encrypt(normalizedEmail, EncryptionContexts.UserEmail(userId)),
             EmailHash = encryption.ComputeLookup(normalizedEmail),
             PasswordHash = passwordHasher.Hash(password),

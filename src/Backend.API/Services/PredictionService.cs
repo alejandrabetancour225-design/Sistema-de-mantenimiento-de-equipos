@@ -107,6 +107,8 @@ public class PredictionService : IPredictionService
             .AsNoTracking()
             .CountAsync(m => m.EquipmentId == equipment.Id
                 && m.Type == MaintenanceType.CORRECTIVE
+                && m.Status != MaintenanceStatus.VOIDED
+                && m.Status != MaintenanceStatus.CANCELLED
                 && m.StartedAt >= sixMonthsAgo);
 
         // 2. Incidentes en últimos 3 meses
@@ -128,7 +130,7 @@ public class PredictionService : IPredictionService
         // 4. Días desde último mantenimiento
         var lastMaintenance = await _context.Maintenances
             .AsNoTracking()
-            .Where(m => m.EquipmentId == equipment.Id && m.CompletedAt != null)
+            .Where(m => m.EquipmentId == equipment.Id && m.Status == MaintenanceStatus.COMPLETED)
             .OrderByDescending(m => m.CompletedAt)
             .Select(m => m.CompletedAt)
             .FirstOrDefaultAsync();

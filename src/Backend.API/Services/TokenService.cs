@@ -21,7 +21,7 @@ public class TokenService : ITokenService
             ? minutes
             : 60;
 
-    public string GenerateToken(Guid userId, string email, string? role, Guid securityStamp)
+    public string GenerateToken(Guid userId, string email, string? role, Guid securityStamp, Guid? organizationId)
     {
         var jwt = _configuration.GetSection("Jwt");
         var key = Encoding.UTF8.GetBytes(jwt["Key"]!);
@@ -33,6 +33,11 @@ public class TokenService : ITokenService
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new(AppClaims.SecurityStamp, securityStamp.ToString("N"))
         };
+
+        if (organizationId is { } org)
+        {
+            claims.Add(new Claim(Backend.API.Infrastructure.AppClaimsOrg.Organization, org.ToString()));
+        }
 
         if (!string.IsNullOrEmpty(role))
         {

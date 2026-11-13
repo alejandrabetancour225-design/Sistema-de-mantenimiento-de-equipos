@@ -1,0 +1,170 @@
+[
+ {
+  "id": 1,
+  "sintoma": "el pc se fundió, no prende",
+  "marca": "Lenovo",
+  "modelo": "ThinkPad T14",
+  "categoria_esperada": "energía"
+ },
+ {
+  "id": 2,
+  "sintoma": "le di al botón y nada, no da señales de vida",
+  "marca": "Dell",
+  "modelo": "Latitude 5420",
+  "categoria_esperada": "energía"
+ },
+ {
+  "id": 3,
+  "sintoma": "se apaga solo cuando abro varias cosas y echa candela por debajo",
+  "marca": "HP",
+  "modelo": "Pavilion 15",
+  "categoria_esperada": "temperatura"
+ },
+ {
+  "id": 4,
+  "sintoma": "está lento como una tortuga, se demora una eternidad abriendo excel",
+  "marca": "Lenovo",
+  "modelo": "IdeaPad 3",
+  "categoria_esperada": "rendimiento"
+ },
+ {
+  "id": 5,
+  "sintoma": "se pega a cada rato y toca reiniciarlo",
+  "marca": "Asus",
+  "modelo": "VivoBook 15",
+  "categoria_esperada": "rendimiento"
+ },
+ {
+  "id": 6,
+  "sintoma": "me salió un pantallazo azul y se reinició solo",
+  "marca": "Dell",
+  "modelo": "OptiPlex 3080",
+  "categoria_esperada": "sistema"
+ },
+ {
+  "id": 7,
+  "sintoma": "la pantalla parpadea cuando muevo la tapa",
+  "marca": "HP",
+  "modelo": "ProBook 440",
+  "categoria_esperada": "pantalla"
+ },
+ {
+  "id": 8,
+  "sintoma": "prende pero la pantalla se queda negra",
+  "marca": "Acer",
+  "modelo": "Aspire 5",
+  "categoria_esperada": "pantalla"
+ },
+ {
+  "id": 9,
+  "sintoma": "salen rayas de colores en la pantalla",
+  "marca": "Lenovo",
+  "modelo": "ThinkPad E14",
+  "categoria_esperada": "pantalla"
+ },
+ {
+  "id": 10,
+  "sintoma": "no coge carga, el bombillito del cargador ni prende",
+  "marca": "Asus",
+  "modelo": "X515",
+  "categoria_esperada": "batería"
+ },
+ {
+  "id": 11,
+  "sintoma": "la pila no dura nada, a la hora ya está muerta",
+  "marca": "HP",
+  "modelo": "240 G8",
+  "categoria_esperada": "batería"
+ },
+ {
+  "id": 12,
+  "sintoma": "no coge el wifi pero el celular sí se conecta",
+  "marca": "Lenovo",
+  "modelo": "V15",
+  "categoria_esperada": "red"
+ },
+ {
+  "id": 13,
+  "sintoma": "se le cayó café encima del teclado",
+  "marca": "Dell",
+  "modelo": "Inspiron 15",
+  "categoria_esperada": "físico"
+ },
+ {
+  "id": 14,
+  "sintoma": "huele a quemado y echó humo por detrás",
+  "marca": "HP",
+  "modelo": "ProDesk 400",
+  "categoria_esperada": "energía"
+ },
+ {
+  "id": 15,
+  "sintoma": "suena como una licuadora y se calienta mucho",
+  "marca": "Acer",
+  "modelo": "Nitro 5",
+  "categoria_esperada": "ruido"
+ },
+ {
+  "id": 16,
+  "sintoma": "el disco hace tic tac y se traba",
+  "marca": "Dell",
+  "modelo": "OptiPlex 7010",
+  "categoria_esperada": "ruido"
+ },
+ {
+  "id": 17,
+  "sintoma": "cuando lo prendo pita tres veces y no da imagen",
+  "marca": "Lenovo",
+  "modelo": "ThinkCentre M70",
+  "categoria_esperada": "arranque"
+ },
+ {
+  "id": 18,
+  "sintoma": "no suena nada, ni los videos ni las llamadas de teams",
+  "marca": "HP",
+  "modelo": "EliteBook 840",
+  "categoria_esperada": "audio"
+ },
+ {
+  "id": 19,
+  "sintoma": "me salen anuncios raros y se abren páginas solas",
+  "marca": "Asus",
+  "modelo": "VivoBook 14",
+  "categoria_esperada": "seguridad"
+ },
+ {
+  "id": 20,
+  "sintoma": "la impresora imprime en blanco, como si no tuviera tinta",
+  "marca": "Epson",
+  "modelo": "EcoTank L3250",
+  "categoria_esperada": "impresión"
+ },
+ {
+  "id": 21,
+  "sintoma": "la impresora se atasca el papel a cada rato",
+  "marca": "HP",
+  "modelo": "LaserJet M111",
+  "categoria_esperada": "impresión"
+ },
+ {
+  "id": 22,
+  "sintoma": "el teclado no escribe algunas letras",
+  "marca": "Lenovo",
+  "modelo": "IdeaPad 5",
+  "categoria_esperada": "periféricos"
+ },
+ {
+  "id": 23,
+  "sintoma": "se quedó actualizando toda la noche y no avanza",
+  "marca": "Dell",
+  "modelo": "Vostro 3510",
+  "categoria_esperada": "sistema"
+ },
+ {
+  "id": 24,
+  "sintoma": "está todo raro, no sé qué le pasa",
+  "marca": "HP",
+  "modelo": "240 G9",
+  "categoria_esperada": "general"
+ }
+]

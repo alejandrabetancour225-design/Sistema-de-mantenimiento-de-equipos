@@ -46,7 +46,7 @@ export default function StaffDashboardPage() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const upcoming = all
-    .filter((m) => m.nextMaintenanceDate && m.status !== "CANCELLED")
+    .filter((m) => m.nextMaintenanceDate && m.status !== "CANCELLED" && m.status !== "VOIDED")
     .map((m) => {
       const date = new Date(`${m.nextMaintenanceDate}T00:00:00`);
       const daysUntil = Math.round((date.getTime() - today.getTime()) / 86400000);

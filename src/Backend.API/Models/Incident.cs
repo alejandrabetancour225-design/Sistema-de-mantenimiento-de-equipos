@@ -2,8 +2,9 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Backend.API.Models;
 
-public class Incident
+public class Incident : IOrganizationScoped
 {
+    public Guid OrganizationId { get; set; }
     public Guid Id { get; set; }
     public Guid EquipmentId { get; set; }
     public Guid ReportedBy { get; set; }

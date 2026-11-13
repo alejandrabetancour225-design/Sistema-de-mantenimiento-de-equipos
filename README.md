@@ -1,234 +1,485 @@
-# Backend.API
+# Sistema de Mantenimiento de Equipos
 
-API .NET 10 con autenticación JWT y base de datos PostgreSQL.
+Inventario, asignación, mantenimiento e historial de equipos, con diagnóstico asistido por IA local.
 
-## Requisitos
+| Parte | Tecnología | Carpeta |
+| --- | --- | --- |
+| API | .NET 10 + EF Core + PostgreSQL | [src/Backend.API](src/Backend.API) |
+| Frontend | React 19 + Vite + TypeScript | [Frontend](Frontend) |
+| IA | Python (FastAPI) + Ollama, solo CPU | [python-service](python-service) |
+| Base de datos | PostgreSQL en Neon (compartida); Postgres local opcional | — |
 
-- [.NET SDK 10](https://dotnet.microsoft.com/download)
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (o cualquier PostgreSQL en local)
+---
 
-## Puesta en marcha
+## Arrancar el proyecto
 
-La API usa la base PostgreSQL **compartida en Neon** (host, base y usuario en `appsettings.json`, sección `Database`, con `SslMode=Require`). Todo el equipo trabaja sobre la misma base.
+### 1. Instala Docker
 
-### 1. Configurar los secretos (User Secrets)
+- **Windows / macOS**: [Docker Desktop](https://www.docker.com/products/docker-desktop/). Ábrelo antes de seguir.
+- **Linux**: Docker Engine o Podman con `podman-compose`.
 
-La API no guarda secretos en el repositorio. **Nunca** los pongas en archivos dentro de la carpeta del proyecto (`setup.ps1`, `.md`, etc.): se terminan subiendo a GitHub. Compártelos con el equipo por un canal privado.
+Nada más es obligatorio: .NET y Node solo hacen falta para programar con recarga en caliente (modo desarrollo).
+
+Equipo recomendado: **8 GB de RAM como mínimo, 16 GB ideal**. No necesita GPU.
+
+### 2. Crea el archivo `.env`
 
 ```bash
-dotnet user-secrets init --project src/Backend.API/Backend.API.csproj
-dotnet user-secrets set "Database:Password" "<password-de-neon>" --project src/Backend.API/Backend.API.csproj
-dotnet user-secrets set "Jwt:Key" "<clave-aleatoria-de-al-menos-32-caracteres>" --project src/Backend.API/Backend.API.csproj
-dotnet user-secrets set "Encryption:Key" "<clave-base64-de-32-bytes>" --project src/Backend.API/Backend.API.csproj
-
-# Administrador inicial (solo se usa si no existe ningún Administrador activo)
-dotnet user-secrets set "Bootstrap:AdminEmail" "admin@tu-dominio.com" --project src/Backend.API/Backend.API.csproj
-dotnet user-secrets set "Bootstrap:AdminPassword" "<contraseña-fuerte>" --project src/Backend.API/Backend.API.csproj
-dotnet user-secrets set "Bootstrap:AdminFullName" "Administrador" --project src/Backend.API/Backend.API.csproj
+cp .env.example .env        # en Windows: copy .env.example .env
 ```
 
-`Jwt:Key` y `Encryption:Key` deben ser **iguales en todo el equipo** (con otra `Encryption:Key` no se pueden descifrar los correos y teléfonos guardados en Neon).
+Completa `DB_PASSWORD`, `JWT_KEY` y `ENCRYPTION_KEY` con los valores (privados) que vayas a utilizar.
 
-Para generar una clave (PowerShell):
+> Todo el equipo debe usar los mismos valores porque comparte la base de Neon. Con otra `ENCRYPTION_KEY` no se pueden leer los correos de los usuarios.
 
-```powershell
-$b = New-Object byte[] 32
-[System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($b)
-[Convert]::ToBase64String($b)
+### 3. Ejecuta
+
+| Sistema | Comando |
+| --- | --- |
+| Linux / macOS | `./iniciar.sh` |
+| Windows | Doble clic en **`iniciar.cmd`** (o `.\iniciar.ps1` en PowerShell) |
+
+El script:
+
+1. Comprueba Docker/Podman y el `.env`.
+2. La primera vez pregunta si quieres **datos de demostración**.
+3. Levanta Ollama y descarga el modelo de IA si no está (solo la primera vez, ~2 GB; muestra el progreso).
+4. Construye y levanta todo, aplica las migraciones y abre **http://localhost:8080**.
+
+### Opciones
+
+| Linux / macOS | Windows | Qué hace |
+| --- | --- | --- |
+| `./iniciar.sh --dev` | `iniciar.cmd -Dev` | Modo desarrollo: la IA en contenedores y la API (`dotnet watch`) y el frontend (Vite) **con recarga en caliente** en http://localhost:5173. Necesita .NET 10 SDK y Node 22. Ctrl+C detiene ambos. |
+| `./iniciar.sh --db-local` | `iniciar.cmd -DbLocal` | Usa un Postgres local en vez de Neon. Se combina con `--dev`. |
+| `./iniciar.sh --demo` | `iniciar.cmd -Demo` | Carga los datos de demostración (no los duplica si ya existen). |
+| `./iniciar.sh --detener` | `iniciar.cmd -Detener` | Detiene todos los contenedores. |
+
+**Usuarios de demostración** (con `--demo`, en la "Organización por defecto"): `empleado1@demo.local`, `empleado2@demo.local`, `tecnico1@demo.local`, `gerente1@demo.local`, todos con la contraseña `DemoSprint6x2026`.
+
+### Antes de arrancar: `git pull`
+
+La base de Neon es compartida y **las migraciones se aplican solas al arrancar** (solo hacia adelante, nunca borran). Si alguien ya migró la base con código más nuevo y tú arrancas una versión vieja, tu API puede fallar. Haz `git pull` antes de `iniciar`.
+
+---
+
+## Desarrollo sin el script
+
+Si prefieres levantar cada parte a mano:
+
+```bash
+docker compose up -d ollama python-service  # contenedor de IA
+
+# La API lee la configuración de variables de entorno
+dotnet watch --project src/Backend.API run --urls http://localhost:5255
+npm --prefix Frontend run dev # http://localhost:5173 (reenvía /api a :5255)
 ```
 
-> En producción se leen de variables de entorno (`Jwt__Key`, `Encryption__Key`, `Database__Password`, `Bootstrap__AdminEmail`, ...).
+El frontend siempre llama a `/api`: en contenedores lo reenvía nginx y en desarrollo el proxy de Vite.
 
-### 2. Aplicar las migraciones (una sola vez por cambio de esquema)
+### Migraciones
 
-Las migraciones **no** se aplican solas al arrancar (`Database:MigrateOnStartup=false`): con una base compartida, un solo integrante las aplica cuando hay migraciones nuevas.
+Se aplican solas al arrancar la API. Para crear una nueva:
 
 ```bash
 dotnet tool restore
-dotnet tool run dotnet-ef database update --project src/Backend.API --startup-project src/Backend.API
+dotnet tool run dotnet-ef migrations add NombreDeLaMigracion --project src/Backend.API
 ```
 
-### 3. Ejecutar la API
+### Verificación manual
+
+- [verificacion/fase0.sh](verificacion/fase0.sh): 26 comprobaciones de reglas de negocio (fechas, corrección de datos, estados, permisos por rol).
+- [verificacion/fase3.sh](verificacion/fase3.sh): 19 comprobaciones de multiempresa (aislamiento, contraseña temporal, organizaciones inactivas).
+- [verificacion/fase4.sh](verificacion/fase4.sh): 19 comprobaciones de alquiler (contratos, tarifas, reclamos, devolución, reemplazo).
+- [verificacion/fase5.sh](verificacion/fase5.sh): 12 comprobaciones de calendario, recordatorios y SignalR (usa Node).
+
+Las fases 3 a 5 necesitan `SUPERADMIN_EMAIL` y `SUPERADMIN_PASSWORD` y crean su propia organización de prueba.
+
+Crean datos con prefijo `QA-S6`. Para borrar los de `fase0.sh`, ejecuta [verificacion/limpiar-qa.sql](verificacion/limpiar-qa.sql) en la consola SQL de Neon.
 
 ```bash
-dotnet run --project src/Backend.API
+ADMIN_EMAIL=... ADMIN_PASSWORD=... ./verificacion/fase0.sh
 ```
 
-Si no hay ningún Administrador activo, la API lo crea con los datos de `Bootstrap:*`. Después puedes borrar `Bootstrap:AdminPassword` de los user-secrets.
+---
 
-La API queda disponible en `http://localhost:5255`.
+## Reglas de negocio principales
 
-### Usuario de la base con permisos mínimos (recomendado)
+### Estados del equipo
 
-Hoy la API se conecta con `neondb_owner`, que puede modificar o borrar tablas. Para que la API solo lea y escriba datos, crea un usuario con [`database/app_user_role.sql`](database/app_user_role.sql) (en la consola SQL de Neon) y úsalo en tus user-secrets:
+Todos los cambios de estado pasan por [EquipmentStateMachine](src/Backend.API/Services/EquipmentStateMachine.cs):
 
-```bash
-dotnet user-secrets set "Database:User" "app_user" --project src/Backend.API/Backend.API.csproj
-dotnet user-secrets set "Database:Password" "<password-de-app_user>" --project src/Backend.API/Backend.API.csproj
-```
+| Acción | De | A |
+| --- | --- | --- |
+| Asignar | Disponible | En uso |
+| Liberar | En uso | Disponible |
+| Abrir mantenimiento | Disponible, En uso, Fuera de servicio | En mantenimiento |
+| Cerrar mantenimiento | En mantenimiento | Vuelve a servicio (En uso si tiene asignación, si no Disponible) o Fuera de servicio |
+| Cancelar mantenimiento | En mantenimiento | Vuelve a servicio |
+| Manual | Disponible / En uso ⇄ Fuera de servicio | |
+| Dar de baja (solo Administrador) | Disponible, Fuera de servicio | Dado de baja (**terminal**) |
 
-Las migraciones se siguen aplicando con `neondb_owner`.
+### Datos del equipo
 
-### Base local con Docker (opcional)
+- La **fecha de adquisición no puede ser futura** (fecha de Colombia) y la **garantía no puede terminar antes de la compra**. Se valida en la API y en el formulario.
+- Código interno y número de serie son únicos (sin distinguir mayúsculas; se guardan en mayúsculas). Solo un **Administrador** puede corregirlos.
+- Cualquier dato se puede corregir, incluso vaciar fechas o precio. La auditoría guarda **valor anterior y nuevo**.
 
-Crea un archivo `.env` junto a `docker-compose.yml` (ignorado por git) con `POSTGRES_PASSWORD=...`, ejecuta `docker compose up -d` (el puerto solo queda en `127.0.0.1`) y sobrescribe en tus user-secrets `Database:Host=localhost`, `Database:Name=database`, `Database:User=postgres`, `Database:Password=<la del .env>` y `Database:SslMode=Disable`.
+### Mantenimientos
+
+- Un mantenimiento cerrado no se edita. Si tiene errores, el **Administrador lo anula** (queda en el historial con el motivo, fuera de costos y reportes) y se registra uno nuevo.
+- Solo uno abierto por equipo. Completar exige el trabajo realizado.
+
+### Multiempresa y planes
+
+- Cada **organización** (empresa) ve solo sus propios datos; el filtro lo aplica la base de datos en cada consulta.
+- El **SuperAdmin** de la plataforma crea organizaciones, les asigna plan y crea su primer Administrador. No ve los datos de las empresas. Se crea al arrancar con `BOOTSTRAP_SUPERADMIN_EMAIL` / `BOOTSTRAP_SUPERADMIN_PASSWORD` del `.env`.
+- **Planes** (asignados a mano, sin cobros): **Básico** (todo lo operativo + diagnóstico con IA) e **Integraciones** (además: bases de datos de terceros, minería de datos, reportes generados por IA e información de mercado).
+- No hay registro público: el **Administrador** de cada empresa crea sus usuarios con una **contraseña temporal** que deben cambiar al entrar (la API no deja hacer nada más hasta cambiarla).
+- Los datos anteriores al Sprint 6 quedaron en la **"Organización por defecto"** (plan Integraciones).
+- El rol *Cliente* ahora se llama **Gerente**.
+
+### Alquiler de equipos
+
+- **Arrendadores** y **contratos** con tarifa mensual (COP) por tipo de equipo. Un equipo puede ser **propio** o **alquilado**; el alquilado toma como fecha de adquisición el inicio del contrato.
+- Las fallas de un equipo alquilado se reportan al arrendador con un **reclamo** (le llega por correo). El mantenimiento preventivo interno solo si el contrato lo permite.
+- Un alquilado no se da de baja: se **devuelve** (estado terminal), solo o con todo el contrato. El arrendador puede enviar un **equipo de reemplazo**.
+
+### Calendario, recordatorios y tiempo real
+
+- **Planes preventivos** por equipo cada N semanas. Al cerrar un preventivo, la próxima fecha se calcula sola. En el **calendario** se arrastra la fecha o se inicia el mantenimiento.
+- **Recordatorios** 7 días y 1 día antes, y al vencer, para el técnico responsable, los administradores y el empleado que tiene el equipo; además, aviso de contratos de alquiler 30 días antes de vencer. Llegan a la **campana** y por **correo** (si `SMTP_HOST` está configurado; si no, el correo queda en el log de la API).
+- La tarea corre cada hora (minuto 15, Hangfire, guardada en Postgres en el esquema `hangfire`) y al arrancar. El Administrador puede forzarla con `POST /api/notifications/RunReminders`.
+- **Tiempo real (SignalR)**: cuando alguien de la empresa modifica datos, dashboard, calendario y listas se refrescan solos.
+
+### Integraciones con bases de datos de terceros (plan Integraciones)
+
+- Fuentes: **archivo** (CSV, Excel .xlsx o JSON, hasta 5 MB) o **conexión en vivo** a PostgreSQL, MySQL/MariaDB, SQL Server o MongoDB.
+- **Solo lectura**: las sesiones SQL se abren en modo de solo lectura, solo se ejecuta un `SELECT` sobre una tabla con nombre validado y se recomienda a la empresa crear un usuario de solo lectura. Nunca se escribe en la fuente.
+- `python-service` **perfila** los datos (tipos, vacíos, unicidad, ejemplos) y **propone el mapeo** hacia el modelo de equipo según el nombre y el contenido de cada columna (entiende formatos colombianos: fechas dd/mm/aaaa y precios 1.234.567). El Administrador lo confirma.
+- Los equipos importados quedan ligados a su fuente: los campos mapeados **no se editan** en la app (se corrigen en la fuente) y las columnas sin equivalente se guardan en **JSONB** (`ExternalAttributes`). Sincronización manual o cada N horas; una segunda sincronización actualiza, no duplica.
+- Decisión de diseño (Q4): la opción (a), JSONB dentro del mismo PostgreSQL, resolvió el caso; no hizo falta MongoDB ni crear tablas dinámicas.
+- Probado con CSV, Excel, JSON y PostgreSQL ([verificacion/fase6.sh](verificacion/fase6.sh), base de prueba en [verificacion/base-externa.sql](verificacion/base-externa.sql)). Los conectores de MySQL, SQL Server y MongoDB están instalados pero **no se probaron contra un servidor real**.
+
+### IA en local
+
+- Modelo por defecto **`llama3.2:3b`** (Ollama), elegido con [python-service/eval](python-service/eval/README.md) sobre 24 fallas descritas en lenguaje informal colombiano:
+
+  | Modelo | JSON válido | En español | Causas relevantes | Mediana (4 hilos CPU) | RAM |
+  | --- | --- | --- | --- | --- | --- |
+  | qwen2.5:3b | 24/24 | 24/24 | 24/24 | 16 s | 1,95 GB |
+  | llama3.2:3b | 24/24 | 24/24 | 24/24 | 25 s | 2,17 GB |
+  | gemma3:4b | 24/24 | 24/24 | 24/24 | 26 s | 2,69 GB |
+  | qwen3.5:4b | 24/24 | 24/24 | 24/24 | 35 s | 2,87 GB |
+
+  `llama3.2:3b` tuvo el mejor criterio técnico con un consumo moderado. Se cambia con `OLLAMA_MODEL` en el `.env`.
+- **JSON estricto garantizado**: Ollama recibe el JSON Schema en `format` y restringe la generación con una gramática; el backend C# siempre recibe la forma que espera, con cualquier modelo.
+- Ollama limitado a 3,5 GB de RAM (`OLLAMA_MEM_LIMIT`), contexto de 2048 tokens, un pedido a la vez y el modelo sale de la RAM tras 5 minutos sin uso.
+- **Lenguaje informal**: glosario de 102 modismos colombianos ("se fundió", "se pega", "echa candela"…) que la IA usa para entender; cada empresa agrega los suyos (Técnico o Administrador).
+- **Reportar una falla** (Empleado): chat que entiende el lenguaje cotidiano, hace hasta 3 preguntas y da solo consejos seguros. La incidencia la crea el empleado al confirmar (R5: la IA nunca cambia datos por sí sola). Las causas probables solo las ve el técnico.
+
+### Reportes con IA e información de mercado
+
+- **Reporte ejecutivo** redactado por IA con las cifras del periodo (estados, mantenimientos, costos, fallas repetidas, planes vencidos, alquileres): automático el **día 1 de cada mes** y bajo demanda. Se ve en la app, se descarga en **PDF** y se avisa por campana y correo a Gerentes y Administradores.
+- **Información de mercado**: `ddgs` consulta buscadores públicos (Bing, DuckDuckGo, Brave…) y, si fallan, una instancia propia de **SearXNG** (`SEARXNG_URL`). Cada dato muestra su **fuente y fecha**; la IA solo puede citar las fuentes que recibió.
+- En el detalle de un equipo: "Buscar precio y guías" (precio de reemplazo en Colombia y guías de mantenimiento/reparación).
+
+### Roles y permisos
+
+| Módulo | Administrador | Técnico | Empleado | Gerente |
+| --- | --- | --- | --- | --- |
+| Usuarios, auditoría | Todo | — | — | — |
+| Equipos | Todo | Crear, editar, cambiar estado | Solo los que tiene asignados | — |
+| Dar de baja, corregir código/serie, anular mantenimientos | Sí | — | — | — |
+| Asignaciones | Todo | Todo | Solo las suyas | — |
+| Incidentes | Todo | Consulta | Reportar sobre sus equipos | — |
+| Mantenimientos e historial | Todo | Todo | Solo de sus equipos | Consulta |
+| Biblioteca de errores (IA) | Todo | Todo | Consulta | — |
+| Dashboard | Gerencial | Operativo | Operativo (sus equipos) | Gerencial |
+| Reportes | Sí | — | — | Sí |
+
+---
 
 ## Seguridad
 
-### Autenticación y sesión
+- **Secretos**: solo en el `.env` (ignorado por git). [.env.example](.env.example) documenta cada variable sin valores reales.
+- **Contraseñas**: 10 a 128 caracteres con letras y números; PBKDF2-SHA256 (600.000 iteraciones); bloqueo de 15 minutos tras 5 intentos fallidos.
+- **Sesión**: JWT. Cambiar el rol, desactivar o cerrar sesión invalida los tokens anteriores.
+- **Cifrado**: correo y teléfono con AES-256-GCM; búsqueda por correo con un índice ciego (HMAC).
+- **Puertos**: todos los servicios escuchan solo en `127.0.0.1` (no quedan expuestos a la red).
+- **Límites**: 300 peticiones/minuto por usuario, 10 logins/minuto por IP, cuerpo de 1 MB.
 
-- El login y el registro devuelven el token **y** lo dejan en una cookie `httpOnly` (`access_token`, `SameSite=Strict`, `Secure` fuera de desarrollo). La API acepta el token por la cabecera `Authorization: Bearer` o por la cookie.
-- Mientras el frontend no use la cookie, el token se sigue devolviendo en el cuerpo (`Auth:ReturnTokenInBody=true`). Cuando el frontend use `withCredentials: true`, ponlo en `false`.
-- Las peticiones que modifican datos y se autentican **con la cookie** deben enviar la cabecera `X-CSRF: 1` (protección CSRF).
-- En cada petición se valida contra la base que el usuario siga activo, que su rol no haya cambiado y que su **sello de seguridad** (`SecurityStamp`) sea el mismo. Cambiar el rol, desactivar, cambiar el correo, restablecer la contraseña o cerrar sesión invalida los tokens anteriores de inmediato.
-- `GET /api/auth/me` devuelve el usuario de la sesión; `POST /api/auth/logout` cierra todas sus sesiones.
-
-### Contraseñas y bloqueo
-
-- Mínimo 10 caracteres (máximo 128), con al menos una letra y un número.
-- Hash PBKDF2-SHA256 con 600.000 iteraciones. Los hashes antiguos se regeneran solos al iniciar sesión.
-- Tras **5 intentos fallidos** la cuenta queda **bloqueada 15 minutos** (todos los roles, incluido el Administrador). Ya no se desactiva la cuenta: nadie puede dejar fuera a otro de forma permanente. Un Administrador puede levantar el bloqueo antes enviando `"active": true`.
-- El login responde igual (y tarda lo mismo) si el correo no existe, si la contraseña es incorrecta o si la cuenta está inactiva o bloqueada.
-- Cualquier usuario cambia su propia contraseña con `POST /api/auth/change-password` (pide la actual). Se cierran sus demás sesiones y la actual sigue con un token nuevo. Los intentos con la contraseña actual incorrecta cuentan para el bloqueo temporal.
-- "Olvidé mi contraseña": el Administrador la restablece con `PUT /api/users/{id}/password`.
+## Referencia de la API
 
 ### Límites
 
 - General: 300 peticiones por minuto por usuario (o por IP sin sesión).
-- Login: 10 por minuto por IP. Registro: 5 cada 15 minutos por IP.
-- Cuerpo de la petición: máximo 1 MB. Textos con largo máximo y JSON libre (`characteristics`, `specifications`) de máximo 8.000 caracteres.
+- Inicio de sesión, cambio de contraseña y recuperación (`login`, `change-password`, `forgot-password`, `reset-password`): 10 por minuto por IP.
+- Cuerpo de la petición: máximo 1 MB. Excepción: integraciones (`/api/integrations/Profile` y `/api/integrations/Sources`), hasta 8 MB para subir archivos de hasta 5 MB.
+- Textos con largo máximo y JSON libre (`characteristics`) de máximo 8.000 caracteres.
 - Todos configurables en `appsettings.json` (`RateLimiting`, `Limits`).
 
 ### Errores y auditoría
 
 - Los errores no controlados responden `{ "message", "traceId" }` sin detalles internos; el detalle queda en el log con el mismo `traceId`.
-- Toda alta, cambio o borrado queda en la tabla `AuditLogs` (usuario, IP, entidad, campos modificados), igual que los inicios de sesión, fallos y bloqueos. Consulta: `GET /api/audit` (solo Administrador; filtros `userId`, `entityType`, `entityId`, `action`, `take`).
+- Los errores de validación responden `400` con `{ "message": "...", "errors": { "campo": ["..."] } }`.
+- Toda alta, cambio o borrado queda en la tabla `AuditLogs` (usuario, IP, organización, entidad y, en las entidades operativas, **valor anterior y nuevo** de cada campo), igual que los inicios de sesión, fallos y bloqueos. En usuarios solo se registran los nombres de los campos (no se duplican datos personales). Consulta: `GET /api/audit` (solo Administrador, de su organización; filtros `userId`, `entityType`, `entityId`, `action`, `take`).
 
 ### Cabeceras
 
 `X-Content-Type-Options`, `X-Frame-Options`, `Content-Security-Policy`, `Referrer-Policy`, `Permissions-Policy`, `Cache-Control: no-store`, HSTS fuera de desarrollo y sin cabecera `Server`.
 
-## Roles y permisos
+### Reglas de roles
 
-Hay 4 roles fijos: `Administrador`, `Técnico`, `Empleado` y `Cliente`. Cada usuario tiene **un solo rol**.
+Hay 5 roles fijos: `SuperAdmin` (plataforma), `Administrador`, `Técnico`, `Empleado` y `Gerente` (antes `Cliente`). Cada usuario tiene **un solo rol** y pertenece a **una organización** (salvo el SuperAdmin).
 
-- El **registro público siempre crea `Cliente`**. El primer Administrador se crea desde la configuración (`Bootstrap:*`).
-- No se puede desactivar ni quitar el rol al **último Administrador activo**, y un Administrador no puede desactivarse ni quitarse el rol a sí mismo.
+- **No hay registro público.** El SuperAdmin crea cada organización con su primer Administrador; el Administrador crea los demás usuarios con contraseña temporal (`POST /api/users`). Hasta cambiarla, la cuenta solo puede usar `auth/me`, `auth/change-password`, `auth/logout` y `organizations/Current`.
+- No se puede desactivar ni quitar el rol al **último Administrador activo** de una organización, y un Administrador no puede desactivarse ni quitarse el rol a sí mismo.
+- El correo es único en toda la plataforma. El rol `SuperAdmin` no se asigna desde una organización.
+- Una organización desactivada no puede iniciar sesión y sus tokens dejan de servir de inmediato.
 
-| Módulo | Administrador | Técnico | Empleado | Cliente |
-| --- | --- | --- | --- | --- |
-| Usuarios y roles | Todo | — | — | — |
-| Auditoría | Consulta | — | — | — |
-| Equipos | Todo | Todo | Consulta | — |
-| Componentes | Todo | Todo | Consulta | — |
-| Asignaciones | Todo | Todo | Solo las suyas | — |
-| Incidentes | Todo | Consulta | Reportar; editar/borrar solo los suyos abiertos | — |
-| Mantenimiento | Todo | Todo | Consulta | Consulta del historial |
-| Repuestos | Todo | Todo | — | — |
+### Endpoints
 
-## Endpoints
+Todas las rutas empiezan por `/api`. "Plan Integraciones" significa que la organización debe tener ese plan (si no, `403`).
+
+**Sesión y plataforma**
 
 | Método | Ruta | Autorización | Descripción |
 | --- | --- | --- | --- |
-| POST | `/api/auth/register` | Anónimo | Registra un **Cliente** y abre sesión |
-| POST | `/api/auth/login` | Anónimo | Inicia sesión |
-| GET | `/api/auth/me` | Autenticado | Usuario de la sesión |
-| POST | `/api/auth/change-password` | Autenticado | Cambia la contraseña propia |
-| POST | `/api/auth/logout` | Autenticado | Cierra todas las sesiones del usuario |
-| GET | `/api/roles` | Administrador | Lista los roles |
-| GET | `/api/users` | Administrador | Lista los usuarios |
-| PUT | `/api/users/{id}` | Administrador | Edita estado, rol, teléfono y correo |
-| PUT | `/api/users/{id}/role` | Administrador | Asigna el rol |
-| PUT | `/api/users/{id}/password` | Administrador | Restablece la contraseña |
-| GET | `/api/audit` | Administrador | Eventos de auditoría |
-| GET | `/api/equipment/GetEquipmentList` | Adm./Téc./Emp. | Lista equipos |
-| GET | `/api/equipment/GetEquipmentById/{id}` | Adm./Téc./Emp. | Consulta un equipo |
-| POST | `/api/equipment/PostNewEquipment` | Adm./Téc. | Crea un equipo |
-| PUT | `/api/equipment/PutEquipment/{id}` | Adm./Téc. | Edita un equipo |
-| PATCH | `/api/equipment/PatchEquipmentStatus/{id}` | Adm./Téc. | Cambia el estado |
-| DELETE | `/api/equipment/DeleteEquipment/{id}` | Adm./Téc. | Da de baja |
-| POST | `/api/assignment/AssignEquipment` | Adm./Téc. | Asigna un equipo |
-| PATCH | `/api/assignment/ReleaseEquipment/{id}` | Adm./Téc. | Libera un equipo |
-| GET | `/api/assignment/GetAssignments` | Adm./Téc./Emp. | Lista (Empleado: solo las suyas) |
-| GET | `/api/equipmentcomponent/...` | Adm./Téc./Emp. | Consulta componentes |
-| POST/PUT/DELETE | `/api/equipmentcomponent/...` | Adm./Téc. | Gestiona componentes |
-| GET | `/api/incident/...` | Adm./Téc./Emp. | Consulta incidentes |
-| POST/PUT/DELETE | `/api/incident/...` | Adm./Emp. | Gestiona incidentes |
-| GET | `/api/maintenance/...` | Todos los roles | Consulta mantenimientos e historial |
-| POST/PUT/DELETE | `/api/maintenance/...` | Adm./Téc. | Gestiona mantenimientos |
-| GET/POST/PUT/PATCH | `/api/sparepart/...` | Adm./Téc. | Repuestos |
+| POST | `/auth/login` | Anónimo | Inicia sesión (devuelve token, organización, plan y si la contraseña es temporal) |
+| POST | `/auth/forgot-password` | Anónimo | Envía un código de recuperación de un solo uso al correo |
+| POST | `/auth/reset-password` | Anónimo | Cambia la contraseña con el código recibido |
+| GET | `/auth/me` | Autenticado | Usuario de la sesión |
+| POST | `/auth/change-password` | Autenticado | Cambia la contraseña propia (obligatorio si es temporal) |
+| POST | `/auth/logout` | Autenticado | Cierra todas las sesiones del usuario |
+| GET | `/health` | Anónimo | Sonda de salud (la usan `iniciar.sh` / `iniciar.ps1`) |
+| GET | `/organizations/Current` | Cualquier rol de empresa | Organización y plan del usuario |
+| GET | `/organizations` | SuperAdmin | Lista organizaciones (con número de usuarios y equipos) |
+| POST | `/organizations` | SuperAdmin | Crea organización, plan y su primer Administrador |
+| PUT | `/organizations/{id}` | SuperAdmin | Cambia nombre, plan o estado (activa/inactiva) |
 
-### **Registro**
+**Usuarios y auditoría**
+
+| Método | Ruta | Autorización | Descripción |
+| --- | --- | --- | --- |
+| GET | `/roles` | Administrador | Lista los roles |
+| GET | `/users` | Administrador | Lista los usuarios de su organización |
+| POST | `/users` | Administrador | Crea un usuario con contraseña temporal |
+| PUT | `/users/{id}` | Administrador | Edita estado, teléfono y correo |
+| PUT | `/users/{id}/role` | Administrador | Asigna el rol |
+| PUT | `/users/{id}/password` | Administrador | Restablece la contraseña (queda temporal) |
+| GET | `/audit` | Administrador | Eventos de auditoría |
+
+**Equipos, componentes y asignaciones**
+
+| Método | Ruta | Autorización | Descripción |
+| --- | --- | --- | --- |
+| GET | `/equipment/GetEquipmentList` | Adm./Téc./Emp. | Lista equipos (Empleado: solo los asignados) |
+| GET | `/equipment/GetEquipmentById/{id}` | Adm./Téc./Emp. | Consulta un equipo (incluye alquiler, fuente externa y campos bloqueados) |
+| POST | `/equipment/PostNewEquipment` | Adm./Téc. | Crea un equipo (propio o alquilado) |
+| PUT | `/equipment/PutEquipment/{id}` | Adm./Téc. | Corrige los datos (reemplazo completo; código y serie solo Administrador) |
+| PATCH | `/equipment/PatchEquipmentStatus/{id}` | Adm./Téc. | Fuera de servicio ⇄ en servicio |
+| DELETE | `/equipment/DeleteEquipment/{id}` | Administrador | Da de baja (solo equipos propios) |
+| GET | `/equipmentcomponent/GetComponentList` | Adm./Téc. | Lista todos los componentes |
+| GET | `/equipmentcomponent/GetComponentById/{id}` | Adm./Téc./Emp. | Consulta un componente (Empleado: de sus equipos) |
+| GET | `/equipmentcomponent/GetComponentsByEquipment/{equipmentId}` | Adm./Téc./Emp. | Componentes de un equipo |
+| POST | `/equipmentcomponent/PostNewComponent` | Adm./Téc. | Agrega un componente |
+| PUT | `/equipmentcomponent/PutComponent/{id}` | Adm./Téc. | Edita un componente |
+| DELETE | `/equipmentcomponent/DeleteComponent/{id}` | Adm./Téc. | Borra un componente |
+| POST | `/assignment/AssignEquipment` | Adm./Téc. | Asigna un equipo (queda En uso) |
+| PATCH | `/assignment/ReleaseEquipment/{id}` | Adm./Téc. | Libera un equipo (vuelve a Disponible) |
+| GET | `/assignment/GetAssignments` | Adm./Téc./Emp. | Lista (Empleado: solo las suyas) |
+
+**Incidencias y mantenimiento**
+
+| Método | Ruta | Autorización | Descripción |
+| --- | --- | --- | --- |
+| GET | `/incident/GetIncidentList` | Adm./Téc./Emp. | Lista (Empleado: de sus equipos o reportadas por él) |
+| GET | `/incident/GetIncidentById/{id}` | Adm./Téc./Emp. | Consulta una incidencia |
+| GET | `/incident/GetIncidentsByEquipment/{equipmentId}` | Adm./Téc./Emp. | Incidencias de un equipo |
+| POST | `/incident/PostNewIncident` | Adm./Emp. | Reporta una incidencia (Empleado: solo de sus equipos) |
+| PUT | `/incident/PutIncident/{id}` | Adm./Emp. | Edita una incidencia |
+| DELETE | `/incident/DeleteIncident/{id}` | Adm./Emp. | Borra una incidencia |
+| GET | `/maintenance/GetMaintenanceList` | Cualquier rol de empresa | Lista (Empleado: de sus equipos) |
+| GET | `/maintenance/GetMaintenanceById/{id}` | Cualquier rol de empresa | Consulta un mantenimiento |
+| GET | `/maintenance/GetMaintenancesByEquipment/{equipmentId}` | Cualquier rol de empresa | Mantenimientos de un equipo |
+| GET | `/maintenance/GetHistoryByEquipment/{equipmentId}` | Cualquier rol de empresa | Historial completo (mantenimientos e incidencias) |
+| POST | `/maintenance/PostNewMaintenance` | Adm./Téc. | Abre un mantenimiento |
+| POST | `/maintenance/CreateFromIncident/{incidentId}` | Adm./Téc. | Abre un correctivo desde una incidencia |
+| POST | `/maintenance/CreatePreventiveFromPrediction/{equipmentId}` | Adm./Téc. | Abre un preventivo desde una alerta de riesgo |
+| PUT | `/maintenance/PutMaintenance/{id}` | Adm./Téc. | Edita o cancela un mantenimiento abierto |
+| POST | `/maintenance/CloseMaintenance/{id}` | Adm./Téc. | Cierra (exige el trabajo realizado) |
+| POST | `/maintenance/AddSparePart/{maintenanceId}` | Adm./Téc. | Agrega un repuesto usado |
+| DELETE | `/maintenance/RemoveSparePart/{maintenanceId}/{maintenanceSparePartId}` | Adm./Téc. | Quita un repuesto |
+| POST | `/maintenance/VoidMaintenance/{id}` | Administrador | Anula un mantenimiento cerrado con errores (con motivo) |
+| DELETE | `/maintenance/DeleteMaintenance/{id}` | Adm./Téc. | Borra un mantenimiento no completado |
+| GET | `/sparepart/GetSparePartList` | Adm./Téc. | Catálogo de repuestos |
+| GET | `/sparepart/GetSparePartById/{id}` | Adm./Téc. | Consulta un repuesto |
+| POST | `/sparepart/PostNewSparePart` | Adm./Téc. | Crea un repuesto |
+| PUT | `/sparepart/PutSparePart/{id}` | Adm./Téc. | Edita un repuesto |
+| PATCH | `/sparepart/DeactivateSparePart/{id}` | Adm./Téc. | Desactiva un repuesto |
+| PATCH | `/sparepart/ReactivateSparePart/{id}` | Adm./Téc. | Reactiva un repuesto |
+
+**Cronograma, calendario y notificaciones**
+
+| Método | Ruta | Autorización | Descripción |
+| --- | --- | --- | --- |
+| GET | `/maintenanceplans?equipmentId=` | Adm./Téc./Emp. | Planes preventivos (Empleado: de sus equipos) |
+| GET | `/maintenanceplans/Technicians` | Adm./Téc. | Posibles responsables de un plan |
+| POST | `/maintenanceplans` | Adm./Téc. | Crea un plan cada N semanas |
+| PUT | `/maintenanceplans/{id}` | Adm./Téc. | Edita, pausa o reactiva un plan |
+| PATCH | `/maintenanceplans/{id}/Reschedule` | Adm./Téc. | Cambia la próxima fecha (arrastrar en el calendario) |
+| POST | `/maintenanceplans/{id}/Start` | Adm./Téc. | Inicia el preventivo programado |
+| GET | `/calendar?from=&to=` | Cualquier rol de empresa | Eventos del calendario (máximo 400 días) |
+| GET | `/notifications` | Cualquier rol de empresa | Notificaciones propias y cuántas sin leer |
+| POST | `/notifications/{id}/Read` | Cualquier rol de empresa | Marca una como leída |
+| POST | `/notifications/ReadAll` | Cualquier rol de empresa | Marca todas como leídas |
+| POST | `/notifications/RunReminders` | Administrador | Revisa los recordatorios ya (sin esperar la hora) |
+| WS | `/hubs/notificaciones` | Autenticado (`?access_token=`) | SignalR: eventos `notificacion` y `datosCambiaron` |
+
+**Alquiler**
+
+| Método | Ruta | Autorización | Descripción |
+| --- | --- | --- | --- |
+| GET | `/rental/Lessors` | Adm./Téc./Ger. | Arrendadores |
+| POST | `/rental/Lessors` | Adm./Téc. | Crea un arrendador |
+| PUT | `/rental/Lessors/{id}` | Adm./Téc. | Edita un arrendador |
+| GET | `/rental/Contracts` | Adm./Téc./Ger. | Contratos con tarifas, equipos y costo mensual |
+| GET | `/rental/Contracts/Expiring?days=30` | Adm./Téc./Ger. | Contratos activos por vencer |
+| POST | `/rental/Contracts` | Adm./Téc. | Crea un contrato con tarifas por tipo de equipo |
+| PUT | `/rental/Contracts/{id}` | Adm./Téc. | Edita un contrato activo |
+| POST | `/rental/Contracts/{id}/ReturnAll` | Administrador | Devuelve todos los equipos del contrato |
+| POST | `/rental/Equipment/{equipmentId}/Return` | Administrador | Devuelve un equipo alquilado |
+| POST | `/rental/Equipment/{equipmentId}/Replacement` | Adm./Téc. | Registra el equipo de reemplazo de uno devuelto |
+| GET | `/rental/Claims` | Adm./Téc./Ger. | Reclamos al arrendador |
+| POST | `/rental/Claims` | Adm./Téc. | Crea un reclamo (correo al arrendador) |
+| PUT | `/rental/Claims/{id}` | Adm./Téc. | Cambia el estado del reclamo y la respuesta |
+
+**IA, glosario y diagnóstico**
+
+| Método | Ruta | Autorización | Descripción |
+| --- | --- | --- | --- |
+| POST | `/assistant/Triage` | Adm./Emp. | Chat "Reportar una falla" (lenguaje cotidiano, máx. 3 preguntas) |
+| POST | `/diagnosis/Diagnose` | Adm./Téc./Emp. | Diagnóstico con IA de un síntoma (Empleado: de sus equipos) |
+| GET | `/diagnosis/GetDiagnosisById/{id}` | Adm./Téc. | Consulta un diagnóstico |
+| GET | `/diagnosis/GetDiagnosesByEquipment/{equipmentId}` | Adm./Téc. | Diagnósticos de un equipo |
+| GET | `/diagnosis/GetRecentDiagnoses?take=` | Adm./Téc. | Últimos diagnósticos |
+| POST | `/feedback/CreateFeedback` | Adm./Téc. | El técnico confirma o corrige un diagnóstico |
+| GET | `/feedback/GetByDiagnosis/{diagnosisId}` | Adm./Téc. | Retroalimentación de un diagnóstico |
+| GET | `/feedback/GetRecentFeedbacks` | Adm./Téc. | Últimas retroalimentaciones |
+| GET | `/feedback/GetMetrics` | Adm./Téc. | Métricas de acierto de la IA |
+| GET | `/errorknowledge/GetKnowledgeList` | Adm./Téc./Emp. | Biblioteca de errores conocidos |
+| GET | `/errorknowledge/GetKnowledgeById/{id}` | Adm./Téc./Emp. | Consulta una entrada |
+| POST | `/errorknowledge/PostNewKnowledge` | Adm./Téc. | Crea una entrada |
+| PUT | `/errorknowledge/PutKnowledge/{id}` | Adm./Téc. | Edita una entrada |
+| DELETE | `/errorknowledge/DeleteKnowledge/{id}` | Adm./Téc. | Borra una entrada |
+| GET | `/glossary` | Adm./Téc./Emp. | Glosario de modismos (base + propios) |
+| POST | `/glossary` | Adm./Téc. | Agrega una expresión propia |
+| PUT | `/glossary/{id}` | Adm./Téc. | Edita una expresión propia (las base son de solo lectura) |
+| DELETE | `/glossary/{id}` | Adm./Téc. | Borra una expresión propia |
+| GET | `/prediction/GetHighRisk` | Adm./Téc. | Equipos con mayor riesgo de falla |
+| GET | `/prediction/GetByEquipment/{equipmentId}` | Adm./Téc. | Riesgo de un equipo |
+| POST | `/prediction/RefreshAll` | Adm./Téc. | Recalcula el riesgo de todos los equipos |
+| POST | `/prediction/RefreshForEquipment/{equipmentId}` | Adm./Téc. | Recalcula el riesgo de un equipo |
+| POST | `/prediction/Acknowledge/{predictionId}` | Adm./Téc. | Marca una alerta como atendida |
+
+**Dashboard, reportes, integraciones y mercado**
+
+| Método | Ruta | Autorización | Descripción |
+| --- | --- | --- | --- |
+| GET | `/dashboard/GetEquipmentSummary` | Adm./Ger. | Equipos por estado |
+| GET | `/dashboard/GetOpenIncidents` | Adm./Ger. | Incidencias abiertas |
+| GET | `/dashboard/GetUpcomingMaintenances` | Adm./Ger. | Próximos mantenimientos |
+| GET | `/dashboard/GetHighRiskEquipments` | Adm./Ger. | Equipos de alto riesgo |
+| GET | `/reports/GetEquipments?format=pdf\|excel` | Adm./Ger. | Reporte de equipos (filtros `from`, `to`, `type`, `status`, `assignedTo`) |
+| GET | `/reports/GetMaintenances?format=pdf\|excel` | Adm./Ger. | Reporte de mantenimientos |
+| GET | `/reports/GetCosts?format=pdf\|excel` | Adm./Ger. | Reporte de costos |
+| GET | `/aireports` | Adm./Ger. · plan Integraciones | Reportes con IA |
+| GET | `/aireports/{id}` | Adm./Ger. · plan Integraciones | Contenido de un reporte |
+| GET | `/aireports/{id}/Pdf` | Adm./Ger. · plan Integraciones | Descarga el PDF |
+| POST | `/aireports/Generate` | Adm./Ger. · plan Integraciones | Genera un reporte en segundo plano (por defecto, últimos 30 días) |
+| GET | `/market/Equipment/{equipmentId}` | Adm./Téc./Ger. · plan Integraciones | Precio de reemplazo y guías del modelo (con fuentes) |
+| POST | `/integrations/Profile` | Administrador · plan Integraciones | Perfila una fuente y sugiere el mapeo (no guarda) |
+| GET | `/integrations/Sources` | Administrador · plan Integraciones | Fuentes conectadas y su última sincronización |
+| POST | `/integrations/Sources` | Administrador · plan Integraciones | Guarda la fuente e importa los equipos |
+| POST | `/integrations/Sources/{id}/Sync` | Administrador · plan Integraciones | Sincroniza ahora |
+| DELETE | `/integrations/Sources/{id}` | Administrador · plan Integraciones | Desactiva la fuente (los equipos se conservan) |
+
+En desarrollo, el panel de tareas programadas de Hangfire está en `http://localhost:5255/hangfire` (solo desde el mismo equipo).
+
+### Ejemplos de cuerpo
+
+**Login** — `POST /api/auth/login`
+
+```json
+{ "email": "juan@empresa.com", "password": "secreto12345" }
+```
+
+Responde `{ "token", "userId", "fullName", "email", "role", "active", "expiresAt", "organizationId", "organizationName", "plan", "mustChangePassword" }` y deja la cookie de sesión.
+
+**Crear usuario** — `POST /api/users` (Administrador)
 
 ```json
 {
   "fullName": "Juan Pérez",
-  "email": "juan@test.com",
-  "password": "secreto123",
+  "email": "juan@empresa.com",
+  "role": "Empleado",
+  "temporaryPassword": "Temporal2026x",
   "phone": "3001234567"
 }
 ```
 
-Login y registro devuelven `{ "token", "userId", "fullName", "email", "role", "active", "expiresAt" }` y dejan la cookie de sesión.
+### Reglas de negocio detalladas
 
-Los errores de validación responden `400` con `{ "message": "...", "errors": { "campo": ["..."] } }`.
+#### Equipos
 
-## Reglas de negocio
+- `internalCode` y `serialNumber` son únicos **dentro de cada organización** (`409`).
+- `DELETE /api/equipment/DeleteEquipment/{id}` no borra físicamente: cambia el estado a `DECOMMISSIONED` y conserva todo el historial. Responde `409` si ya está dado de baja, si tiene una asignación `ACTIVE`, si tiene un mantenimiento `OPEN`/`IN_PROGRESS` o si es alquilado (se devuelve, no se da de baja).
+- `DECOMMISSIONED` y `RETURNED` son terminales: no vuelven a servicio ni se asignan.
+- Un equipo alquilado debe tener un contrato activo con tarifa para su tipo; su fecha de adquisición es el inicio del contrato.
+- En un equipo importado de una base de terceros, los campos mapeados no se editan (`409`).
 
-### Equipos
-
-- `internalCode` y `serialNumber` son únicos (`409`).
-- `UNDER_MAINTENANCE` solo lo pone el flujo de mantenimiento; con un mantenimiento abierto, el estado del equipo cambia al cerrarlo o cancelarlo.
-- La garantía no puede terminar antes de la fecha de compra; el precio no puede ser negativo.
-- En la baja de equipo, `DELETE /api/equipment/DeleteEquipment/{id}` no borra físicamente, sino que cambia el estado a `DECOMMISSIONED` y conserva todo el historial. Responde `409` si el equipo ya está dado de baja, si tiene una asignación `ACTIVE` o si tiene un mantenimiento `OPEN`/`IN_PROGRESS`.
-- Un equipo `DECOMMISSIONED` no puede volver a `AVAILABLE` ni asignarse.
-
-### Asignaciones
+#### Asignaciones
 
 - Un equipo solo puede tener una asignación `ACTIVE` (garantizado también por un índice único, incluso con peticiones simultáneas).
-- No se asignan equipos en mantenimiento, fuera de servicio o dados de baja, ni a usuarios inactivos.
+- Solo se asigna un equipo `AVAILABLE` (no en mantenimiento, fuera de servicio, dado de baja ni devuelto), a un usuario activo de personal interno (Empleado, Técnico o Administrador), nunca a un Gerente.
 
-### Incidentes
+#### Incidentes
 
 - Un equipo solo puede tener un incidente `OPEN` o `IN_PROGRESS` (índice único).
-- No se reportan incidentes de equipos dados de baja ni con fecha futura.
+- No se reportan incidentes de equipos dados de baja ni con fecha futura. El Empleado solo reporta sobre los equipos que tiene asignados.
 - `IN_PROGRESS` solo lo pone el mantenimiento; con un mantenimiento asociado, el estado lo maneja ese mantenimiento.
 - El Empleado solo edita o borra **sus** incidentes mientras están `OPEN` y sin mantenimiento, y solo puede pasarlos a `CLOSED`.
 - Un incidente con mantenimiento asociado no se borra.
 
-### Mantenimiento
+#### Mantenimiento
 
 - Un equipo solo puede tener un mantenimiento `OPEN` o `IN_PROGRESS` (índice único).
 - La incidencia vinculada debe ser del mismo equipo y estar `OPEN`.
 - Costos y cantidades no pueden ser negativos; la fecha de inicio no puede ser futura y el próximo mantenimiento no puede ser anterior al inicio.
 - **Completar solo con `POST /api/maintenance/CloseMaintenance/{id}`** (exige el trabajo realizado). `PutMaintenance` no acepta `COMPLETED`.
-- Al cerrar, el equipo no puede quedar `UNDER_MAINTENANCE` y la incidencia queda `RESOLVED` o `CLOSED`.
+- Al cerrar, el equipo vuelve a servicio o queda `OUT_OF_SERVICE`; no puede quedar `UNDER_MAINTENANCE` ni darse de baja desde ahí. La incidencia queda `RESOLVED` o `CLOSED`. Si es preventivo y el equipo tiene plan, la próxima fecha se calcula sola.
 - Cancelar libera el equipo y devuelve la incidencia a `OPEN` (se desvincula y queda anotado en las observaciones).
-- Un mantenimiento completado no se borra (es historial y costo del equipo).
+- Un mantenimiento completado no se borra: si tiene errores, se **anula** (`VOIDED`, con motivo) y se registra uno nuevo.
+- Equipo alquilado: el correctivo se reporta al arrendador (reclamo); el preventivo interno solo si el contrato lo permite.
 
 ### Enums
 
 Se aceptan solo por nombre (`"OPEN"`); un número (`99`) o un nombre inexistente responde `400`.
 
-## Datos sensibles (cifrado)
+| Enum | Valores |
+| --- | --- |
+| Estado del equipo | `AVAILABLE`, `IN_USE`, `UNDER_MAINTENANCE`, `OUT_OF_SERVICE`, `DECOMMISSIONED`, `RETURNED` |
+| Propiedad del equipo | `OWNED`, `RENTED` |
+| Estado del mantenimiento | `OPEN`, `IN_PROGRESS`, `COMPLETED`, `CANCELLED`, `VOIDED` |
+| Tipo de mantenimiento | `PREVENTIVE`, `CORRECTIVE` |
+| Estado de la incidencia | `OPEN`, `IN_PROGRESS`, `RESOLVED`, `CLOSED` |
+| Estado de la asignación | `ACTIVE`, `RELEASED` |
+| Plan de la organización | `BASICO`, `INTEGRACIONES` |
+| Estado del contrato | `ACTIVE`, `ENDED`, `CANCELLED` |
+| Estado del reclamo | `OPEN`, `ANSWERED`, `RESOLVED` |
 
-`email` y `phone` se guardan cifrados con AES-256-GCM. Desde esta versión el cifrado usa el formato `v2`, que **ata cada valor a su usuario y campo** (datos asociados): un valor copiado a otro usuario o columna ya no se puede descifrar. Los valores del formato anterior se siguen leyendo y se migran al iniciar sesión o con la rotación.
+## Documentación de la API
 
-`EmailHash` es un índice ciego (HMAC-SHA256) para buscar por correo sin descifrar.
-
-**Rotar `Encryption:Key`**: pon la clave vieja en `Encryption:PreviousKeys`, la nueva en `Encryption:Key` y arranca una vez con `Encryption__RotateOnStartup=true`. La API vuelve a cifrar todo con la clave nueva, lo verifica y se detiene. Luego quita la clave vieja de `PreviousKeys`.
-
-> `fullName` no se cifra porque se usa para ordenar y se muestra en asignaciones, incidentes y mantenimientos.
-
-## Base de datos
-
-Tablas: `Users` (con `Email`/`Phone` cifrados, `EmailHash`, `LockoutEnd`, `SecurityStamp`), `Roles`, `Equipments`, `Assignments`, `EquipmentComponents`, `Incidents`, `Maintenances`, `SpareParts`, `MaintenanceSpareParts` y `AuditLogs`.
-
-## Probar la API
-
-- **OpenAPI** (solo en desarrollo): `http://localhost:5255/openapi/v1.json`
-- **Archivo de peticiones**: `src/Backend.API/Backend.API.http`.
-
-## CORS
-
-En desarrollo se acepta cualquier origen `localhost` (con credenciales). En producción define los orígenes en `Cors:AllowedOrigins` (o `Cors__AllowedOrigins__0`).
+- OpenAPI (modo desarrollo): http://localhost:5255/openapi/v1.json
+- Peticiones de ejemplo: [src/Backend.API/Backend.API.http](src/Backend.API/Backend.API.http)

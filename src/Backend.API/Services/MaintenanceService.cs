@@ -15,10 +15,18 @@ public class MaintenanceService : IMaintenanceService
         _context = context;
     }
 
-    public async Task<List<MaintenanceResponse>> GetAllAsync()
+    public async Task<List<MaintenanceResponse>> GetAllAsync(Guid? onlyEquipmentAssignedTo = null)
     {
-        var maintenances = await QueryWithIncludes()
-            .AsNoTracking()
+        var query = QueryWithIncludes().AsNoTracking();
+
+        // R2: el Empleado solo ve los mantenimientos de los equipos que tiene asignados.
+        if (onlyEquipmentAssignedTo is { } userId)
+        {
+            query = query.Where(m => m.Equipment!.Assignments!.Any(a =>
+                a.UserId == userId && a.Status == AssignmentStatus.ACTIVE));
+        }
+
+        var maintenances = await query
             .OrderByDescending(m => m.StartedAt)
             .ToListAsync();
 
@@ -84,7 +92,7 @@ public class MaintenanceService : IMaintenanceService
             return new MaintenanceResult(MaintenanceActionStatus.InvalidDates, null);
         }
 
-        var preconditionError = await ValidateCanOpenMaintenanceAsync(equipment, incident);
+        var preconditionError = await ValidateCanOpenMaintenanceAsync(equipment, incident, request.Type);
         if (preconditionError is not null)
         {
             return new MaintenanceResult(preconditionError.Value, null);
@@ -96,6 +104,7 @@ public class MaintenanceService : IMaintenanceService
             Id = Guid.NewGuid(),
             EquipmentId = request.EquipmentId,
             IncidentId = request.IncidentId,
+            MaintenancePlanId = request.MaintenancePlanId,
             TechnicianId = request.TechnicianId,
             Type = request.Type,
             Status = MaintenanceStatus.OPEN,
@@ -135,7 +144,7 @@ public class MaintenanceService : IMaintenanceService
             return technicianResult;
         }
 
-        var preconditionError = await ValidateCanOpenMaintenanceAsync(incident.Equipment, incident);
+        var preconditionError = await ValidateCanOpenMaintenanceAsync(incident.Equipment, incident, MaintenanceType.CORRECTIVE);
         if (preconditionError is not null)
         {
             return new MaintenanceResult(preconditionError.Value, null);
@@ -170,7 +179,7 @@ public class MaintenanceService : IMaintenanceService
             return new MaintenanceResult(MaintenanceActionStatus.NotFound, null);
         }
 
-        if (maintenance.Status is MaintenanceStatus.COMPLETED or MaintenanceStatus.CANCELLED)
+        if (maintenance.Status is MaintenanceStatus.COMPLETED or MaintenanceStatus.CANCELLED or MaintenanceStatus.VOIDED)
         {
             return new MaintenanceResult(MaintenanceActionStatus.InvalidStatusTransition, null);
         }
@@ -208,10 +217,10 @@ public class MaintenanceService : IMaintenanceService
             // Cancelar libera el equipo y devuelve la incidencia a "abierta" para atenderla de nuevo.
             if (request.Status == MaintenanceStatus.CANCELLED)
             {
-                if (maintenance.Equipment is { Status: EquipmentStatus.UNDER_MAINTENANCE })
+                if (maintenance.Equipment is not null)
                 {
-                    maintenance.Equipment.Status = EquipmentStatus.AVAILABLE;
-                    maintenance.Equipment.UpdatedAt = now;
+                    var resting = await EquipmentStateMachine.GetRestingStatusAsync(_context, maintenance.EquipmentId);
+                    EquipmentStateMachine.TryApply(maintenance.Equipment, resting, EquipmentTransition.CancelMaintenance);
                 }
 
                 if (maintenance.Incident is { Status: IncidentStatus.IN_PROGRESS })
@@ -259,13 +268,14 @@ public class MaintenanceService : IMaintenanceService
             return new MaintenanceResult(MaintenanceActionStatus.NotFound, null);
         }
 
-        if (maintenance.Status is MaintenanceStatus.COMPLETED or MaintenanceStatus.CANCELLED)
+        if (maintenance.Status is MaintenanceStatus.COMPLETED or MaintenanceStatus.CANCELLED or MaintenanceStatus.VOIDED)
         {
             return new MaintenanceResult(MaintenanceActionStatus.InvalidStatusTransition, null);
         }
 
-        // Al cerrar, el equipo no puede quedar "en mantenimiento" y la incidencia debe quedar resuelta o cerrada.
-        if (request.EquipmentFinalStatus == EquipmentStatus.UNDER_MAINTENANCE
+        // R4: al cerrar, el equipo vuelve a su estado de reposo o queda Fuera de servicio (reparación fallida).
+        // No puede quedar en mantenimiento ni darse de baja desde aquí. La incidencia queda resuelta o cerrada.
+        if (request.EquipmentFinalStatus is EquipmentStatus.UNDER_MAINTENANCE or EquipmentStatus.DECOMMISSIONED
             || request.IncidentFinalStatus is IncidentStatus.OPEN or IncidentStatus.IN_PROGRESS)
         {
             return new MaintenanceResult(MaintenanceActionStatus.InvalidFinalStatus, null);
@@ -289,6 +299,22 @@ public class MaintenanceService : IMaintenanceService
         maintenance.CompletedAt = now;
         maintenance.UpdatedAt = now;
 
+        // Q11: al cerrar un preventivo, el plan del equipo calcula solo su próxima fecha (cada N semanas).
+        if (maintenance.Type == MaintenanceType.PREVENTIVE)
+        {
+            var plan = await _context.MaintenancePlans.FirstOrDefaultAsync(p =>
+                p.Active && (p.Id == maintenance.MaintenancePlanId
+                    || (maintenance.MaintenancePlanId == null && p.EquipmentId == maintenance.EquipmentId)));
+            if (plan is not null)
+            {
+                plan.NextDate = LocalClock.Today.AddDays(plan.IntervalWeeks * 7);
+                plan.LastCompletedAt = now;
+                plan.UpdatedAt = now;
+                maintenance.MaintenancePlanId ??= plan.Id;
+                maintenance.NextMaintenanceDate ??= plan.NextDate;
+            }
+        }
+
         if (maintenance.Incident is not null)
         {
             maintenance.Incident.Status = request.IncidentFinalStatus ?? IncidentStatus.RESOLVED;
@@ -296,8 +322,14 @@ public class MaintenanceService : IMaintenanceService
 
         if (maintenance.Equipment is not null)
         {
-            maintenance.Equipment.Status = request.EquipmentFinalStatus ?? EquipmentStatus.AVAILABLE;
-            maintenance.Equipment.UpdatedAt = now;
+            var finalStatus = request.EquipmentFinalStatus == EquipmentStatus.OUT_OF_SERVICE
+                ? EquipmentStatus.OUT_OF_SERVICE
+                : await EquipmentStateMachine.GetRestingStatusAsync(_context, maintenance.EquipmentId);
+
+            if (!EquipmentStateMachine.TryApply(maintenance.Equipment, finalStatus, EquipmentTransition.CloseMaintenance))
+            {
+                return new MaintenanceResult(MaintenanceActionStatus.InvalidFinalStatus, null);
+            }
         }
 
         await _context.SaveChangesAsync();
@@ -315,7 +347,7 @@ public class MaintenanceService : IMaintenanceService
             return new MaintenanceResult(MaintenanceActionStatus.NotFound, null);
         }
 
-        if (maintenance.Status is MaintenanceStatus.COMPLETED or MaintenanceStatus.CANCELLED)
+        if (maintenance.Status is MaintenanceStatus.COMPLETED or MaintenanceStatus.CANCELLED or MaintenanceStatus.VOIDED)
         {
             return new MaintenanceResult(MaintenanceActionStatus.InvalidStatusTransition, null);
         }
@@ -379,7 +411,7 @@ public class MaintenanceService : IMaintenanceService
             return MaintenanceActionStatus.NotFound;
         }
 
-        if (maintenance.Status is MaintenanceStatus.COMPLETED or MaintenanceStatus.CANCELLED)
+        if (maintenance.Status is MaintenanceStatus.COMPLETED or MaintenanceStatus.CANCELLED or MaintenanceStatus.VOIDED)
         {
             return MaintenanceActionStatus.InvalidStatusTransition;
         }
@@ -410,7 +442,7 @@ public class MaintenanceService : IMaintenanceService
         }
 
         // Un mantenimiento completado es historial y costo del equipo: no se borra.
-        if (maintenance.Status == MaintenanceStatus.COMPLETED)
+        if (maintenance.Status is MaintenanceStatus.COMPLETED or MaintenanceStatus.VOIDED)
         {
             return MaintenanceActionStatus.CannotDeleteCompleted;
         }
@@ -418,10 +450,10 @@ public class MaintenanceService : IMaintenanceService
         // Si estaba en curso, se deja el equipo y la incidencia como estaban antes de abrirlo.
         if (maintenance.Status is MaintenanceStatus.OPEN or MaintenanceStatus.IN_PROGRESS)
         {
-            if (maintenance.Equipment is { Status: EquipmentStatus.UNDER_MAINTENANCE })
+            if (maintenance.Equipment is not null)
             {
-                maintenance.Equipment.Status = EquipmentStatus.AVAILABLE;
-                maintenance.Equipment.UpdatedAt = DateTime.UtcNow;
+                var resting = await EquipmentStateMachine.GetRestingStatusAsync(_context, maintenance.EquipmentId);
+                EquipmentStateMachine.TryApply(maintenance.Equipment, resting, EquipmentTransition.CancelMaintenance);
             }
 
             if (maintenance.Incident is { Status: IncidentStatus.IN_PROGRESS })
@@ -434,6 +466,32 @@ public class MaintenanceService : IMaintenanceService
         await _context.SaveChangesAsync();
 
         return MaintenanceActionStatus.Success;
+    }
+
+    // Q10: un mantenimiento cerrado no se edita. Si tenía errores se anula (queda en el historial con el motivo)
+    // y la corrección se registra como un mantenimiento nuevo. El estado del equipo no cambia.
+    public async Task<MaintenanceResult> VoidAsync(Guid id, string reason, Guid currentUserId)
+    {
+        var maintenance = await QueryWithIncludes().FirstOrDefaultAsync(m => m.Id == id);
+        if (maintenance is null)
+        {
+            return new MaintenanceResult(MaintenanceActionStatus.NotFound, null);
+        }
+
+        if (maintenance.Status != MaintenanceStatus.COMPLETED)
+        {
+            return new MaintenanceResult(MaintenanceActionStatus.OnlyCompletedCanBeVoided, null);
+        }
+
+        var now = DateTime.UtcNow;
+        maintenance.Status = MaintenanceStatus.VOIDED;
+        maintenance.VoidReason = reason.Trim();
+        maintenance.VoidedAt = now;
+        maintenance.VoidedById = currentUserId;
+        maintenance.UpdatedAt = now;
+
+        await _context.SaveChangesAsync();
+        return new MaintenanceResult(MaintenanceActionStatus.Success, Map(maintenance));
     }
 
     public async Task<EquipmentHistoryResponse?> GetHistoryByEquipmentAsync(Guid equipmentId)
@@ -493,11 +551,18 @@ public class MaintenanceService : IMaintenanceService
 
     // Reglas para abrir un mantenimiento: equipo no dado de baja, sin otro mantenimiento abierto,
     // e incidencia (si hay) abierta y sin mantenimiento previo.
-    private async Task<MaintenanceActionStatus?> ValidateCanOpenMaintenanceAsync(Equipment equipment, Incident? incident)
+    private async Task<MaintenanceActionStatus?> ValidateCanOpenMaintenanceAsync(Equipment equipment, Incident? incident,
+        MaintenanceType type)
     {
-        if (equipment.Status == EquipmentStatus.DECOMMISSIONED)
+        if (equipment.Status is EquipmentStatus.DECOMMISSIONED or EquipmentStatus.RETURNED)
         {
             return MaintenanceActionStatus.EquipmentDecommissioned;
+        }
+
+        var rentalError = await ValidateRentedMaintenanceAsync(equipment, type);
+        if (rentalError is not null)
+        {
+            return rentalError;
         }
 
         if (incident is not null)
@@ -520,6 +585,25 @@ public class MaintenanceService : IMaintenanceService
         return hasOpenMaintenance ? MaintenanceActionStatus.EquipmentHasOpenMaintenance : null;
     }
 
+    // Equipo alquilado (Q31): las fallas (correctivo) se comunican al arrendador con un reclamo;
+    // el preventivo interno solo si el contrato lo permite.
+    private async Task<MaintenanceActionStatus?> ValidateRentedMaintenanceAsync(Equipment equipment, MaintenanceType type)
+    {
+        if (equipment.Ownership != EquipmentOwnership.RENTED)
+        {
+            return null;
+        }
+
+        if (type == MaintenanceType.CORRECTIVE)
+        {
+            return MaintenanceActionStatus.RentedCorrectiveGoesToLessor;
+        }
+
+        var allowsPreventive = await _context.RentalContracts
+            .AnyAsync(c => c.Id == equipment.RentalContractId && c.AllowsInternalPreventive);
+        return allowsPreventive ? null : MaintenanceActionStatus.RentedPreventiveNotAllowed;
+    }
+
     // Guarda el mantenimiento nuevo, pone el equipo en mantenimiento y la incidencia en progreso.
     // Los índices únicos resuelven las peticiones simultáneas que pasaron las validaciones previas.
     private async Task<MaintenanceResult> OpenMaintenanceAsync(
@@ -528,11 +612,13 @@ public class MaintenanceService : IMaintenanceService
         Incident? incident,
         DateTime now)
     {
-        _context.Maintenances.Add(maintenance);
-
         // R4: el equipo pasa a En mantenimiento
-        equipment.Status = EquipmentStatus.UNDER_MAINTENANCE;
-        equipment.UpdatedAt = now;
+        if (!EquipmentStateMachine.TryApply(equipment, EquipmentStatus.UNDER_MAINTENANCE, EquipmentTransition.OpenMaintenance))
+        {
+            return new MaintenanceResult(MaintenanceActionStatus.EquipmentDecommissioned, null);
+        }
+
+        _context.Maintenances.Add(maintenance);
 
         // HU-11: la incidencia queda en progreso al enlazarse
         if (incident is not null)
@@ -617,6 +703,8 @@ public class MaintenanceService : IMaintenanceService
             Status = maintenance.Status,
             ReportedProblem = maintenance.ReportedProblem,
             WorkDone = maintenance.WorkDone,
+            VoidReason = maintenance.VoidReason,
+            VoidedAt = maintenance.VoidedAt,
             LaborCost = maintenance.LaborCost,
             OtherCosts = maintenance.OtherCosts,
             SparePartsCost = sparePartsCost,
@@ -661,6 +749,10 @@ public class MaintenanceService : IMaintenanceService
 
         if (equipment.Status == EquipmentStatus.DECOMMISSIONED)
             return new MaintenanceResult(MaintenanceActionStatus.InvalidStatusTransition, null);
+
+        var rentalError = await ValidateRentedMaintenanceAsync(equipment, MaintenanceType.PREVENTIVE);
+        if (rentalError is not null)
+            return new MaintenanceResult(rentalError.Value, null);
 
         // 2. Verificar que no haya mantenimiento abierto
         var hasOpen = await _context.Maintenances.AnyAsync(m =>
@@ -715,11 +807,13 @@ public class MaintenanceService : IMaintenanceService
             UpdatedAt = now
         };
 
-        _context.Maintenances.Add(maintenance);
-
         // R4: el equipo pasa a mantenimiento
-        equipment.Status = EquipmentStatus.UNDER_MAINTENANCE;
-        equipment.UpdatedAt = now;
+        if (!EquipmentStateMachine.TryApply(equipment, EquipmentStatus.UNDER_MAINTENANCE, EquipmentTransition.OpenMaintenance))
+        {
+            return new MaintenanceResult(MaintenanceActionStatus.InvalidStatusTransition, null);
+        }
+
+        _context.Maintenances.Add(maintenance);
 
         await _context.SaveChangesAsync();
 

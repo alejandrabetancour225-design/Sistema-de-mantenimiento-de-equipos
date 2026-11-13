@@ -8,6 +8,7 @@ export interface UserResponse {
   active: boolean;
   role?: Role;
   failedAttempts: number;
+  mustChangePassword?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -17,6 +18,14 @@ export interface UpdateUserRequest {
   email?: string;
   phone?: string;
   active?: boolean;
+}
+
+export interface CreateUserRequest {
+  fullName: string;
+  email: string;
+  role: Role;
+  temporaryPassword: string;
+  phone?: string;
 }
 
 export interface AssignRoleRequest {

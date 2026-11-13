@@ -1,0 +1,724 @@
+[
+ {
+  "id": 1,
+  "sintoma": "el pc se fundió, no prende",
+  "categoria": "energía",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Fuente de poder dañada",
+     "probability": 0.65,
+     "recommendation": "Reemplazar la fuente de poder con una original Lenovo."
+    },
+    {
+     "cause": "Tarjeta madre dañada",
+     "probability": 0.25,
+     "recommendation": "Realizar diagnóstico en laboratorio especializado para verificar componentes internos."
+    },
+    {
+     "cause": "Cable de alimentación defectuoso",
+     "probability": 0.1,
+     "recommendation": "Probar con otro cable de carga original o certificado."
+    }
+   ],
+   "requires_technician": true,
+   "reasoning": "El síntoma 'se fundió' indica daño eléctrico severo. La fuente de poder es la causa más probable en equipos Lenovo T14 al no encender. Se prioriza el reemplazo antes que abrir la carcasa."
+  },
+  "segundos": 36.2
+ },
+ {
+  "id": 2,
+  "sintoma": "le di al botón y nada, no da señales de vida",
+  "categoria": "energía",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Fuente de poder dañada",
+     "probability": 0.65,
+     "recommendation": "Reemplazar la fuente de poder con una original o certificada."
+    },
+    {
+     "cause": "Cable de alimentación defectuoso",
+     "probability": 0.25,
+     "recommendation": "Verificar que el cable esté bien conectado en ambos extremos y probar con otro cable conocido."
+    },
+    {
+     "cause": "Procesador o placa base dañada",
+     "probability": 0.1,
+     "recommendation": "Realizar pruebas de diagnóstico con software del fabricante para verificar la integridad de los componentes principales."
+    }
+   ],
+   "requires_technician": true,
+   "reasoning": "El síntoma de 'no da señales de vida' en un Dell Latitude 5420 sin luces ni ventiladores indica una falla crítica de energía o de control. La causa más probable es la fuente de poder, seguida por problemas en el cableado o componentes internos."
+  },
+  "segundos": 37.1
+ },
+ {
+  "id": 3,
+  "sintoma": "se apaga solo cuando abro varias cosas y echa candela por debajo",
+  "categoria": "temperatura",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Fuente de poder dañada",
+     "probability": 0.65,
+     "recommendation": "Reemplazar la fuente de poder con una nueva."
+    },
+    {
+     "cause": "Sobrecalentamiento por mala ventilación",
+     "probability": 0.25,
+     "recommendation": "Limpiar los filtros de aire y verificar que las rejillas estén libres de polvo."
+    },
+    {
+     "cause": "Batería defectuosa o agotada",
+     "probability": 0.1,
+     "recommendation": "Reemplazar la batería si el equipo es portátil."
+    }
+   ],
+   "requires_technician": true,
+   "reasoning": "El síntoma de apagones recurrentes al cargar carga (abrir varias cosas) junto con 'echa candela' indica un fallo eléctrico o térmico crítico. La probabilidad más alta es la fuente de poder, ya que falla bajo demanda energética. El segundo factor es el calor acumulado por suciedad, y el tercero es la batería si aplica."
+  },
+  "segundos": 39.7
+ },
+ {
+  "id": 4,
+  "sintoma": "está lento como una tortuga, se demora una eternidad abriendo excel",
+  "categoria": "rendimiento",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Disco duro lleno o dañado",
+     "probability": 0.5,
+     "recommendation": "Verificar espacio disponible en disco y ejecutar herramientas de diagnóstico del hardware."
+    },
+    {
+     "cause": "Poca memoria RAM instalada",
+     "probability": 0.3,
+     "recommendation": "Revisar cantidad física de módulos RAM instalados y comparar con requisitos del sistema operativo."
+    },
+    {
+     "cause": "Procesos en segundo plano o malware activo",
+     "probability": 0.2,
+     "recommendation": "Analizar tareas del administrador de tareas y ejecutar un escaneo completo de antivirus."
+    }
+   ],
+   "requires_technician": true,
+   "reasoning": "El síntoma de lentitud extrema al abrir aplicaciones específicas como Excel sugiere problemas de almacenamiento o recursos insuficientes. Dado que el equipo no tiene sistema operativo registrado ni componentes identificados, la prioridad es descartar limitaciones físicas (disco/RAM) antes de asumir software."
+  },
+  "segundos": 38.0
+ },
+ {
+  "id": 5,
+  "sintoma": "se pega a cada rato y toca reiniciarlo",
+  "categoria": "rendimiento",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Sobrecalentamiento por acumulación de polvo",
+     "probability": 0.5,
+     "recommendation": "Apagar el equipo y limpiar las rejillas de ventilación con aire comprimido."
+    },
+    {
+     "cause": "Memoria RAM defectuosa o mal conectada",
+     "probability": 0.3,
+     "recommendation": "Desconectar la memoria RAM y verificar que los contactos estén limpios y bien encajados."
+    },
+    {
+     "cause": "Disco duro fallando o con sectores dañados",
+     "probability": 0.2,
+     "recommendation": "Ejecutar una prueba de diagnóstico del disco duro para verificar errores de lectura."
+    }
+   ],
+   "requires_technician": true,
+   "reasoning": "El síntoma de congelación recurrente en un VivoBook 15 sin registro de componentes sugiere problemas térmicos o de hardware básico. El polvo es la causa más común por el uso diario. La RAM y el disco duro son las siguientes causas probables de inestabilidad del sistema."
+  },
+  "segundos": 37.2
+ },
+ {
+  "id": 6,
+  "sintoma": "me salió un pantallazo azul y se reinició solo",
+  "categoria": "sistema",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Controlador de pantalla defectuoso",
+     "probability": 0.45,
+     "recommendation": "Reemplazar la tarjeta gráfica o el panel de salida."
+    },
+    {
+     "cause": "Memoria RAM con fallo físico",
+     "probability": 0.35,
+     "recommendation": "Realizar prueba de memoria y reemplazar módulos dañados."
+    },
+    {
+     "cause": "Disco duro o SSD fallido",
+     "probability": 0.2,
+     "recommendation": "Ejecutar herramienta de diagnóstico del disco y reemplazar el almacenamiento."
+    }
+   ],
+   "requires_technician": true,
+   "reasoning": "El pantallazo azul (BSOD) en un OptiPlex 3080 sin sistema operativo registrado suele indicar fallos críticos de hardware. La causa más probable es la tarjeta gráfica, seguida por problemas de memoria RAM o el disco duro."
+  },
+  "segundos": 35.4
+ },
+ {
+  "id": 7,
+  "sintoma": "la pantalla parpadea cuando muevo la tapa",
+  "categoria": "pantalla",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Cable flex de pantalla dañado",
+     "probability": 0.65,
+     "recommendation": "Inspeccionar el cable flex conectando y desconectando la tapa para verificar si hay contacto físico o daño en los pines."
+    },
+    {
+     "cause": "Panel LCD con defectos de fábrica",
+     "probability": 0.25,
+     "recommendation": "Realizar prueba de pantalla desmontada conectando el cable flex a la placa base para aislar el panel."
+    },
+    {
+     "cause": "Controlador de video inestable",
+     "probability": 0.1,
+     "recommendation": "Actualizar o reinstalar los controladores gráficos desde el sitio web de HP."
+    }
+   ],
+   "requires_technician": true,
+   "reasoning": "El parpadeo al mover la tapa indica un problema mecánico o eléctrico en la conexión entre la pantalla y la placa base. El cable flex es la causa más probable por su naturaleza móvil. Se descartan causas de software primero porque el síntoma ocurre con movimiento físico."
+  },
+  "segundos": 38.8
+ },
+ {
+  "id": 8,
+  "sintoma": "prende pero la pantalla se queda negra",
+  "categoria": "pantalla",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Memoria RAM no detectada",
+     "probability": 0.5,
+     "recommendation": "Verificar que la memoria esté bien insertada en su ranura."
+    },
+    {
+     "cause": "Fuente de poder dañada",
+     "probability": 0.3,
+     "recommendation": "Reemplazar la fuente de poder."
+    },
+    {
+     "cause": "Tarjeta gráfica defectuosa",
+     "probability": 0.2,
+     "recommendation": "Probar con una tarjeta gráfica diferente o reemplazarla."
+    }
+   ],
+   "requires_technician": true,
+   "reasoning": "El equipo enciende pero no muestra imagen indica falla en componentes de salida visual o alimentación. La RAM es la causa más común en Acer Aspire 5 por problemas de detección. La fuente de poder y la tarjeta gráfica son causas secundarias probables."
+  },
+  "segundos": 34.4
+ },
+ {
+  "id": 9,
+  "sintoma": "salen rayas de colores en la pantalla",
+  "categoria": "pantalla",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Panel de pantalla dañado",
+     "probability": 0.65,
+     "recommendation": "Reemplazar el panel de pantalla."
+    },
+    {
+     "cause": "Cable de conexión del panel defectuoso",
+     "probability": 0.25,
+     "recommendation": "Desconectar y reconectar el cable flex del panel; verificar si las rayas persisten."
+    },
+    {
+     "cause": "Controlador gráfico del sistema dañado",
+     "probability": 0.1,
+     "recommendation": "Actualizar o reinstalar los controladores de video desde Lenovo Vantage."
+    }
+   ],
+   "requires_technician": true,
+   "reasoning": "Las rayas multicolores en un ThinkPad E14 suelen indicar daño físico en el panel o su cableado. El software es menos probable la causa principal al no haber errores reportados."
+  },
+  "segundos": 33.1
+ },
+ {
+  "id": 10,
+  "sintoma": "no coge carga, el bombillito del cargador ni prende",
+  "categoria": "batería",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Fuente de poder dañada",
+     "probability": 0.65,
+     "recommendation": "Reemplazar la fuente de poder con una original o certificada."
+    },
+    {
+     "cause": "Cable de carga defectuoso",
+     "probability": 0.25,
+     "recommendation": "Verificar que el cable esté intacto y conectarlo a otro tomacorriente."
+    },
+    {
+     "cause": "Puerto de entrada de energía dañado",
+     "probability": 0.1,
+     "recommendation": "Inspeccionar visualmente el puerto para suciedad o daños físicos."
+    }
+   ],
+   "requires_technician": true,
+   "reasoning": "El síntoma de que ni la batería carga ni se enciende la luz indica un fallo en la cadena de alimentación. Dado que no hay registro de componentes, es probable que el problema sea externo al equipo o en un componente crítico como la fuente de poder."
+  },
+  "segundos": 35.1
+ },
+ {
+  "id": 11,
+  "sintoma": "la pila no dura nada, a la hora ya está muerta",
+  "categoria": "batería",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Celda de batería dañada",
+     "probability": 0.75,
+     "recommendation": "Reemplazar la batería con una nueva original."
+    },
+    {
+     "cause": "Sistema operativo no instalado o corrupto",
+     "probability": 0.15,
+     "recommendation": "Instalar el sistema operativo correcto para el modelo HP 240 G8."
+    },
+    {
+     "cause": "Software de gestión de energía defectuoso",
+     "probability": 0.1,
+     "recommendation": "Actualizar los controladores del dispositivo mediante la herramienta de soporte de HP."
+    }
+   ],
+   "requires_technician": true,
+   "reasoning": "El síntoma principal es el agotamiento rápido de la batería en un portátil HP 240 G8. Dado que no hay errores documentados y los componentes no están registrados, lo más probable es una falla física en la celda de la batería (75% probabilidad). Si esto fuera solo software, se podría notar mejoría tras reiniciar o actualizar drivers (10%). La falta de sistema operativo registrado sugiere un problema de instalación que afecta el rendimiento general (15%)."
+  },
+  "segundos": 40.1
+ },
+ {
+  "id": 12,
+  "sintoma": "no coge el wifi pero el celular sí se conecta",
+  "categoria": "red",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Antena de WiFi dañada",
+     "probability": 0.65,
+     "recommendation": "Reemplazar la antena de WiFi."
+    },
+    {
+     "cause": "Controlador de red dañado",
+     "probability": 0.25,
+     "recommendation": "Actualizar o reinstalar los controladores de red."
+    },
+    {
+     "cause": "Configuración de red incorrecta",
+     "probability": 0.1,
+     "recommendation": "Reiniciar el servicio de red y verificar la configuración del router."
+    }
+   ],
+   "requires_technician": true,
+   "reasoning": "El equipo Lenovo V15 no conecta a WiFi mientras que el celular sí, lo que indica un problema específico en la tarjeta o antena inalámbrica. Dado que no hay errores documentados y los componentes no están registrados, se evalúan las causas más comunes de pérdida de señal inalámbrica en este modelo."
+  },
+  "segundos": 33.8
+ },
+ {
+  "id": 13,
+  "sintoma": "se le cayó café encima del teclado",
+  "categoria": "físico",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "seguridad_ok": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Derrame de líquido corrosivo",
+     "probability": 0.85,
+     "recommendation": "Desconectar inmediatamente el equipo de la red eléctrica."
+    },
+    {
+     "cause": "Cortocircuito en placa base por residuo de café",
+     "probability": 0.1,
+     "recommendation": "Limpiar cuidadosamente la placa base con aire comprimido y alcohol isopropílico."
+    },
+    {
+     "cause": "Daño físico al teclado por impacto",
+     "probability": 0.05,
+     "recommendation": "Inspeccionar los botones del teclado para detectar teclas presionadas o soldaduras rotas."
+    }
+   ],
+   "requires_technician": true,
+   "reasoning": "El usuario reporta un derrame de líquido (café) y un golpe físico. El riesgo eléctrico por el líquido es la causa más probable, seguido del daño al hardware por el impacto o el residuo seco."
+  },
+  "segundos": 34.3
+ },
+ {
+  "id": 14,
+  "sintoma": "huele a quemado y echó humo por detrás",
+  "categoria": "energía",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "seguridad_ok": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Fuente de poder dañada",
+     "probability": 0.65,
+     "recommendation": "Desconectar inmediatamente la fuente de poder del equipo."
+    },
+    {
+     "cause": "Cortocircuito en placa madre",
+     "probability": 0.25,
+     "recommendation": "Inspeccionar visualmente los componentes electrónicos para identificar el origen del cortocircuito."
+    },
+    {
+     "cause": "Componente eléctrico dañado (fuera de fuente)",
+     "probability": 0.1,
+     "recommendation": "Revisar todos los dispositivos conectados a la placa madre para descartar fallas externas."
+    }
+   ],
+   "requires_technician": true,
+   "reasoning": "El síntoma de humo y olor a quemado indica un fallo eléctrico grave. La fuente de poder es la causa más probable por su rol en el suministro de energía. Se prioriza la desconexión inmediata por seguridad."
+  },
+  "segundos": 34.0
+ },
+ {
+  "id": 15,
+  "sintoma": "suena como una licuadora y se calienta mucho",
+  "categoria": "ruido",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Rodamiento del ventilador dañado",
+     "probability": 0.65,
+     "recommendation": "Reemplazar el ventilador con uno nuevo."
+    },
+    {
+     "cause": "Pasta térmica seca o mal aplicada",
+     "probability": 0.25,
+     "recommendation": "Limpiar la pasta térmica antigua y aplicar nueva sobre el procesador."
+    },
+    {
+     "cause": "Acumulación excesiva de polvo en los filtros de aire",
+     "probability": 0.1,
+     "recommendation": "Limpiar los filtros de aire con aire comprimido o cepillo suave."
+    }
+   ],
+   "requires_technician": true,
+   "reasoning": "El ruido tipo licuadora indica desgaste mecánico en el ventilador, lo cual suele ser la causa principal del sobrecalentamiento al no circular aire eficientemente. La pasta térmica seca es secundaria pero posible. El polvo acumulado contribuye pero rara vez genera ese sonido específico por sí solo."
+  },
+  "segundos": 36.4
+ },
+ {
+  "id": 16,
+  "sintoma": "el disco hace tic tac y se traba",
+  "categoria": "ruido",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Disco duro mecánico dañado",
+     "probability": 0.85,
+     "recommendation": "Reemplazar disco duro inmediatamente"
+    },
+    {
+     "cause": "Controlador SATA defectuoso",
+     "probability": 0.1,
+     "recommendation": "Probar disco en otra computadora o cambiar controlador"
+    },
+    {
+     "cause": "Sobrecalentamiento del sistema",
+     "probability": 0.05,
+     "recommendation": "Limpiar ventiladores y aplicar pasta térmica nueva"
+    }
+   ],
+   "requires_technician": true,
+   "reasoning": "El ruido de clic es característico de la muerte del disco duro. La congelación coincide con fallos de lectura. Es probable que sea el disco, menos probable el controlador o sobrecalentamiento."
+  },
+  "segundos": 30.5
+ },
+ {
+  "id": 17,
+  "sintoma": "cuando lo prendo pita tres veces y no da imagen",
+  "categoria": "arranque",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Memoria RAM dañada o mal conectada",
+     "probability": 0.65,
+     "recommendation": "Desconectar la fuente de poder y retirar las barras de memoria para limpiar los contactos con alcohol isopropílico."
+    },
+    {
+     "cause": "Tarjeta gráfica defectuosa o sin conexión correcta",
+     "probability": 0.25,
+     "recommendation": "Verificar que el cable PCIe esté bien en la placa base y probar con otra tarjeta gráfica si es posible."
+    },
+    {
+     "cause": "Procesador incompatible o dañado",
+     "probability": 0.1,
+     "recommendation": "Revisar el modelo exacto del procesador instalado comparándolo con la ficha técnica del ThinkCentre M70."
+    }
+   ],
+   "requires_technician": true,
+   "reasoning": "El código de pitidos de tres veces en Lenovo suele indicar problemas críticos de video o memoria. Dado que no hay registro de errores específicos para este modelo, se prioriza la RAM por su frecuencia de fallo en estos equipos. La tarjeta gráfica y el procesador son causas secundarias pero posibles."
+  },
+  "segundos": 39.6
+ },
+ {
+  "id": 18,
+  "sintoma": "no suena nada, ni los videos ni las llamadas de teams",
+  "categoria": "audio",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Controlador de audio del sistema operativo dañado",
+     "probability": 0.5,
+     "recommendation": "Reinstalar los controladores de audio desde el sitio web de soporte de HP para este modelo."
+    },
+    {
+     "cause": "Dispositivo de salida de audio (altavoces o auriculares) desconectado o dañado",
+     "probability": 0.3,
+     "recommendation": "Verificar que los auriculares estén conectados correctamente y probar con otro par de audífonos."
+    },
+    {
+     "cause": "Servicio de audio del sistema operativo detenido o bloqueado",
+     "probability": 0.2,
+     "recommendation": "Reiniciar el equipo para restablecer los servicios de audio en segundo plano."
+    }
+   ],
+   "requires_technician": true,
+   "reasoning": "El síntoma indica ausencia total de sonido en todas las aplicaciones (videos y Teams). Dado que no hay errores documentados específicos ni datos del sistema operativo, la causa más probable es un problema de software como controladores o servicios. Se descartan fallos físicos graves por la falta de síntomas como humo o chispas."
+  },
+  "segundos": 40.2
+ },
+ {
+  "id": 19,
+  "sintoma": "me salen anuncios raros y se abren páginas solas",
+  "categoria": "seguridad",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Software malicioso instalado",
+     "probability": 0.75,
+     "recommendation": "Ejecutar un análisis completo con antivirus de terceros."
+    },
+    {
+     "cause": "Extensión de navegador dañada",
+     "probability": 0.15,
+     "recommendation": "Desactivar todas las extensiones y verificar la lista instalada."
+    },
+    {
+     "cause": "Configuración de inicio incorrecta",
+     "probability": 0.1,
+     "recommendation": "Revisar el programa de inicio en Configuración del sistema."
+    }
+   ],
+   "requires_technician": true,
+   "reasoning": "El síntoma de anuncios y navegación forzada indica un problema de software. Dado que no hay errores documentados y los componentes no están registrados, la causa más probable es una infección por adware o malware común en Windows. Las causas secundarias son configuraciones erróneas o extensiones dañadas."
+  },
+  "segundos": 33.9
+ },
+ {
+  "id": 20,
+  "sintoma": "la impresora imprime en blanco, como si no tuviera tinta",
+  "categoria": "impresión",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Cartuchos de tinta vacíos o con baja cantidad",
+     "probability": 0.65,
+     "recommendation": "Verificar el nivel de tinta en los cartuchos mediante la pantalla de la impresora."
+    },
+    {
+     "cause": "Cabezal de impresión tapado por polvo o sedimentos",
+     "probability": 0.25,
+     "recommendation": "Realizar un ciclo de limpieza automática del cabezal desde el menú de mantenimiento."
+    },
+    {
+     "cause": "Configuración incorrecta de la impresora en el sistema operativo",
+     "probability": 0.1,
+     "recommendation": "Reiniciar el servicio de impresión y verificar que los drivers estén instalados correctamente."
+    }
+   ],
+   "requires_technician": true,
+   "reasoning": "El síntoma principal es la falta de tinta en la salida. Dado que no hay errores documentados específicos para este modelo, se prioriza lo más común: cartuchos vacíos. Luego se considera el bloqueo mecánico del cabezal y finalmente una falla de configuración."
+  },
+  "segundos": 37.2
+ },
+ {
+  "id": 21,
+  "sintoma": "la impresora se atasca el papel a cada rato",
+  "categoria": "impresión",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Rodillos de transporte desgastados",
+     "probability": 0.5,
+     "recommendation": "Reemplazar los rodillos de transporte."
+    },
+    {
+     "cause": "Cartucho de tóner sucio o dañado",
+     "probability": 0.3,
+     "recommendation": "Limpiar el cartucho de tóner con un paño suave y seco."
+    },
+    {
+     "cause": "Obstrucción en la unidad de papel",
+     "probability": 0.2,
+     "recommendation": "Retirar manualmente cualquier fragmento de papel o suciedad del interior."
+    }
+   ],
+   "requires_technician": true,
+   "reasoning": "El atasco recurrente en una HP LaserJet M111 suele deberse a desgaste mecánico (rodillos) o obstrucciones físicas. El software no está disponible para descartar errores de sistema, por lo que se priorizan causas hardware."
+  },
+  "segundos": 33.7
+ },
+ {
+  "id": 22,
+  "sintoma": "el teclado no escribe algunas letras",
+  "categoria": "periféricos",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Teclado físico dañado o sucio",
+     "probability": 0.65,
+     "recommendation": "Limpiar las teclas afectadas con aire comprimido y un paño seco."
+    },
+    {
+     "cause": "Controlador de teclado del sistema operativo defectuoso",
+     "probability": 0.25,
+     "recommendation": "Reiniciar el equipo para restablecer los servicios de entrada de datos."
+    },
+    {
+     "cause": "Conexión interna del teclado oxidada o suelta",
+     "probability": 0.1,
+     "recommendation": "Desmontar la tapa inferior y verificar que el cable del teclado esté bien conectado a la placa base."
+    }
+   ],
+   "requires_technician": true,
+   "reasoning": "El síntoma de letras faltantes suele ser suciedad física o un fallo en la comunicación interna. Dado que no hay errores documentados, se prioriza lo más común (suciedad) antes de asumir daños mayores o problemas de software."
+  },
+  "segundos": 35.2
+ },
+ {
+  "id": 23,
+  "sintoma": "se quedó actualizando toda la noche y no avanza",
+  "categoria": "sistema",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Proceso de actualización del sistema operativo bloqueado",
+     "probability": 0.65,
+     "recommendation": "Reiniciar el equipo para liberar el proceso atascado."
+    },
+    {
+     "cause": "Falta de espacio en disco duro",
+     "probability": 0.25,
+     "recommendation": "Verificar y limpiar archivos temporales o copias de seguridad pendientes."
+    },
+    {
+     "cause": "Corrupción del sistema de archivos",
+     "probability": 0.1,
+     "recommendation": "Ejecutar la herramienta de reparación de disco desde el entorno de recuperación."
+    }
+   ],
+   "requires_technician": false,
+   "reasoning": "La actualización atascada es común en Dell Vostro tras noches largas sin intervención. El reinicio suele resolverlo. Si no, falta espacio o corrupción del sistema son causas secundarias probables."
+  },
+  "segundos": 32.6
+ },
+ {
+  "id": 24,
+  "sintoma": "está todo raro, no sé qué le pasa",
+  "categoria": "general",
+  "json_valido": true,
+  "espanol": true,
+  "relevante": true,
+  "respuesta": {
+   "ranked_causes": [
+    {
+     "cause": "Fallo del sistema operativo o drivers",
+     "probability": 0.5,
+     "recommendation": "Verificar si hay actualizaciones pendientes en el sistema operativo."
+    },
+    {
+     "cause": "Problema de alimentación eléctrica",
+     "probability": 0.3,
+     "recommendation": "Revisar que el cable de corriente esté bien conectado y probar otro enchufe."
+    },
+    {
+     "cause": "Daño físico en componentes internos",
+     "probability": 0.2,
+     "recommendation": "Realizar un diagnóstico visual interno para identificar componentes dañados."
+    }
+   ],
+   "requires_technician": true,
+   "reasoning": "La falta de información específica sobre el sistema operativo y los componentes registrados hace que las causas de software sean más probables. La ausencia de detalles técnicos obliga a priorizar diagnósticos generales antes de asumir daños físicos graves."
+  },
+  "segundos": 31.3
+ }
+]

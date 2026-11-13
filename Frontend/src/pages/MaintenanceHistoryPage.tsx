@@ -14,7 +14,7 @@ import {
 
 // Pantalla única de mantenimientos.
 // - Administrador y Técnico: registran, editan, cierran y gestionan repuestos aquí.
-// - Empleado y Cliente (gerente): solo consultan.
+// - Empleado y Gerente: solo consultan.
 export default function MaintenanceHistoryPage() {
   const { role } = useAuth();
   const isAdmin = role === "Administrador";

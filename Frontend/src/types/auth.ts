@@ -1,11 +1,5 @@
 
-export type Role = "Administrador" | "Técnico" | "Empleado" | "Cliente";
-export interface RegisterRequest {
-  fullName: string;
-  email: string;
-  password: string;
-  phone?: string;
-}
+export type Role = "SuperAdmin" | "Administrador" | "Técnico" | "Empleado" | "Gerente";
 
 export interface LoginRequest {
   email: string;
@@ -18,4 +12,8 @@ export interface AuthResponse {
   email: string;
   role?: Role;
   active: boolean;
+  organizationId?: string | null;
+  organizationName?: string | null;
+  plan?: "BASICO" | "INTEGRACIONES" | null;
+  mustChangePassword?: boolean;
 }

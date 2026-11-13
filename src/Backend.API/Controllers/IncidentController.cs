@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Backend.API.DTOs;
+using Backend.API.Infrastructure;
 using Backend.API.Models;
 using Backend.API.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -14,35 +15,67 @@ namespace Backend.API.Controllers;
 public class IncidentController : ControllerBase
 {
     private readonly IIncidentService _incidentService;
+    private readonly IEquipmentService _equipmentService;
 
-    public IncidentController(IIncidentService incidentService)
+    public IncidentController(IIncidentService incidentService, IEquipmentService equipmentService)
     {
         _incidentService = incidentService;
+        _equipmentService = equipmentService;
+    }
+
+    private bool IsEmployee => User.Role() == Roles.Empleado;
+
+    // R2: el Empleado solo ve las incidencias de sus equipos asignados o las que él mismo reportó.
+    private async Task<List<IncidentResponse>> VisibleToCurrentUserAsync(List<IncidentResponse> incidents)
+    {
+        if (!IsEmployee)
+        {
+            return incidents;
+        }
+
+        var userId = User.Id();
+        var myEquipment = (await _equipmentService.GetAllAsync(userId, User.Role()))
+            .Select(e => e.Id)
+            .ToHashSet();
+
+        return incidents.Where(i => i.ReportedBy == userId || myEquipment.Contains(i.EquipmentId)).ToList();
     }
 
     [HttpGet("GetIncidentList")]
     public async Task<ActionResult<List<IncidentResponse>>> GetIncidentList()
     {
-        return Ok(await _incidentService.GetAllAsync());
+        return Ok(await VisibleToCurrentUserAsync(await _incidentService.GetAllAsync()));
     }
 
     [HttpGet("GetIncidentById/{id:guid}")]
     public async Task<ActionResult<IncidentResponse>> GetIncidentById(Guid id)
     {
         var incident = await _incidentService.GetByIdAsync(id);
-        return incident is null ? NotFound() : Ok(incident);
+        if (incident is null || (await VisibleToCurrentUserAsync(new List<IncidentResponse> { incident })).Count == 0)
+        {
+            return NotFound();
+        }
+
+        return Ok(incident);
     }
 
     [HttpGet("GetIncidentsByEquipment/{equipmentId:guid}")]
     public async Task<ActionResult<List<IncidentResponse>>> GetIncidentsByEquipment(Guid equipmentId)
     {
-        return Ok(await _incidentService.GetByEquipmentAsync(equipmentId));
+        return Ok(await VisibleToCurrentUserAsync(await _incidentService.GetByEquipmentAsync(equipmentId)));
     }
 
     [Authorize(Roles = Roles.AdminOrEmployee)]
     [HttpPost("PostNewIncident")]
     public async Task<ActionResult<IncidentResponse>> PostNewIncident(CreateIncidentRequest request)
     {
+        // El Empleado solo reporta incidencias de los equipos que tiene asignados.
+        if (IsEmployee && !await _equipmentService.CanViewAsync(request.EquipmentId, User.Id(), User.Role()))
+        {
+            return StatusCode(StatusCodes.Status403Forbidden,
+                new { message = "Solo puedes reportar incidencias de los equipos que tienes asignados." });
+        }
+
         var reportedBy = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var result = await _incidentService.CreateAsync(request, reportedBy);
         return ToActionResult(result);

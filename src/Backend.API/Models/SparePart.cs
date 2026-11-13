@@ -1,7 +1,8 @@
 namespace Backend.API.Models;
 
-public class SparePart
+public class SparePart : IOrganizationScoped
 {
+    public Guid OrganizationId { get; set; }
     public Guid Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }

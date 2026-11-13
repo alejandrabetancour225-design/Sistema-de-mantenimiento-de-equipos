@@ -1,7 +1,8 @@
 namespace Backend.API.Models;
 
-public class AIDiagnosis
+public class AIDiagnosis : IOrganizationScoped
 {
+    public Guid OrganizationId { get; set; }
     public Guid Id { get; set; }
 
     public Guid EquipmentId { get; set; }

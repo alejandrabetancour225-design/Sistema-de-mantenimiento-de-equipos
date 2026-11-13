@@ -64,7 +64,7 @@ public class SparePartService : ISparePartService
         {
             await _context.SaveChangesAsync();
         }
-        catch (DbUpdateException ex) when (DbErrors.IsUniqueViolation(ex, "IX_SpareParts_Name"))
+        catch (DbUpdateException ex) when (DbErrors.IsUniqueViolation(ex, "IX_SpareParts_OrganizationId_Name"))
         {
             return new SparePartResult(SparePartActionStatus.DuplicateName, null);
         }
@@ -104,7 +104,7 @@ public class SparePartService : ISparePartService
         {
             await _context.SaveChangesAsync();
         }
-        catch (DbUpdateException ex) when (DbErrors.IsUniqueViolation(ex, "IX_SpareParts_Name"))
+        catch (DbUpdateException ex) when (DbErrors.IsUniqueViolation(ex, "IX_SpareParts_OrganizationId_Name"))
         {
             return new SparePartResult(SparePartActionStatus.DuplicateName, null);
         }
