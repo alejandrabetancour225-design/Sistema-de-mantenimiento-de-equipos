@@ -201,6 +201,7 @@ public class RentalController : ControllerBase
             {
                 equipment.ReturnedAt = DateTime.UtcNow;
                 returned.Add(equipment.InternalCode);
+                await EquipmentService.DeactivatePlansAsync(_context, equipment.Id);
             }
             else
             {
@@ -251,6 +252,7 @@ public class RentalController : ControllerBase
         }
 
         equipment.ReturnedAt = DateTime.UtcNow;
+        await EquipmentService.DeactivatePlansAsync(_context, equipment.Id);
 
         // Si ya no quedan equipos vigentes, el contrato termina.
         var contract = equipment.RentalContract!;
@@ -285,6 +287,10 @@ public class RentalController : ControllerBase
 
         var code = request.InternalCode.Trim().ToUpperInvariant();
         var serial = request.SerialNumber.Trim().ToUpperInvariant();
+        if (!EquipmentService.SerialFormat.IsMatch(serial))
+        {
+            return BadRequest(new { message = "El número de serie debe combinar letras y números (3 a 100 caracteres)." });
+        }
         if (await _context.Equipments.AnyAsync(e => e.InternalCode == code || e.SerialNumber == serial))
         {
             return Conflict(new { message = "Ya existe un equipo con ese código o número de serie." });

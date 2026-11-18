@@ -70,6 +70,12 @@ public class EquipmentService : IEquipmentService
         var internalCode = NormalizeIdentifier(request.InternalCode);
         var serialNumber = NormalizeIdentifier(request.SerialNumber);
 
+        var formatError = ValidateSerialAndPrice(serialNumber, request.AcquisitionPrice);
+        if (formatError is not null)
+        {
+            return new EquipmentResult(formatError.Value, null);
+        }
+
         var rental = await ResolveRentalAsync(request.Ownership, request.RentalContractId, request.Type);
         if (rental.Error is not null)
         {
@@ -145,6 +151,13 @@ public class EquipmentService : IEquipmentService
             return new EquipmentResult(EquipmentActionStatus.NotFound, null);
         }
 
+        // Un equipo dado de baja o devuelto es historial: no se edita (evita, p. ej., pasar un
+        // devuelto a "propio" y dejarlo atascado en un estado que no le corresponde).
+        if (equipment.Status is EquipmentStatus.DECOMMISSIONED or EquipmentStatus.RETURNED)
+        {
+            return new EquipmentResult(EquipmentActionStatus.TerminalStateLocked, null);
+        }
+
         var internalCode = NormalizeIdentifier(request.InternalCode);
         var serialNumber = NormalizeIdentifier(request.SerialNumber);
 
@@ -166,6 +179,16 @@ public class EquipmentService : IEquipmentService
         if (locked.Any(Changed))
         {
             return new EquipmentResult(EquipmentActionStatus.ExternalFieldLocked, null);
+        }
+
+        // Serie y precio: se validan solo si cambian, para no bloquear la corrección de otros datos
+        // en registros antiguos que no cumplían la regla.
+        var formatError = ValidateSerialAndPrice(
+            serialNumber != equipment.SerialNumber ? serialNumber : null,
+            request.AcquisitionPrice != equipment.AcquisitionPrice ? request.AcquisitionPrice : null);
+        if (formatError is not null)
+        {
+            return new EquipmentResult(formatError.Value, null);
         }
 
         // Los campos de identidad solo los corrige un Administrador.
@@ -291,6 +314,8 @@ public class EquipmentService : IEquipmentService
             return EquipmentActionStatus.InvalidStatusChange;
         }
 
+        await DeactivatePlansAsync(_context, equipment.Id);
+
         await _context.SaveChangesAsync();
         return EquipmentActionStatus.Success;
     }
@@ -344,8 +369,11 @@ public class EquipmentService : IEquipmentService
         var contract = await _context.RentalContracts.Include(c => c.Rates).Include(c => c.Lessor)
             .FirstOrDefaultAsync(c => c.Id == contractId);
         var typeHasRate = contract?.Rates?.Any(r => string.Equals(r.EquipmentType, type.Trim(), StringComparison.OrdinalIgnoreCase)) == true;
+        // El contrato debe estar activo, ya haber iniciado (su inicio es la "fecha de adquisición",
+        // que no puede ser futura) y tener tarifa para el tipo de equipo.
         var usable = contract is not null
             && (contract.Status == RentalContractStatus.ACTIVE || contract.Id == keepContractId)
+            && (contract.StartDate <= LocalClock.Today || contract.Id == keepContractId)
             && typeHasRate;
 
         return usable
@@ -353,9 +381,37 @@ public class EquipmentService : IEquipmentService
             : new RentalResolution(null, EquipmentActionStatus.InvalidRentalContract);
     }
 
+    // QA PF-004: la serie debe combinar letras y números (con guiones, puntos o barras opcionales)
+    // y el precio, si se informa, debe ser mayor que cero.
+    public static readonly System.Text.RegularExpressions.Regex SerialFormat =
+        new(@"^(?=.*[A-Z])(?=.*[0-9])[A-Z0-9][A-Z0-9\-_./]{2,99}$", System.Text.RegularExpressions.RegexOptions.Compiled);
+
+    private static EquipmentActionStatus? ValidateSerialAndPrice(string? normalizedSerial, decimal? price)
+    {
+        if (normalizedSerial is not null && !SerialFormat.IsMatch(normalizedSerial))
+        {
+            return EquipmentActionStatus.InvalidSerialNumber;
+        }
+
+        return price is <= 0 ? EquipmentActionStatus.InvalidPrice : null;
+    }
+
+    // Un equipo dado de baja o devuelto ya no se mantiene: sus planes dejan de generar avisos y eventos.
+    public static async Task DeactivatePlansAsync(AppDbContext context, Guid equipmentId)
+    {
+        var plans = await context.MaintenancePlans.Where(p => p.EquipmentId == equipmentId && p.Active).ToListAsync();
+        foreach (var plan in plans)
+        {
+            plan.Active = false;
+            plan.UpdatedAt = DateTime.UtcNow;
+        }
+    }
+
+    private static readonly DateOnly MinimumAcquisitionDate = new(1990, 1, 1);
+
     private static EquipmentActionStatus? ValidateDates(DateOnly? acquisitionDate, DateOnly? warrantyUntil)
     {
-        if (acquisitionDate is not null && acquisitionDate > LocalClock.Today)
+        if (acquisitionDate is not null && (acquisitionDate > LocalClock.Today || acquisitionDate < MinimumAcquisitionDate))
         {
             return EquipmentActionStatus.FutureAcquisitionDate;
         }

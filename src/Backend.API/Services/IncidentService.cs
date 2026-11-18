@@ -62,7 +62,7 @@ public class IncidentService : IIncidentService
             return new IncidentResult(IncidentActionStatus.EquipmentNotFound, null);
         }
 
-        if (equipment.Status == EquipmentStatus.DECOMMISSIONED)
+        if (equipment.Status is EquipmentStatus.DECOMMISSIONED or EquipmentStatus.RETURNED)
         {
             return new IncidentResult(IncidentActionStatus.EquipmentDecommissioned, null);
         }

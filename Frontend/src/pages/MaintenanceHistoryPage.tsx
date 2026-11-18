@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useAllMaintenances, useSpareParts } from "../hooks/useMaintenance";
 import { useUsers } from "../hooks/useUsers";
 import { useAuth } from "../context/authContext";
@@ -21,16 +21,19 @@ export default function MaintenanceHistoryPage() {
   const canManage = isAdmin || role === "Técnico";
 
   const { data, isLoading, error } = useAllMaintenances();
-  const { data: spareParts } = useSpareParts();
+  const { data: spareParts } = useSpareParts(false, canManage);
   const { data: users } = useUsers(isAdmin);
   const technicians = (users ?? []).filter(
     (u) => u.active && (u.role === "Técnico" || u.role === "Administrador")
   );
 
   const [search, setSearch] = useState("");
+  // /mantenimientos?equipo=<id>: viene de "Registrar mantenimiento" en el detalle de un equipo.
+  const [searchParams] = useSearchParams();
+  const preselectedEquipment = searchParams.get("equipo") ?? "";
+  const [showForm, setShowForm] = useState(!!preselectedEquipment);
   const [statusFilter, setStatusFilter] = useState<MaintenanceStatus | "">("");
-  const [showForm, setShowForm] = useState(false);
-  const [openId, setOpenId] = useState<string | null>(null);
+    const [openId, setOpenId] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -53,6 +56,7 @@ export default function MaintenanceHistoryPage() {
       { equipmentId: string; code: string; count: number; labor: number; parts: number; other: number; total: number }
     >();
     for (const m of filtered) {
+      if (m.status === "VOIDED") continue; // anulado: no cuenta en costos
       const row = map.get(m.equipmentId) ?? {
         equipmentId: m.equipmentId,
         code: m.equipmentInternalCode ?? m.equipmentId.slice(0, 8),
@@ -109,13 +113,18 @@ export default function MaintenanceHistoryPage() {
 
       {canManage && showForm && (
         <div className="max-w-3xl">
-          <MaintenanceCreateForm onCreated={() => setShowForm(false)} />
+          <MaintenanceCreateForm
+            key={preselectedEquipment}
+            initialEquipmentId={preselectedEquipment}
+            onCreated={() => setShowForm(false)}
+          />
         </div>
       )}
 
       <div className="flex flex-wrap gap-3">
         <input
           placeholder="Buscar por código de equipo o problema..."
+          aria-label="Buscar mantenimientos"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="input max-w-sm"

@@ -51,7 +51,7 @@ public class UsersController : ControllerBase
     // El Administrador restablece la contraseña de un usuario (flujo de "olvidé mi contraseña").
     // Cierra todas las sesiones de ese usuario y levanta el bloqueo temporal.
     [HttpPut("{id:guid}/password")]
-    public async Task<ActionResult<UserResponse>> ResetPassword(Guid id, ResetPasswordRequest request)
+    public async Task<ActionResult<UserResponse>> ResetPassword(Guid id, AdminResetPasswordRequest request)
     {
         var result = await _userService.ResetPasswordAsync(id, request.NewPassword);
         return ToActionResult(result);

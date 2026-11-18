@@ -24,7 +24,13 @@ public enum EquipmentActionStatus
     // Un equipo alquilado se devuelve al arrendador, no se da de baja.
     RentedCannotBeDecommissioned,
     // Se intentó cambiar un campo que se sincroniza desde una base de terceros.
-    ExternalFieldLocked
+    ExternalFieldLocked,
+    // Número de serie con formato inválido (debe combinar letras y números).
+    InvalidSerialNumber,
+    // Precio de adquisición informado en cero o negativo.
+    InvalidPrice,
+    // Equipo dado de baja o devuelto: sus datos ya no se modifican.
+    TerminalStateLocked
 }
 
 public record EquipmentResult(EquipmentActionStatus Status, EquipmentResponse? Equipment);

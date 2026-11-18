@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
+import { useEscapeKey } from "../hooks/useEscapeKey";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import FullCalendar from "@fullcalendar/react";
@@ -35,6 +36,8 @@ export default function CalendarPage() {
   const queryClient = useQueryClient();
   const [range, setRange] = useState<{ from: string; to: string } | null>(null);
   const [selected, setSelected] = useState<CalendarEvent | null>(null);
+  const closeDialog = useCallback(() => setSelected(null), []);
+  useEscapeKey(closeDialog, !!selected);
 
   const { data: events, error } = useQuery({
     queryKey: ["calendar", range?.from, range?.to],
@@ -122,7 +125,8 @@ export default function CalendarPage() {
 
       {selected && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50" onClick={() => setSelected(null)}>
-          <div className="w-96 space-y-3 rounded-lg bg-[#111b30] p-4 text-sm" onClick={(e) => e.stopPropagation()}>
+          <div role="dialog" aria-modal="true" aria-label={selected.title}
+            className="w-96 space-y-3 rounded-lg bg-[#111b30] p-4 text-sm text-gray-100" onClick={(e) => e.stopPropagation()}>
             <h2 className="font-semibold">{selected.title}</h2>
             <p className="text-gray-400">
               {selected.date}
@@ -137,7 +141,7 @@ export default function CalendarPage() {
                   Iniciar mantenimiento
                 </button>
               )}
-              {selected.equipmentId && (
+              {selected.equipmentId && role !== "Gerente" && (
                 <button onClick={() => navigate(`/equipos/${selected.equipmentId}`)} className="rounded border border-white/20 px-3 py-1">
                   Ver equipo
                 </button>

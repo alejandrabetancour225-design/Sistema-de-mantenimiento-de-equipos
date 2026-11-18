@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useFieldArray, useForm } from "react-hook-form";
+import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -55,7 +55,6 @@ export function EquipoFormPage() {
     handleSubmit,
     reset,
     control,
-    watch,
     formState: { errors, isSubmitting },
   } = useForm<EquipmentFormInput, unknown, EquipmentFormValues>({
     resolver: zodResolver(equipmentSchema),
@@ -63,12 +62,13 @@ export function EquipoFormPage() {
   });
 
   const characteristics = useFieldArray({ control, name: "characteristics" });
-  const ownership = watch("ownership") ?? "OWNED";
+  const ownership = useWatch({ control, name: "ownership" }) ?? "OWNED";
+  const rentalContractId = useWatch({ control, name: "rentalContractId" });
   const { data: contracts } = useQuery({ queryKey: ["rental-contracts"], queryFn: getContracts });
   const activeContracts = (contracts ?? []).filter(
     (c) => c.status === "ACTIVE" || c.id === existing?.rentalContractId
   );
-  const selectedContract = activeContracts.find((c) => c.id === watch("rentalContractId"));
+  const selectedContract = activeContracts.find((c) => c.id === rentalContractId);
 
   useEffect(() => {
     if (existing) {
@@ -303,8 +303,11 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-sm font-medium">{label}</label>
-      <div className="mt-1">{children}</div>
+      {/* La etiqueta envuelve el campo: así queda asociada (lectores de pantalla y clic en el texto). */}
+      <label className="block">
+        <span className="block text-sm font-medium">{label}</span>
+        <div className="mt-1">{children}</div>
+      </label>
       {error && <p className="text-xs text-red-600">{error}</p>}
     </div>
   );

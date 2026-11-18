@@ -5,6 +5,7 @@ import { EQUIPMENT_STATUS_LABEL, type Equipment } from "../types/equipment";
 function blockedReason(eq: Equipment): string | null {
   if (eq.status === "UNDER_MAINTENANCE") return "ya tiene un mantenimiento abierto";
   if (eq.status === "DECOMMISSIONED") return "está dado de baja";
+  if (eq.status === "RETURNED") return "fue devuelto al arrendador";
   return null;
 }
 

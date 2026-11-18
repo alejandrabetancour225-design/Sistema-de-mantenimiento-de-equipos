@@ -77,8 +77,9 @@ public class IntegrationService : IIntegrationService
         var body = await response.Content.ReadAsStringAsync(ct);
         if (!response.IsSuccessStatusCode)
         {
-            var detail = JsonNode.Parse(body)?["detail"]?.ToString() ?? body;
-            throw new IntegrationException(detail);
+            string? detail = null;
+            try { detail = JsonNode.Parse(body)?["detail"]?.ToString(); } catch (System.Text.Json.JsonException) { }
+            throw new IntegrationException(detail ?? "el servicio de integraciones respondió con un error.");
         }
 
         return JsonNode.Parse(body);
@@ -97,9 +98,12 @@ public class IntegrationService : IIntegrationService
         {
             data = await CallPythonAsync("/api/v1/integrations/extract", BuildSourceSpec(source), ct);
         }
-        catch (Exception ex) when (ex is IntegrationException or HttpRequestException or TaskCanceledException)
+        catch (Exception ex) when (ex is IntegrationException or HttpRequestException or TaskCanceledException
+                                       or System.Text.Json.JsonException or System.Security.Cryptography.CryptographicException)
         {
-            var failed = new SyncSummary(0, 0, 0, 0, new List<string> { $"No se pudo leer la fuente: {ex.Message}" }, false, DateTime.UtcNow);
+            var reason = ex is IntegrationException ? ex.Message : "el servicio de integraciones no respondió correctamente";
+            _logger.LogWarning(ex, "Sincronización {SourceId}: no se pudo leer la fuente", sourceId);
+            var failed = new SyncSummary(0, 0, 0, 0, new List<string> { $"No se pudo leer la fuente: {reason}" }, false, DateTime.UtcNow);
             await SaveSummaryAsync(source, failed, ct);
             return failed;
         }
@@ -263,23 +267,34 @@ public class IntegrationSyncJob
 {
     private readonly AppDbContext _context;
     private readonly IIntegrationService _integrations;
+    private readonly ILogger<IntegrationSyncJob> _logger;
 
-    public IntegrationSyncJob(AppDbContext context, IIntegrationService integrations)
+    public IntegrationSyncJob(AppDbContext context, IIntegrationService integrations, ILogger<IntegrationSyncJob> logger)
     {
         _context = context;
         _integrations = integrations;
+        _logger = logger;
     }
 
     public async Task RunAsync()
     {
         var now = DateTime.UtcNow;
+        var enabledOrgs = _context.Organizations
+            .Where(o => o.Active && o.Plan == MembershipPlan.INTEGRACIONES).Select(o => o.Id);
         var due = await _context.ExternalSources.AsNoTracking()
-            .Where(s => s.Active && s.SyncIntervalHours > 0
+            .Where(s => s.Active && s.SyncIntervalHours > 0 && enabledOrgs.Contains(s.OrganizationId)
                 && (s.LastSyncAt == null || s.LastSyncAt <= now.AddHours(-s.SyncIntervalHours)))
             .Select(s => s.Id).ToListAsync();
         foreach (var id in due)
         {
-            await _integrations.SyncAsync(id);
+            try
+            {
+                await _integrations.SyncAsync(id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Falló la sincronización programada de la fuente {SourceId}", id);
+            }
         }
     }
 }

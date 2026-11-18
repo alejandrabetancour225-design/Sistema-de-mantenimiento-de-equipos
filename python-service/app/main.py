@@ -191,6 +191,8 @@ def _leer(spec: SourceSpec, limite: int):
         return integraciones.leer_registros(fuente, limite)
     except integraciones.ErrorDeFuente as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
+    except (ValueError, RecursionError, UnicodeError) as e:
+        raise HTTPException(status_code=400, detail="El archivo no tiene un formato válido.") from e
 
 
 @app.post("/api/v1/integrations/profile")

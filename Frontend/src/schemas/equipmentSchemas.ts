@@ -26,9 +26,14 @@ const optionalPrice = z
     }
     return n;
   })
-  .refine((v) => v === undefined || (v >= 0 && v <= 9_999_999_999), {
-    message: "El precio debe estar entre 0 y 9.999.999.999",
+  .refine((v) => v === undefined || (v > 0 && v <= 9_999_999_999), {
+    message: "El precio debe ser mayor que cero (déjalo vacío si no se conoce)",
   });
+
+// Igual que la API: combina letras y números; se permiten guiones, puntos, barras y guion bajo.
+export const SERIAL_FORMAT = /^(?=.*[A-Z])(?=.*[0-9])[A-Z0-9][A-Z0-9\-_./]{2,99}$/;
+export const SERIAL_MESSAGE =
+  "Debe combinar letras y números (3 a 100 caracteres; se permiten - _ . /)";
 
 // Reglas de negocio (las mismas que valida la API, que es la fuente de verdad):
 //  - la fecha de adquisición no puede ser posterior a hoy;
@@ -36,7 +41,7 @@ const optionalPrice = z
 export const equipmentSchema = z
   .object({
     internalCode: requiredText(50),
-    serialNumber: requiredText(100),
+    serialNumber: requiredText(100).refine((v) => SERIAL_FORMAT.test(v.toUpperCase()), SERIAL_MESSAGE),
     type: requiredText(100),
     brand: requiredText(100),
     model: requiredText(100),

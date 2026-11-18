@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useEscapeKey } from "../hooks/useEscapeKey";
 import { Wrench } from "lucide-react";
 import type { FailurePrediction } from "../types/prediction";
 import { useCreatePreventiveMaintenance } from "../hooks/usePredictions";
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export default function CreatePreventiveMaintenanceModal({ prediction, onClose, onSuccess }: Props) {
+  useEscapeKey(onClose, true);
   const createMutation = useCreatePreventiveMaintenance();
   const [problem, setProblem] = useState(
     `Mantenimiento preventivo programado desde alerta de riesgo (score ${prediction.riskScore}). Componente en riesgo: ${prediction.riskComponent}.`
@@ -39,7 +41,7 @@ export default function CreatePreventiveMaintenanceModal({ prediction, onClose, 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-      <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#111527] p-6 shadow-xl">
+      <div role="dialog" aria-modal="true" className="w-full max-w-md rounded-2xl border border-white/10 bg-[#111527] p-6 shadow-xl">
         <div className="flex items-center gap-2 mb-3">
           <Wrench size={20} className="text-yellow-400" />
           <h2 className="text-lg font-semibold text-white">

@@ -48,7 +48,11 @@ public class AssistantController : ControllerBase
 
         var equipment = await _context.Equipments.AsNoTracking()
             .Include(e => e.Components)
-            .FirstAsync(e => e.Id == request.EquipmentId, ct);
+            .FirstOrDefaultAsync(e => e.Id == request.EquipmentId, ct);
+        if (equipment is null)
+        {
+            return NotFound(new { message = "El equipo no existe." });
+        }
 
         // Cada mensaje del asistente en el historial fue una pregunta; el tope lo impone la API.
         var questionsAsked = Math.Min(request.Messages.Count(m => m.Role == "asistente"), MaxQuestions);

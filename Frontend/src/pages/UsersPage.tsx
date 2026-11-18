@@ -67,6 +67,16 @@ export default function UsersPage() {
   return (
     <div className="p-8 space-y-4">
       <h1 className="text-xl font-semibold">Gestión de usuarios</h1>
+      {(roleMutation.error || activeMutation.error || resetMutation.error) && (
+        <p className="text-sm text-red-600">
+          {getApiErrorMessage(roleMutation.error ?? activeMutation.error ?? resetMutation.error)}
+        </p>
+      )}
+      {resetMutation.isSuccess && (
+        <p className="text-sm text-green-600">
+          Contraseña temporal asignada. El usuario deberá cambiarla al iniciar sesión.
+        </p>
+      )}
 
       <form onSubmit={submitNewUser} className="grid gap-2 rounded border border-white/10 p-3 md:grid-cols-5">
         <input
@@ -140,7 +150,11 @@ export default function UsersPage() {
                 <select
                   value={user.role ?? ""}
                   onChange={(e) =>
-                    roleMutation.mutate({ id: user.id, role: e.target.value as Role })
+                  {
+                    const role = e.target.value as Role;
+                    if (confirm(`¿Cambiar el rol de ${user.fullName} a ${role}? Se cerrarán sus sesiones.`))
+                      roleMutation.mutate({ id: user.id, role });
+                  }
                   }
                   disabled={roleMutation.isPending}
                   className="rounded border px-2 py-1"
@@ -155,7 +169,10 @@ export default function UsersPage() {
               <td>
                 <button
                   onClick={() =>
-                    activeMutation.mutate({ id: user.id, active: !user.active })
+                  {
+                    if (!user.active || confirm(`¿Desactivar a ${user.fullName}? No podrá iniciar sesión.`))
+                      activeMutation.mutate({ id: user.id, active: !user.active });
+                  }
                   }
                   disabled={activeMutation.isPending}
                   className={`rounded px-3 py-1 text-xs font-medium ${

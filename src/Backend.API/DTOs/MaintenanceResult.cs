@@ -35,7 +35,13 @@ public enum MaintenanceActionStatus
     // Equipo alquilado: una falla se reporta al arrendador (reclamo), no se repara internamente.
     RentedCorrectiveGoesToLessor,
     // Equipo alquilado cuyo contrato no permite mantenimiento preventivo interno.
-    RentedPreventiveNotAllowed
+    RentedPreventiveNotAllowed,
+    // El plan preventivo no existe, está inactivo o es de otro equipo.
+    InvalidPlan,
+    // Solo se elimina un mantenimiento recién abierto y sin repuestos.
+    CannotDeleteWithHistory,
+    // Al editar solo se elige Abierto, En progreso o Cancelado.
+    StatusNotAllowedHere
 }
 
 public record MaintenanceResult(MaintenanceActionStatus Status, MaintenanceResponse? Maintenance);

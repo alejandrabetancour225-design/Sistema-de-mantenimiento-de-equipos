@@ -61,6 +61,8 @@ services:
       OLLAMA_TIMEOUT_SECONDS: ${OLLAMA_TIMEOUT_SECONDS:-170}
       OLLAMA_NUM_CTX: ${OLLAMA_NUM_CTX:-2048}
       SEARXNG_URL: ${SEARXNG_URL:-}
+      # Integraciones: servidores de red interna permitidos a propósito (p. ej. bases de prueba).
+      INTEGRATIONS_ALLOWED_HOSTS: ${INTEGRATIONS_ALLOWED_HOSTS:-}
     ports:
       # Solo accesible desde este equipo: el servicio no tiene autenticación propia.
       - "127.0.0.1:8000:8000"

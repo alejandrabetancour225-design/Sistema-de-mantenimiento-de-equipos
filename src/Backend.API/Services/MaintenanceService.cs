@@ -92,6 +92,13 @@ public class MaintenanceService : IMaintenanceService
             return new MaintenanceResult(MaintenanceActionStatus.InvalidDates, null);
         }
 
+        // El plan preventivo indicado debe existir, estar activo y ser de este mismo equipo.
+        if (request.MaintenancePlanId is { } planId
+            && !await _context.MaintenancePlans.AnyAsync(p => p.Id == planId && p.Active && p.EquipmentId == request.EquipmentId))
+        {
+            return new MaintenanceResult(MaintenanceActionStatus.InvalidPlan, null);
+        }
+
         var preconditionError = await ValidateCanOpenMaintenanceAsync(equipment, incident, request.Type);
         if (preconditionError is not null)
         {
@@ -190,6 +197,13 @@ public class MaintenanceService : IMaintenanceService
             return new MaintenanceResult(MaintenanceActionStatus.MustUseClose, null);
         }
 
+        // Aquí solo se pasa a Abierto, En progreso o Cancelado. Anular (VOIDED) es exclusivo del
+        // Administrador y solo para mantenimientos completados (VoidAsync).
+        if (request.Status is not (null or MaintenanceStatus.OPEN or MaintenanceStatus.IN_PROGRESS or MaintenanceStatus.CANCELLED))
+        {
+            return new MaintenanceResult(MaintenanceActionStatus.StatusNotAllowedHere, null);
+        }
+
         var nextDate = request.NextMaintenanceDate ?? maintenance.NextMaintenanceDate;
         if (!NextDateIsValid(nextDate, maintenance.StartedAt))
         {
@@ -205,6 +219,21 @@ public class MaintenanceService : IMaintenanceService
             }
 
             maintenance.TechnicianId = request.TechnicianId.Value;
+        }
+
+        if (request.Type is { } newType && newType != maintenance.Type)
+        {
+            // Un equipo alquilado no admite correctivo interno ni preventivo si el contrato no lo permite.
+            if (maintenance.Equipment is not null)
+            {
+                var rentalError = await ValidateRentedMaintenanceAsync(maintenance.Equipment, newType);
+                if (rentalError is not null)
+                {
+                    return new MaintenanceResult(rentalError.Value, null);
+                }
+            }
+
+            maintenance.Type = newType;
         }
 
         var now = DateTime.UtcNow;
@@ -445,6 +474,14 @@ public class MaintenanceService : IMaintenanceService
         if (maintenance.Status is MaintenanceStatus.COMPLETED or MaintenanceStatus.VOIDED)
         {
             return MaintenanceActionStatus.CannotDeleteCompleted;
+        }
+
+        // Solo se borra uno recién abierto por error (sin trabajo ni repuestos). Si ya se trabajó en él
+        // o se canceló, se conserva en el historial (cancelarlo deja constancia).
+        if (maintenance.Status != MaintenanceStatus.OPEN
+            || await _context.MaintenanceSpareParts.AnyAsync(ms => ms.MaintenanceId == maintenance.Id))
+        {
+            return MaintenanceActionStatus.CannotDeleteWithHistory;
         }
 
         // Si estaba en curso, se deja el equipo y la incidencia como estaban antes de abrirlo.

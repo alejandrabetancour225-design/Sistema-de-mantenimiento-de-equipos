@@ -152,7 +152,13 @@ public class IntegrationsController : ControllerBase
         if (request.Kind == "file")
         {
             source.FileName = request.FileName;
-            source.FileContent = Convert.FromBase64String(request.FileBase64!);
+            var buffer = new byte[request.FileBase64!.Length];
+            if (!Convert.TryFromBase64String(request.FileBase64, buffer, out var written))
+            {
+                return BadRequest(new { message = "El archivo no se pudo leer (contenido inválido)." });
+            }
+
+            source.FileContent = buffer[..written];
         }
         else
         {
@@ -162,8 +168,17 @@ public class IntegrationsController : ControllerBase
         _context.ExternalSources.Add(source);
         await _context.SaveChangesAsync(ct);
 
-        var summary = await _integrations.SyncAsync(source.Id, ct);
-        return Ok(new { source.Id, summary });
+        try
+        {
+            var summary = await _integrations.SyncAsync(source.Id, ct);
+            return Ok(new { source.Id, summary });
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // La fuente quedó guardada: se puede reintentar con "Sincronizar".
+            return Ok(new { source.Id, summary = new { read = 0, created = 0, updated = 0, skipped = 0,
+                errors = new[] { "La fuente se guardó, pero la primera importación falló. Intenta \"Sincronizar\"." } } });
+        }
     }
 
     [HttpPost("Sources/{id:guid}/Sync")]

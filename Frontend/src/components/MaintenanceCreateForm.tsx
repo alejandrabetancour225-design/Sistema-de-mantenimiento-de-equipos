@@ -18,11 +18,17 @@ import { Field } from "./MaintenanceShared";
 import EquipmentCodeSearch from "./EquipmentCodeSearch";
 import { useInvalidateAll } from "../lib/maintenanceUtils";
 
-export default function MaintenanceCreateForm({ onCreated }: { onCreated?: () => void }) {
+export default function MaintenanceCreateForm({
+  onCreated,
+  initialEquipmentId = "",
+}: {
+  onCreated?: () => void;
+  initialEquipmentId?: string;
+}) {
   const { role, userId, fullName } = useAuth();
   const isAdmin = role === "Administrador";
   const invalidateAll = useInvalidateAll();
-  const [equipmentId, setEquipmentId] = useState("");
+  const [equipmentId, setEquipmentId] = useState(initialEquipmentId);
   const { data: equipmentList } = useEquipmentList();
 
   const { data: incidents } = useEquipmentIncidents(equipmentId);
@@ -131,7 +137,8 @@ export default function MaintenanceCreateForm({ onCreated }: { onCreated?: () =>
       setParts([]);
       setFormError("");
       setEquipmentId("");
-      onCreated?.();
+      // Si algo quedó a medias, el formulario sigue visible para que se lean los avisos.
+      if (problems.length === 0) onCreated?.();
     },
   });
 
@@ -304,6 +311,7 @@ export default function MaintenanceCreateForm({ onCreated }: { onCreated?: () =>
           <Field label="Próximo mantenimiento">
             <input
               type="date"
+              min={form.startedAt || new Date().toISOString().slice(0, 10)}
               value={form.nextMaintenanceDate}
               onChange={(e) => setForm({ ...form, nextMaintenanceDate: e.target.value })}
               className="input"

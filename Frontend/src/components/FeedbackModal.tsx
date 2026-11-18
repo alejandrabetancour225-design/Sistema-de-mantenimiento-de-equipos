@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useEscapeKey } from "../hooks/useEscapeKey";
 import type { AIDiagnosis } from "../types/diagnosis";
 import { useCreateFeedback } from "../hooks/useFeedback";
 import { getApiErrorMessage } from "../lib/errors";
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export default function FeedbackModal({ diagnosis, onClose, onSuccess }: Props) {
+  useEscapeKey(onClose, true);
   const createMutation = useCreateFeedback();
   const [selectedCause, setSelectedCause] = useState("");
   const [customCause, setCustomCause] = useState("");
@@ -43,7 +45,7 @@ export default function FeedbackModal({ diagnosis, onClose, onSuccess }: Props) 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-      <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-[#111527] p-6 shadow-xl">
+      <div role="dialog" aria-modal="true" className="w-full max-w-lg rounded-2xl border border-white/10 bg-[#111527] p-6 shadow-xl">
         <h2 className="text-lg font-semibold text-white">
           Confirmar causa real
         </h2>

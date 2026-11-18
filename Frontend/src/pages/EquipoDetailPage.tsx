@@ -101,7 +101,7 @@ export default function EquipoDetailPage() {
 
   function handleCreateIncident(e: React.FormEvent) {
     e.preventDefault();
-    if (!incidentDescription.trim()) return;
+    if (incidentDescription.trim().length < 5) return;
     createIncidentMutation.mutate({ equipmentId, description: incidentDescription });
   }
 
@@ -129,6 +129,14 @@ export default function EquipoDetailPage() {
                 className="rounded bg-blue-600 px-3 py-1.5 text-white"
               >
                 Editar equipo
+              </Link>
+            )}
+            {canManageComponents && equipment.status !== "DECOMMISSIONED" && equipment.status !== "RETURNED" && (
+              <Link
+                to={`/mantenimientos?equipo=${equipmentId}`}
+                className="rounded bg-green-600 px-3 py-1.5 text-white"
+              >
+                Registrar mantenimiento
               </Link>
             )}
           </div>
@@ -252,24 +260,32 @@ export default function EquipoDetailPage() {
           <form onSubmit={handleCreateComponent} className="flex flex-wrap gap-2 text-sm">
             <input
               placeholder="Tipo (RAM, disco...)"
+              aria-label="Tipo de componente"
+              required
               value={compForm.componentType}
               onChange={(e) => setCompForm({ ...compForm, componentType: e.target.value })}
               className="input flex-1 min-w-30"
             />
             <input
               placeholder="Marca"
+              aria-label="Marca del componente"
+              required
               value={compForm.brand}
               onChange={(e) => setCompForm({ ...compForm, brand: e.target.value })}
               className="input flex-1 min-w-25"
             />
             <input
               placeholder="Modelo"
+              aria-label="Modelo del componente"
+              required
               value={compForm.model}
               onChange={(e) => setCompForm({ ...compForm, model: e.target.value })}
               className="input flex-1 min-w-25"
             />
             <input
               placeholder="Serie"
+              aria-label="Serie del componente"
+              required
               value={compForm.serialNumber}
               onChange={(e) => setCompForm({ ...compForm, serialNumber: e.target.value })}
               className="input flex-1 min-w-25"
@@ -283,6 +299,11 @@ export default function EquipoDetailPage() {
             </button>
           </form>
         )}
+        {(createCompMutation.error || deleteCompMutation.error) && (
+          <p className="text-sm text-red-600">
+            {getApiErrorMessage(createCompMutation.error ?? deleteCompMutation.error)}
+          </p>
+        )}
 
         {loadingComponents ? (
           <p className="text-sm text-gray-500">Cargando...</p>
@@ -295,7 +316,10 @@ export default function EquipoDetailPage() {
                 </span>
                 {canManageComponents && (
                   <button
-                    onClick={() => deleteCompMutation.mutate(c.id)}
+                    onClick={() => {
+                      if (confirm(`¿Eliminar el componente ${c.componentType} ${c.brand} ${c.model}?`))
+                        deleteCompMutation.mutate(c.id);
+                    }}
                     className="text-red-600 text-xs"
                   >
                     Eliminar
@@ -322,7 +346,10 @@ export default function EquipoDetailPage() {
         {canReportIncident && (
           <form onSubmit={handleCreateIncident} className="flex gap-2 text-sm">
             <input
-              placeholder="Describe el problema..."
+              placeholder="Describe el problema (mínimo 5 caracteres)..."
+              aria-label="Descripción de la incidencia"
+              minLength={5}
+              required
               value={incidentDescription}
               onChange={(e) => setIncidentDescription(e.target.value)}
               className="input flex-1"

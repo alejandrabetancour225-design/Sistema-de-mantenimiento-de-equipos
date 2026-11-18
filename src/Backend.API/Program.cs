@@ -346,8 +346,8 @@ builder.Services.AddHangfire(config => config
         new PostgreSqlStorageOptions { SchemaName = "hangfire", PrepareSchemaIfNecessary = true }));
 if (jobsEnabled)
 {
-    // Un solo trabajador: las tareas son livianas y así se ahorra RAM en equipos de 8 GB.
-    builder.Services.AddHangfireServer(options => options.WorkerCount = 1);
+    // Dos trabajadores: un reporte con IA (minutos en CPU) no frena los recordatorios ni la sincronización.
+    builder.Services.AddHangfireServer(options => options.WorkerCount = 2);
 }
 builder.Services.AddScoped<IPredictionService, PredictionService>();
 builder.Services.AddScoped<IFeedbackService, FeedbackService>();
@@ -415,6 +415,21 @@ using (var scope = app.Services.CreateScope())
 }
 
 // ---------- Pipeline HTTP ----------
+// Detrás de nginx (contenedores) la IP real del cliente llega en X-Forwarded-For. Sin esto el límite
+// de inicios de sesión y la auditoría veían a todos los usuarios con la IP de nginx.
+var forwarded = new ForwardedHeadersOptions
+{
+    ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor
+        | Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto,
+    ForwardLimit = 1
+};
+// Solo se confía en el proxy de la red interna de Docker (la API no se publica fuera de 127.0.0.1).
+foreach (var network in new[] { "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16" })
+{
+    forwarded.KnownIPNetworks.Add(System.Net.IPNetwork.Parse(network));
+}
+app.UseForwardedHeaders(forwarded);
+
 app.UseExceptionHandler();
 
 if (!app.Environment.IsDevelopment())

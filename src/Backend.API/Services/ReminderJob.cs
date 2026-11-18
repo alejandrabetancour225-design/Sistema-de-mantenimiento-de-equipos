@@ -29,12 +29,16 @@ public class ReminderJob
         var today = LocalClock.Today;
         var sent = 0;
 
+        var activeOrgs = _context.Organizations.Where(o => o.Active).Select(o => o.Id);
         var admins = await _context.Users.AsNoTracking()
-            .Where(u => u.Active && u.OrganizationId != null && u.Role != null && u.Role.Name == Roles.Administrador)
+            .Where(u => u.Active && u.OrganizationId != null && activeOrgs.Contains(u.OrganizationId.Value)
+                && u.Role != null && u.Role.Name == Roles.Administrador)
             .Select(u => new { u.Id, u.OrganizationId }).ToListAsync();
 
         var plans = await _context.MaintenancePlans.AsNoTracking().Include(p => p.Equipment)
-            .Where(p => p.Active && p.NextDate <= today.AddDays(7)).ToListAsync();
+            .Where(p => p.Active && p.NextDate <= today.AddDays(7) && activeOrgs.Contains(p.OrganizationId)
+                && p.Equipment!.Status != EquipmentStatus.DECOMMISSIONED && p.Equipment.Status != EquipmentStatus.RETURNED)
+            .ToListAsync();
         foreach (var plan in plans)
         {
             var days = plan.NextDate.DayNumber - today.DayNumber;
@@ -68,11 +72,18 @@ public class ReminderJob
 
         var contracts = await _context.RentalContracts
             .Include(c => c.Lessor)
-            .Where(c => c.Status == RentalContractStatus.ACTIVE && c.ExpiryNotifiedAt == null && c.EndDate <= today.AddDays(30))
+            .Where(c => c.Status == RentalContractStatus.ACTIVE && c.ExpiryNotifiedAt == null && c.EndDate <= today.AddDays(30)
+                && activeOrgs.Contains(c.OrganizationId))
             .ToListAsync();
         foreach (var contract in contracts)
         {
             var days = contract.EndDate.DayNumber - today.DayNumber;
+            var contractAdmins = admins.Where(a => a.OrganizationId == contract.OrganizationId).Select(a => a.Id).ToList();
+            if (contractAdmins.Count == 0)
+            {
+                continue; // sin destinatarios: se reintenta en la próxima pasada en vez de darlo por avisado
+            }
+
             sent += await _notifications.NotifyAsync(new NotificationRequest(
                 contract.OrganizationId,
                 admins.Where(a => a.OrganizationId == contract.OrganizationId).Select(a => a.Id).ToList(),

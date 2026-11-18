@@ -145,6 +145,7 @@ public class MaintenanceController : ControllerBase
             MaintenanceActionStatus.Success => NoContent(),
             MaintenanceActionStatus.NotFound => NotFound(new { message = "El mantenimiento no existe." }),
             MaintenanceActionStatus.CannotDeleteCompleted => Conflict(new { message = "Un mantenimiento completado forma parte del historial y no se puede borrar. Si tiene errores, anúlalo y registra uno nuevo." }),
+            MaintenanceActionStatus.CannotDeleteWithHistory => Conflict(new { message = "Solo se elimina un mantenimiento recién abierto y sin repuestos. Si ya se trabajó en él, cancélalo para dejar constancia." }),
             _ => StatusCode(StatusCodes.Status500InternalServerError)
         };
     }
@@ -163,6 +164,8 @@ public class MaintenanceController : ControllerBase
             MaintenanceActionStatus.InvalidStatusTransition => BadRequest(new { message = "No se puede modificar un mantenimiento cerrado, cancelado o anulado. Si un mantenimiento cerrado tiene errores, anúlalo y registra uno nuevo." }),
             MaintenanceActionStatus.RentedCorrectiveGoesToLessor => BadRequest(new { message = "Es un equipo alquilado: las fallas se reportan al arrendador con un reclamo (Alquiler → Reclamos)." }),
             MaintenanceActionStatus.RentedPreventiveNotAllowed => BadRequest(new { message = "El contrato de alquiler de este equipo no permite mantenimiento preventivo interno." }),
+            MaintenanceActionStatus.StatusNotAllowedHere => BadRequest(new { message = "Al editar, el estado solo puede ser Abierto, En progreso o Cancelado. Para completar usa \"Cerrar mantenimiento\"; para anular uno completado, \"Anular\" (Administrador)." }),
+            MaintenanceActionStatus.InvalidPlan => BadRequest(new { message = "El plan preventivo no existe, está inactivo o pertenece a otro equipo." }),
             MaintenanceActionStatus.OnlyCompletedCanBeVoided => BadRequest(new { message = "Solo se puede anular un mantenimiento completado. Uno abierto se cancela." }),
             MaintenanceActionStatus.SparePartNotFound => NotFound(new { message = "El repuesto no existe." }),
             MaintenanceActionStatus.SparePartInactive => BadRequest(new { message = "El repuesto está inactivo." }),

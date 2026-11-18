@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useEscapeKey } from "../hooks/useEscapeKey";
 import type {
   CreateErrorKnowledgeRequest,
   ErrorKnowledge,
@@ -18,6 +19,7 @@ interface Props {
 }
 
 export default function ErrorKnowledgeModal({ existing, onClose, onSuccess }: Props) {
+  useEscapeKey(onClose, true);
   const createMutation = useCreateErrorKnowledge();
   const updateMutation = useUpdateErrorKnowledge();
   const isEdit = !!existing;
@@ -61,7 +63,7 @@ export default function ErrorKnowledgeModal({ existing, onClose, onSuccess }: Pr
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-      <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-[#111527] p-6 shadow-xl">
+      <div role="dialog" aria-modal="true" className="w-full max-w-lg rounded-2xl border border-white/10 bg-[#111527] p-6 shadow-xl">
         <h2 className="text-lg font-semibold text-white mb-4">
           {isEdit ? "Editar entrada" : "Nueva entrada en la biblioteca"}
         </h2>

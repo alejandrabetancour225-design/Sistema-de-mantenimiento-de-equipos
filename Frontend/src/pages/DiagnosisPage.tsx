@@ -53,7 +53,7 @@ export default function DiagnosisPage() {
   return (
     <div className="space-y-6 p-8">
       <div>
-        <h1 className="text-2xl font-semibold text-white flex items-center gap-2">
+        <h1 className="text-2xl font-semibold text-gray-900 flex items-center gap-2">
           <Brain size={24} /> Diagnóstico Asistido por IA
         </h1>
         <p className="text-sm text-gray-400">
@@ -120,7 +120,7 @@ export default function DiagnosisPage() {
       )}
 
       <div>
-        <h2 className="text-lg font-semibold text-white mb-3">Diagnósticos recientes</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-3">Diagnósticos recientes</h2>
         {loadingRecent ? (
           <p className="text-gray-400">Cargando...</p>
         ) : recent && recent.length > 0 ? (

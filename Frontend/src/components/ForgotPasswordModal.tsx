@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useEscapeKey } from "../hooks/useEscapeKey";
 import { forgotPassword, resetPassword } from "../services/authServices";
 import { getApiErrorMessage } from "../lib/errors";
 import { strongPassword } from "../schemas/authSchemas";
@@ -12,6 +13,7 @@ export default function ForgotPasswordModal({
   open: boolean;
   onClose: () => void;
 }) {
+  useEscapeKey(handleClose, open);
   const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
@@ -70,7 +72,7 @@ export default function ForgotPasswordModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-      <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#111527] p-6 shadow-xl">
+      <div role="dialog" aria-modal="true" className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#111527] p-6 shadow-xl">
         {step === "email" && (
           <form onSubmit={handleRequestCode}>
             <h2 className="text-lg font-semibold text-white">Recuperar contraseña</h2>

@@ -96,7 +96,10 @@ public class AiReportJob
         {
             _logger.LogWarning(ex, "No se pudo generar el reporte IA {ReportId}", reportId);
             report.Status = "FAILED";
-            report.Error = ex.Message.Length > 900 ? ex.Message[..900] : ex.Message;
+            // El detalle técnico queda en el log; al usuario solo le llega un mensaje claro.
+            report.Error = ex is HttpRequestException or TaskCanceledException
+                ? "El servicio de IA no respondió a tiempo. Intenta de nuevo en unos minutos."
+                : "La IA no pudo redactar el reporte. Intenta de nuevo en unos minutos.";
         }
 
         report.CompletedAt = DateTime.UtcNow;

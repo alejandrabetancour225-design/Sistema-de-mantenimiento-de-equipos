@@ -1,9 +1,11 @@
 using System.Security.Claims;
+using Backend.API.Data;
 using Backend.API.DTOs;
 using Backend.API.Models;
 using Backend.API.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace Backend.API.Controllers;
 
@@ -14,10 +16,12 @@ namespace Backend.API.Controllers;
 public class AssignmentController : ControllerBase
 {
     private readonly IAssignmentService _assignmentService;
+    private readonly AppDbContext _context;
 
-    public AssignmentController(IAssignmentService assignmentService)
+    public AssignmentController(IAssignmentService assignmentService, AppDbContext context)
     {
         _assignmentService = assignmentService;
+        _context = context;
     }
 
     [Authorize(Roles = Roles.AdminOrTechnician)]
@@ -35,6 +39,18 @@ public class AssignmentController : ControllerBase
         var result = await _assignmentService.ReleaseAsync(id, request?.Observations);
         return ToActionResult(result);
     }
+
+    // Personas a las que se puede asignar un equipo: personal interno activo de la organización.
+    // (Antes el Técnico solo veía a quienes ya tenían alguna asignación; un empleado nuevo no aparecía.)
+    [Authorize(Roles = Roles.AdminOrTechnician)]
+    [HttpGet("GetAssignableUsers")]
+    public async Task<ActionResult<object>> GetAssignableUsers()
+        => Ok(await _context.Users.AsNoTracking()
+            .Where(u => u.Active && u.Role != null
+                && (u.Role.Name == Roles.Empleado || u.Role.Name == Roles.Tecnico || u.Role.Name == Roles.Administrador))
+            .OrderBy(u => u.FullName)
+            .Select(u => new { u.Id, u.FullName, Role = u.Role!.Name })
+            .ToListAsync());
 
     [HttpGet("GetAssignments")]
     public async Task<ActionResult<List<AssignmentResponse>>> GetAssignments()

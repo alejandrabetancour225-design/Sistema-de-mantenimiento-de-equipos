@@ -10,8 +10,10 @@ import {
 } from "../services/maintenanceServices";
 import {
   MAINTENANCE_STATUS_LABEL,
+  MAINTENANCE_TYPE_LABEL,
   type Maintenance,
   type MaintenanceStatus,
+  type MaintenanceType,
 } from "../types/maintenance";
 import type { EquipmentStatus } from "../types/equipment";
 import { INCIDENT_STATUS_LABEL } from "../types/incident";
@@ -51,6 +53,7 @@ export default function MaintenanceDetail({
   // --- Edición (PutMaintenance) ---
   const [edit, setEdit] = useState({
     status: m.status as MaintenanceStatus,
+    type: m.type,
     reportedProblem: m.reportedProblem,
     workDone: m.workDone ?? "",
     laborCost: String(m.laborCost),
@@ -64,6 +67,7 @@ export default function MaintenanceDetail({
     mutationFn: () =>
       updateMaintenance(m.id, {
         status: edit.status,
+        type: edit.type !== m.type ? edit.type : undefined,
         reportedProblem: edit.reportedProblem.trim(),
         workDone: edit.workDone.trim() || undefined,
         laborCost: Number(edit.laborCost) || 0,
@@ -186,7 +190,12 @@ export default function MaintenanceDetail({
                 {sp.sparePartName} x{sp.quantity} — {money(sp.subtotal)}
               </span>
               {!isClosed && (
-                <button onClick={() => removePartMutation.mutate(sp.id)} className="text-red-600">
+                <button
+                  onClick={() => {
+                    if (confirm(`¿Quitar ${sp.sparePartName} de este mantenimiento?`)) removePartMutation.mutate(sp.id);
+                  }}
+                  className="text-red-600"
+                >
                   Quitar
                 </button>
               )}
@@ -247,6 +256,19 @@ export default function MaintenanceDetail({
                 ))}
               </select>
             </Field>
+            <Field label="Tipo">
+              <select
+                value={edit.type}
+                onChange={(e) => setEdit({ ...edit, type: e.target.value as MaintenanceType })}
+                className="input"
+              >
+                {(Object.keys(MAINTENANCE_TYPE_LABEL) as MaintenanceType[]).map((t) => (
+                  <option key={t} value={t}>
+                    {MAINTENANCE_TYPE_LABEL[t]}
+                  </option>
+                ))}
+              </select>
+            </Field>
             {isAdmin && (
               <Field label="Técnico">
                 <select
@@ -301,6 +323,7 @@ export default function MaintenanceDetail({
             <Field label="Próximo mantenimiento">
               <input
                 type="date"
+                min={m.startedAt.slice(0, 10)}
                 value={edit.nextMaintenanceDate}
                 onChange={(e) => setEdit({ ...edit, nextMaintenanceDate: e.target.value })}
                 className="input"
@@ -364,6 +387,7 @@ export default function MaintenanceDetail({
             <Field label="Próximo mantenimiento">
               <input
                 type="date"
+                min={m.startedAt.slice(0, 10)}
                 value={close.nextMaintenanceDate}
                 onChange={(e) => setClose({ ...close, nextMaintenanceDate: e.target.value })}
                 className="input"

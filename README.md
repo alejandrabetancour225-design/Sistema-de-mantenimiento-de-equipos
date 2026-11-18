@@ -155,6 +155,7 @@ Todos los cambios de estado pasan por [EquipmentStateMachine](src/Backend.API/Se
 ### Integraciones con bases de datos de terceros (plan Integraciones)
 
 - Fuentes: **archivo** (CSV, Excel .xlsx o JSON, hasta 5 MB) o **conexión en vivo** a PostgreSQL, MySQL/MariaDB, SQL Server o MongoDB.
+- **Sin red interna**: no se aceptan servidores con IP privada, local o de Docker (protege la base de la plataforma, Ollama y la API). Para probar con bases locales se permiten de forma explícita con `INTEGRATIONS_ALLOWED_HOSTS` en el `.env`.
 - **Solo lectura**: las sesiones SQL se abren en modo de solo lectura, solo se ejecuta un `SELECT` sobre una tabla con nombre validado y se recomienda a la empresa crear un usuario de solo lectura. Nunca se escribe en la fuente.
 - `python-service` **perfila** los datos (tipos, vacíos, unicidad, ejemplos) y **propone el mapeo** hacia el modelo de equipo según el nombre y el contenido de cada columna (entiende formatos colombianos: fechas dd/mm/aaaa y precios 1.234.567). El Administrador lo confirma.
 - Los equipos importados quedan ligados a su fuente: los campos mapeados **no se editan** en la app (se corrigen en la fuente) y las columnas sin equivalente se guardan en **JSONB** (`ExternalAttributes`). Sincronización manual o cada N horas; una segunda sincronización actualiza, no duplica.
@@ -289,6 +290,7 @@ Todas las rutas empiezan por `/api`. "Plan Integraciones" significa que la organ
 | POST | `/assignment/AssignEquipment` | Adm./Téc. | Asigna un equipo (queda En uso) |
 | PATCH | `/assignment/ReleaseEquipment/{id}` | Adm./Téc. | Libera un equipo (vuelve a Disponible) |
 | GET | `/assignment/GetAssignments` | Adm./Téc./Emp. | Lista (Empleado: solo las suyas) |
+| GET | `/assignment/GetAssignableUsers` | Adm./Téc. | Personal interno activo al que se puede asignar un equipo |
 
 **Incidencias y mantenimiento**
 
@@ -307,12 +309,12 @@ Todas las rutas empiezan por `/api`. "Plan Integraciones" significa que la organ
 | POST | `/maintenance/PostNewMaintenance` | Adm./Téc. | Abre un mantenimiento |
 | POST | `/maintenance/CreateFromIncident/{incidentId}` | Adm./Téc. | Abre un correctivo desde una incidencia |
 | POST | `/maintenance/CreatePreventiveFromPrediction/{equipmentId}` | Adm./Téc. | Abre un preventivo desde una alerta de riesgo |
-| PUT | `/maintenance/PutMaintenance/{id}` | Adm./Téc. | Edita o cancela un mantenimiento abierto |
+| PUT | `/maintenance/PutMaintenance/{id}` | Adm./Téc. | Edita (incluido el tipo) o cancela un mantenimiento abierto |
 | POST | `/maintenance/CloseMaintenance/{id}` | Adm./Téc. | Cierra (exige el trabajo realizado) |
 | POST | `/maintenance/AddSparePart/{maintenanceId}` | Adm./Téc. | Agrega un repuesto usado |
 | DELETE | `/maintenance/RemoveSparePart/{maintenanceId}/{maintenanceSparePartId}` | Adm./Téc. | Quita un repuesto |
 | POST | `/maintenance/VoidMaintenance/{id}` | Administrador | Anula un mantenimiento cerrado con errores (con motivo) |
-| DELETE | `/maintenance/DeleteMaintenance/{id}` | Adm./Téc. | Borra un mantenimiento no completado |
+| DELETE | `/maintenance/DeleteMaintenance/{id}` | Adm./Téc. | Borra un mantenimiento recién abierto por error (sin repuestos) |
 | GET | `/sparepart/GetSparePartList` | Adm./Téc. | Catálogo de repuestos |
 | GET | `/sparepart/GetSparePartById/{id}` | Adm./Téc. | Consulta un repuesto |
 | POST | `/sparepart/PostNewSparePart` | Adm./Téc. | Crea un repuesto |
@@ -434,6 +436,8 @@ Responde `{ "token", "userId", "fullName", "email", "role", "active", "expiresAt
 #### Equipos
 
 - `internalCode` y `serialNumber` son únicos **dentro de cada organización** (`409`).
+- El número de serie debe **combinar letras y números** (3 a 100 caracteres; se permiten `-`, `_`, `.` y `/`). El precio, si se informa, debe ser **mayor que cero**. La fecha de adquisición va de 1990 a hoy. Al editar, estas reglas se aplican solo si el dato cambia.
+- Un equipo dado de baja o devuelto ya no se edita, y sus planes preventivos se desactivan.
 - `DELETE /api/equipment/DeleteEquipment/{id}` no borra físicamente: cambia el estado a `DECOMMISSIONED` y conserva todo el historial. Responde `409` si ya está dado de baja, si tiene una asignación `ACTIVE`, si tiene un mantenimiento `OPEN`/`IN_PROGRESS` o si es alquilado (se devuelve, no se da de baja).
 - `DECOMMISSIONED` y `RETURNED` son terminales: no vuelven a servicio ni se asignan.
 - Un equipo alquilado debe tener un contrato activo con tarifa para su tipo; su fecha de adquisición es el inicio del contrato.
@@ -443,6 +447,7 @@ Responde `{ "token", "userId", "fullName", "email", "role", "active", "expiresAt
 
 - Un equipo solo puede tener una asignación `ACTIVE` (garantizado también por un índice único, incluso con peticiones simultáneas).
 - Solo se asigna un equipo `AVAILABLE` (no en mantenimiento, fuera de servicio, dado de baja ni devuelto), a un usuario activo de personal interno (Empleado, Técnico o Administrador), nunca a un Gerente.
+- No se reportan incidentes de equipos devueltos al arrendador.
 
 #### Incidentes
 
@@ -457,7 +462,8 @@ Responde `{ "token", "userId", "fullName", "email", "role", "active", "expiresAt
 - Un equipo solo puede tener un mantenimiento `OPEN` o `IN_PROGRESS` (índice único).
 - La incidencia vinculada debe ser del mismo equipo y estar `OPEN`.
 - Costos y cantidades no pueden ser negativos; la fecha de inicio no puede ser futura y el próximo mantenimiento no puede ser anterior al inicio.
-- **Completar solo con `POST /api/maintenance/CloseMaintenance/{id}`** (exige el trabajo realizado). `PutMaintenance` no acepta `COMPLETED`.
+- **Completar solo con `POST /api/maintenance/CloseMaintenance/{id}`** (exige el trabajo realizado). Al editar con `PutMaintenance` el estado solo puede ser `OPEN`, `IN_PROGRESS` o `CANCELLED`; el tipo (preventivo/correctivo) se puede corregir mientras esté abierto.
+- Solo se **borra** un mantenimiento `OPEN` sin repuestos (registrado por error); si ya se trabajó en él, se **cancela** para dejar constancia. Un plan preventivo indicado al crearlo debe ser del mismo equipo.
 - Al cerrar, el equipo vuelve a servicio o queda `OUT_OF_SERVICE`; no puede quedar `UNDER_MAINTENANCE` ni darse de baja desde ahí. La incidencia queda `RESOLVED` o `CLOSED`. Si es preventivo y el equipo tiene plan, la próxima fecha se calcula sola.
 - Cancelar libera el equipo y devuelve la incidencia a `OPEN` (se desvincula y queda anotado en las observaciones).
 - Un mantenimiento completado no se borra: si tiene errores, se **anula** (`VOIDED`, con motivo) y se registra uno nuevo.

@@ -166,7 +166,7 @@ El Administrador también puede usar "Reportar una falla" y reportar incidencias
 | Reportar una incidencia directa | Detalle del equipo → incidentes | Describir la falla sin el asistente. |
 | Editar o cerrar su incidencia | Detalle del equipo | Solo las suyas, mientras estén abiertas y sin mantenimiento. |
 | Ver mantenimientos y calendario | Mantenimientos / Calendario | Solo los de sus equipos. |
-| Consultar glosario y biblioteca | Glosario / Biblioteca IA | Solo lectura. |
+| Consultar el glosario | Glosario de modismos | Solo lectura: cómo entiende la IA las expresiones informales. |
 | Recibir avisos | Campana y correo | Cuando su equipo tiene un mantenimiento programado. |
 
 ---

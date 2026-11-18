@@ -44,7 +44,9 @@ export function EquipoListPage() {
         eq.internalCode.toLowerCase().includes(q) ||
         eq.serialNumber.toLowerCase().includes(q) ||
         eq.brand.toLowerCase().includes(q) ||
-        eq.model.toLowerCase().includes(q);
+        eq.model.toLowerCase().includes(q) ||
+        eq.type.toLowerCase().includes(q) ||
+        eq.location.toLowerCase().includes(q);
       const matchesStatus = !statusFilter || eq.status === statusFilter;
       const matchesType = !typeFilter || eq.type === typeFilter;
       const matchesLocation = !locationFilter || eq.location === locationFilter;
@@ -57,8 +59,8 @@ export function EquipoListPage() {
     deleteMutation.mutate(id);
   }
 
-  if (isLoading) return <p>Cargando equipos...</p>;
-  if (error) return <p className="text-red-600">Error al cargar los equipos.</p>;
+  if (isLoading) return <p className="p-6 text-gray-500">Cargando equipos...</p>;
+  if (error) return <p className="p-6 text-red-600">Error al cargar los equipos.</p>;
 
   return (
     <div className="space-y-4 px-6 py-6">
@@ -76,13 +78,15 @@ export function EquipoListPage() {
        </div>
       <div className="flex flex-wrap gap-2">
         <input
-          placeholder="Buscar por código, serie, marca o modelo..."
+          placeholder="Buscar por código, serie, marca, modelo, tipo o ubicación..."
+          aria-label="Buscar equipos"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="rounded border px-3 py-2"
         />
         <select
           value={statusFilter}
+          aria-label="Filtrar por estado"
           onChange={(e) => setStatusFilter(e.target.value as EquipmentStatus | "")}
           className="rounded border px-3 py-2"
         >
@@ -95,6 +99,7 @@ export function EquipoListPage() {
         </select>
         <select
           value={typeFilter}
+          aria-label="Filtrar por tipo"
           onChange={(e) => setTypeFilter(e.target.value)}
           className="rounded border px-3 py-2"
         >
@@ -107,6 +112,7 @@ export function EquipoListPage() {
         </select>
         <select
           value={locationFilter}
+          aria-label="Filtrar por ubicación"
           onChange={(e) => setLocationFilter(e.target.value)}
           className="rounded border px-3 py-2"
         >
@@ -143,7 +149,11 @@ export function EquipoListPage() {
         <tbody>
           {filtered.map((eq) => (
             <tr key={eq.id} className="border-b">
-              <td className="py-2 font-medium">{eq.internalCode}</td>
+              <td className="py-2 font-medium">
+                <Link to={`/equipos/${eq.id}`} className="text-blue-600 hover:underline">
+                  {eq.internalCode}
+                </Link>
+              </td>
               <td>{eq.type}</td>
               <td>{eq.brand} {eq.model}</td>
               <td>{eq.location}</td>

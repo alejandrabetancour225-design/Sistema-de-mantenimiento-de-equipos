@@ -76,7 +76,15 @@ public class PasswordResetService : IPasswordResetService
 
         Si no solicitaste este cambio, ignora este mensaje.
         ";
-        await _emailSender.SendAsync(decryptedEmail, "Recuperación de contraseña", body);
+        try
+        {
+            await _emailSender.SendAsync(decryptedEmail, "Recuperación de contraseña", body);
+        }
+        catch (Exception ex)
+        {
+            // La respuesta debe ser igual exista o no el correo: un fallo de SMTP no puede delatarlo con un 500.
+            _logger.LogError(ex, "No se pudo enviar el código de recuperación al usuario {UserId}", user.Id);
+        }
     }
 
     public async Task<PasswordResetStatus> ResetAsync(string email, string code, string newPassword)
@@ -93,14 +101,16 @@ public class PasswordResetService : IPasswordResetService
             .OrderByDescending(c => c.CreatedAt)
             .FirstOrDefaultAsync();
 
+        // Mismo resultado que con un correo inexistente, para no revelar qué correos están registrados.
         if (resetCode is null || resetCode.ExpiresAt < DateTime.UtcNow)
-            return PasswordResetStatus.Expired;
+            return PasswordResetStatus.InvalidCode;
 
         if (resetCode.FailedAttempts >= MaxFailedAttempts)
             return PasswordResetStatus.TooManyAttempts;
 
         var expectedHash = HashCode(code, user.Id);
-        if (resetCode.CodeHash != expectedHash)
+        if (!System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(
+                System.Text.Encoding.UTF8.GetBytes(resetCode.CodeHash), System.Text.Encoding.UTF8.GetBytes(expectedHash)))
         {
             resetCode.FailedAttempts++;
             await _context.SaveChangesAsync();

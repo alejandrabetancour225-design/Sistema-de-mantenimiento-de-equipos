@@ -44,10 +44,15 @@ public class MarketController : ControllerBase
         try
         {
             var response = await _http.PostAsJsonAsync("/api/v1/market/search", new { queries, max_results = 3 }, ct);
+            if (!response.IsSuccessStatusCode)
+            {
+                return StatusCode(503, new { message = "La búsqueda de mercado no está disponible en este momento." });
+            }
+
             var body = JsonNode.Parse(await response.Content.ReadAsStringAsync(ct));
             return Ok(new { equipment = name, queries, results = body?["results"], retrievedAt = body?["retrieved_at"], available = body?["available"] });
         }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or System.Text.Json.JsonException)
         {
             return StatusCode(503, new { message = "La búsqueda de mercado no está disponible en este momento." });
         }

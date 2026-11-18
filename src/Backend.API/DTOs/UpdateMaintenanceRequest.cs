@@ -27,4 +27,9 @@ public class UpdateMaintenanceRequest
     public string? Observations { get; set; }
 
     public Guid? TechnicianId { get; set; }
+
+    // Preventivo o correctivo; se puede corregir mientras el mantenimiento esté abierto
+    // (también en uno creado desde una incidencia).
+    [EnumDataType(typeof(MaintenanceType))]
+    public MaintenanceType? Type { get; set; }
 }

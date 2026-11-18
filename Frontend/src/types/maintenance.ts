@@ -75,6 +75,7 @@ export interface UpdateMaintenanceRequest {
   nextMaintenanceDate?: string;
   observations?: string;
   technicianId?: string;
+  type?: MaintenanceType;
 }
 
 export interface CloseMaintenanceRequest {

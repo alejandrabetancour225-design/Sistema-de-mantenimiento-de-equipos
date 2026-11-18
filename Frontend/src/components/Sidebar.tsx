@@ -1,4 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../context/authContext";
 import NotificationBell from "./NotificationBell";
 import { useRealtime } from "../hooks/useRealtime";
@@ -7,16 +8,18 @@ export default function Sidebar() {
   const { isAuthenticated, role, fullName, organizationName, plan, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient();
   useRealtime();
 
   if (!isAuthenticated) return null;
 
   function handleLogout() {
+    queryClient.clear();
     logout();
     navigate("/");
   }
 
-  const isActive = (path: string) => location.pathname === path;
+  const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(path + "/");
   const linkClass = (path: string) =>
     `block px-4 py-2 rounded-lg text-sm transition ${
       isActive(path)

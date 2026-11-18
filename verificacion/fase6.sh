@@ -3,8 +3,11 @@
 # Verificación manual de integraciones con bases de terceros (Sprint 6, fase 6).
 # Crea una organización "QA-S6 Integraciones <n>" (plan Integraciones) y otra Básica.
 #
-# Requiere la base externa de prueba (ver verificacion/base-externa.sql) en el Postgres
-# local (./iniciar.sh --db-local); python-service la alcanza como host "postgres".
+# Requiere la base externa de prueba (verificacion/base-externa.sql) en el contenedor
+# "prueba-postgres" de la carpeta bases-de-prueba-integraciones, y ese host permitido en el .env:
+#   INTEGRATIONS_ALLOWED_HOSTS=prueba-postgres,...
+#   docker exec -i prueba-postgres psql -U admin_erp -d postgres < verificacion/base-externa.sql
+# (Por seguridad, la app no acepta como fuente la base interna de la plataforma.)
 #
 # Uso: SUPERADMIN_EMAIL=... SUPERADMIN_PASSWORD=... ./verificacion/fase6.sh
 # ---------------------------------------------------------------------------
@@ -12,7 +15,7 @@ set -uo pipefail
 cd "$(dirname "$0")/.."
 
 API="${API_URL:-http://localhost:5255}/api"
-EXT_HOST="${EXT_HOST:-postgres}"
+EXT_HOST="${EXT_HOST:-prueba-postgres}"
 RUN=$(date +%s)
 OK=0; FAIL=0
 pass() { echo "  OK    $1"; OK=$((OK+1)); }
@@ -73,12 +76,12 @@ req PUT "/equipment/PutEquipment/$EQ" "$T" '{"internalCode":"INV-001","serialNum
 expect "No se edita un campo sincronizado" 409
 
 echo "== Conexión en vivo a PostgreSQL (usuario de solo lectura)"
-CONN="\"kind\":\"postgres\",\"host\":\"$EXT_HOST\",\"port\":5432,\"database\":\"erp_externo\",\"user\":\"lector\",\"password\":\"LectorSolo2026\",\"sslMode\":\"disable\",\"table\":\"activos\""
+CONN="\"kind\":\"postgres\",\"host\":\"$EXT_HOST\",\"port\":5432,\"database\":\"erp_externo\",\"user\":\"lector_externo\",\"password\":\"LectorSolo2026\",\"sslMode\":\"disable\",\"table\":\"activos\""
 req POST /integrations/Profile "$T" "{$CONN}"; expect "Perfilar la tabla externa" 200
 [[ "$(json "d['profile']['suggestion']['fields']['internalCode']['column']")" == "placa" \
    && "$(json "d['profile']['suggestion']['fields']['brand']['column']")" == "fabricante" ]] \
   && pass "Mapeo sugerido en la base externa (placa, fabricante…)" || fail "Mapeo externo" "$(json "d['profile']['suggestion']")"
-req POST /integrations/Profile "$T" "{\"kind\":\"postgres\",\"host\":\"$EXT_HOST\",\"database\":\"erp_externo\",\"user\":\"lector\",\"password\":\"LectorSolo2026\",\"table\":\"activos; DROP TABLE activos\"}"
+req POST /integrations/Profile "$T" "{\"kind\":\"postgres\",\"host\":\"$EXT_HOST\",\"database\":\"erp_externo\",\"user\":\"lector_externo\",\"password\":\"LectorSolo2026\",\"table\":\"activos; DROP TABLE activos\"}"
 expect "Nombre de tabla con inyección se rechaza" 400
 MAP2='{"internalCode":"placa","serialNumber":"nro_serie","type":"clase","brand":"fabricante","model":"referencia","location":"sede","acquisitionDate":"fecha_compra","acquisitionPrice":"valor_compra"}'
 req POST /integrations/Sources "$T" "{\"name\":\"ERP externo\",$CONN,\"mapping\":$MAP2,\"keyColumn\":\"placa\",\"syncIntervalHours\":24}"

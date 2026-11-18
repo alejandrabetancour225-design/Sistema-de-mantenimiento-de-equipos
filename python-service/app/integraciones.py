@@ -11,15 +11,70 @@
 import base64
 import csv
 import io
+import ipaddress
 import json
+import os
 import re
+import socket
+import zipfile
 from datetime import date, datetime
 from typing import Any
+from urllib.parse import urlsplit
 
 from .texto import normalizar
 
 MAX_FILAS = 5000
 MAX_FILAS_PERFIL = 2000
+MAX_XLSX_DESCOMPRIMIDO = 60 * 1024 * 1024  # un Excel de 5 MB no debería pasar de esto al descomprimirse
+
+# Servidores internos permitidos a propósito (p. ej. las bases de prueba): nombres separados por coma.
+_PERMITIDOS = {h.strip().lower() for h in os.getenv("INTEGRATIONS_ALLOWED_HOSTS", "").split(",") if h.strip()}
+
+
+def validar_destino(host: str | None) -> None:
+    """Evita que una "fuente externa" apunte a la red interna (base de la plataforma, Ollama, la API,
+    metadatos de la nube...). Solo se aceptan servidores con IP pública, salvo los permitidos a propósito."""
+    if not host:
+        raise ErrorDeFuente("Indica el servidor de la base de datos.")
+    host = host.strip().lower()
+    if host in _PERMITIDOS:
+        return
+    try:
+        direcciones = {info[4][0] for info in socket.getaddrinfo(host, None)}
+    except socket.gaierror as e:
+        raise ErrorDeFuente("No se encontró el servidor. Revisa el nombre o la IP.") from e
+    for direccion in direcciones:
+        ip = ipaddress.ip_address(direccion.split("%")[0])
+        if (ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved
+                or ip.is_multicast or ip.is_unspecified):
+            raise ErrorDeFuente("Ese servidor está en una red interna y no se permite. Usa la dirección pública "
+                                "del servidor de la empresa.")
+
+
+def _hosts_mongo(uri: str) -> list[str]:
+    partes = urlsplit(uri or "")
+    if partes.scheme not in ("mongodb", "mongodb+srv"):
+        raise ErrorDeFuente("La URI de MongoDB debe empezar por mongodb:// o mongodb+srv://")
+    red = partes.netloc.rsplit("@", 1)[-1]
+    return [h.rsplit(":", 1)[0] if not h.startswith("[") else h[1:h.index("]")] for h in red.split(",") if h]
+
+
+def _mensaje_conexion(e: Exception) -> str:
+    """Traduce el error del driver a un mensaje útil, sin exponer IPs ni detalles internos."""
+    texto = str(e).lower()
+    if any(k in texto for k in ("password authentication failed", "access denied", "login failed", "authentication failed")):
+        return "usuario o contraseña incorrectos."
+    if any(k in texto for k in ("timed out", "timeout")):
+        return "el servidor no respondió a tiempo."
+    if "refused" in texto:
+        return "el servidor rechazó la conexión (revisa el puerto)."
+    if any(k in texto for k in ("does not exist", "unknown database", "cannot open database", "doesn't exist", "invalid object name")):
+        return "la base de datos o la tabla no existe."
+    if any(k in texto for k in ("permission denied", "not authorized", "select command denied")):
+        return "el usuario no tiene permiso de lectura sobre esa tabla."
+    if any(k in texto for k in ("could not translate host", "name or service not known", "getaddrinfo")):
+        return "no se encontró el servidor."
+    return "revisa servidor, puerto, base de datos, usuario y contraseña."
 _IDENTIFICADOR = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,62}(\.[A-Za-z_][A-Za-z0-9_]{0,62})?$")
 
 
@@ -57,6 +112,12 @@ def _leer_archivo(nombre: str, contenido_b64: str, limite: int) -> list[dict]:
 
     if extension in ("xlsx", "xlsm"):
         from openpyxl import load_workbook
+        try:
+            descomprimido = sum(i.file_size for i in zipfile.ZipFile(io.BytesIO(datos)).infolist())
+        except zipfile.BadZipFile as e:
+            raise ErrorDeFuente("El archivo de Excel está dañado o no es un .xlsx.") from e
+        if descomprimido > MAX_XLSX_DESCOMPRIMIDO:
+            raise ErrorDeFuente("El Excel es demasiado grande al descomprimirse. Divídelo en archivos más pequeños.")
         libro = load_workbook(io.BytesIO(datos), read_only=True, data_only=True)
         hoja = libro.worksheets[0]
         filas = hoja.iter_rows(values_only=True)
@@ -113,6 +174,7 @@ def _validar_tabla(tabla: str) -> str:
 def _leer_sql(tipo: str, con: dict, tabla: str, limite: int) -> list[dict]:
     tabla = _validar_tabla(tabla)
     host, puerto = con.get("host"), con.get("port")
+    validar_destino(host)
     base, usuario, clave = con.get("database"), con.get("user"), con.get("password")
     try:
         if tipo == "postgres":
@@ -136,8 +198,8 @@ def _leer_sql(tipo: str, con: dict, tabla: str, limite: int) -> list[dict]:
             consulta = f'SELECT TOP {int(limite)} * FROM {".".join("[" + p + "]" for p in tabla.split("."))}'
     except ErrorDeFuente:
         raise
-    except Exception as e:  # el mensaje del driver ayuda al administrador a corregir la conexión
-        raise ErrorDeFuente(f"No se pudo conectar a la base de datos: {e}") from e
+    except Exception as e:
+        raise ErrorDeFuente(f"No se pudo conectar a la base de datos: {_mensaje_conexion(e)}") from e
 
     try:
         cursor = conexion.cursor()
@@ -145,7 +207,7 @@ def _leer_sql(tipo: str, con: dict, tabla: str, limite: int) -> list[dict]:
         columnas = [d[0] for d in cursor.description]
         return [dict(zip(columnas, fila)) for fila in cursor.fetchall()]
     except Exception as e:
-        raise ErrorDeFuente(f"No se pudo leer la tabla {tabla}: {e}") from e
+        raise ErrorDeFuente(f"No se pudo leer la tabla {tabla}: {_mensaje_conexion(e)}") from e
     finally:
         try:
             conexion.rollback()  # nunca se confirma nada
@@ -156,17 +218,18 @@ def _leer_sql(tipo: str, con: dict, tabla: str, limite: int) -> list[dict]:
 def _leer_mongo(con: dict, coleccion: str, limite: int) -> list[dict]:
     from pymongo import MongoClient
     _validar_tabla(coleccion)
+    for host in _hosts_mongo(con.get("uri", "")):
+        validar_destino(host)
+    cliente = None
     try:
         cliente = MongoClient(con.get("uri"), serverSelectionTimeoutMS=10000)
         base = cliente.get_database(con.get("database")) if con.get("database") else cliente.get_default_database()
         documentos = list(base[coleccion].find({}, limit=int(limite)))  # find = solo lectura
     except Exception as e:
-        raise ErrorDeFuente(f"No se pudo leer MongoDB: {e}") from e
+        raise ErrorDeFuente(f"No se pudo leer MongoDB: {_mensaje_conexion(e)}") from e
     finally:
-        try:
+        if cliente is not None:
             cliente.close()
-        except Exception:
-            pass
     return [_aplanar({k: (str(v) if k == "_id" else v) for k, v in d.items()}) for d in documentos]
 
 

@@ -189,6 +189,9 @@ export default function AssignmentsPage() {
                     Liberar
                   </button>
                 )}
+                {releaseMutation.error && releaseMutation.variables === a.id && (
+                  <p className="text-xs text-red-600">{getApiErrorMessage(releaseMutation.error)}</p>
+                )}
               </td>
             </tr>
           ))}

@@ -11,7 +11,7 @@ export default function AIMetricsPage() {
   return (
     <div className="space-y-6 p-8">
       <div>
-        <h1 className="text-2xl font-semibold text-white flex items-center gap-2">
+        <h1 className="text-2xl font-semibold text-gray-900 flex items-center gap-2">
           <BarChart3 size={24} /> Métricas de la IA
         </h1>
         <p className="text-sm text-gray-400">
@@ -22,25 +22,25 @@ export default function AIMetricsPage() {
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-xl border border-blue-500/30 bg-blue-500/5 p-5">
           <p className="text-sm font-medium text-gray-400">Diagnósticos totales</p>
-          <p className="mt-2 text-3xl font-semibold text-white">{metrics.totalDiagnoses}</p>
+          <p className="mt-2 text-3xl font-semibold text-gray-900">{metrics.totalDiagnoses}</p>
         </div>
         <div className="rounded-xl border border-green-500/30 bg-green-500/5 p-5">
           <p className="text-sm font-medium text-gray-400 flex items-center gap-2">
             <CheckCircle size={14} /> Aciertos
           </p>
-          <p className="mt-2 text-3xl font-semibold text-white">{metrics.correctPredictions}</p>
+          <p className="mt-2 text-3xl font-semibold text-gray-900">{metrics.correctPredictions}</p>
         </div>
         <div className="rounded-xl border border-red-500/30 bg-red-500/5 p-5">
           <p className="text-sm font-medium text-gray-400 flex items-center gap-2">
             <XCircle size={14} /> Correcciones
           </p>
-          <p className="mt-2 text-3xl font-semibold text-white">{metrics.incorrectPredictions}</p>
+          <p className="mt-2 text-3xl font-semibold text-gray-900">{metrics.incorrectPredictions}</p>
         </div>
         <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/5 p-5">
           <p className="text-sm font-medium text-gray-400 flex items-center gap-2">
             <TrendingUp size={14} /> Precisión
           </p>
-          <p className="mt-2 text-3xl font-semibold text-white">
+          <p className="mt-2 text-3xl font-semibold text-gray-900">
             {Math.round(metrics.accuracy * 100)}%
           </p>
         </div>

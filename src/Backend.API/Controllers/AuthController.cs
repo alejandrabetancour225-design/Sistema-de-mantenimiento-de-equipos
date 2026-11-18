@@ -116,7 +116,7 @@ public class AuthController : ControllerBase
         return status switch
         {
             PasswordResetStatus.Success => Ok(new { message = "Contraseña restablecida correctamente." }),
-            PasswordResetStatus.InvalidCode => BadRequest(new { message = "Código inválido." }),
+            PasswordResetStatus.InvalidCode => BadRequest(new { message = "El código es inválido o expiró. Solicita uno nuevo." }),
             PasswordResetStatus.Expired => BadRequest(new { message = "El código expiró. Solicita uno nuevo." }),
             PasswordResetStatus.TooManyAttempts => BadRequest(new { message = "Demasiados intentos. Solicita un código nuevo." }),
             _ => BadRequest(new { message = "No se pudo restablecer la contraseña." })

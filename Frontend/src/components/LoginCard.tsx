@@ -45,14 +45,14 @@ export default function LoginCard() {
       <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
         <div>
           <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-gray-300">
-            Email
+            Correo electrónico
           </label>
           <input
             id="email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="your@email.com"
+            placeholder="tu@empresa.com"
             autoComplete="email"
             autoFocus
             required
@@ -63,7 +63,7 @@ export default function LoginCard() {
         <div>
           <div className="mb-1.5 flex items-center justify-between">
             <label htmlFor="password" className="text-sm font-medium text-gray-300">
-              Password
+              Contraseña
             </label>
             <button
               type="button"
@@ -88,7 +88,6 @@ export default function LoginCard() {
             <button
               type="button"
               onClick={() => setShowPassword((v) => !v)}
-              tabIndex={-1}
               className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-200"
               aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
             >
